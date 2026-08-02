@@ -44,7 +44,10 @@ export async function connect(onStateChange, onDataReceived, onLog) {
             const dataView = event.target.value;
             if (dataView.byteLength === 24) {
                 const parsed = parsePacket(dataView);
+                // onLog('RX: 24 bytes', 'rx'); // Un-comment if too noisy
                 onDataReceived(parsed);
+            } else {
+                onLog(`RX Error: Received ${dataView.byteLength} bytes, expected 24`, 'sys');
             }
         });
         
