@@ -71,7 +71,14 @@ export async function sendCommand(cmd, onLog) {
         return;
     }
     try {
-        await characteristic.writeValue(textEncoder.encode(cmd));
+        const data = textEncoder.encode(cmd);
+        if (characteristic.properties.writeWithoutResponse) {
+            await characteristic.writeValueWithoutResponse(data);
+        } else if (characteristic.properties.write) {
+            await characteristic.writeValueWithResponse(data);
+        } else {
+            await characteristic.writeValue(data);
+        }
         onLog(`TX: ${cmd}`, 'tx');
     } catch (error) {
         console.error(error);
