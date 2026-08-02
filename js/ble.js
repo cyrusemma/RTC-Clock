@@ -42,12 +42,15 @@ export async function connect(onStateChange, onDataReceived, onLog) {
         await characteristic.startNotifications();
         characteristic.addEventListener('characteristicvaluechanged', (event) => {
             const dataView = event.target.value;
-            if (dataView.byteLength === 24) {
+            if (dataView.byteLength === 25) {
                 const parsed = parsePacket(dataView);
-                // onLog('RX: 24 bytes', 'rx'); // Un-comment if too noisy
+                // onLog('RX: 25 bytes', 'rx'); // Un-comment if too noisy
+                if (parsed.protocolVersion !== 1) {
+                    console.warn(`Protocol version mismatch: expected 1, got ${parsed.protocolVersion}`);
+                }
                 onDataReceived(parsed);
             } else {
-                onLog(`RX Error: Received ${dataView.byteLength} bytes, expected 24`, 'sys');
+                onLog(`RX Error: Received ${dataView.byteLength} bytes, expected 25`, 'sys');
             }
         });
         
@@ -90,24 +93,25 @@ export async function sendCommand(cmd, onLog) {
 }
 
 function parsePacket(dv) {
-    const epoch = dv.getUint32(0, false);
-    const mode = dv.getUint8(4);
-    const flags = dv.getUint8(5);
-    const tmrState = dv.getUint8(6);
-    const alarmHour = dv.getUint8(7);
-    const alarmMin = dv.getUint8(8);
-    const alarmSetField = dv.getUint8(9);
-    const swState = dv.getUint8(10);
-    const swElapsedMs = dv.getUint32(11, false);
-    const tmrRemainingMs = dv.getUint32(15, false);
-    const tmrInitMin = dv.getUint8(19);
-    const tmrInitSec = dv.getUint8(20);
-    const tmrSetField = dv.getUint8(21);
-    const timezoneOffset = dv.getInt8(22);
-    const settingPosition = dv.getUint8(23);
+    const protocolVersion = dv.getUint8(0);
+    const epoch = dv.getUint32(1, false);
+    const mode = dv.getUint8(5);
+    const flags = dv.getUint8(6);
+    const tmrState = dv.getUint8(7);
+    const alarmHour = dv.getUint8(8);
+    const alarmMin = dv.getUint8(9);
+    const alarmSetField = dv.getUint8(10);
+    const swState = dv.getUint8(11);
+    const swElapsedMs = dv.getUint32(12, false);
+    const tmrRemainingMs = dv.getUint32(16, false);
+    const tmrInitMin = dv.getUint8(20);
+    const tmrInitSec = dv.getUint8(21);
+    const tmrSetField = dv.getUint8(22);
+    const timezoneOffset = dv.getInt8(23);
+    const settingPosition = dv.getUint8(24);
 
     return {
-        epoch, mode,
+        protocolVersion, epoch, mode,
         alarmRinging: !!(flags & 0b0001),
         alarmEnabled: !!(flags & 0b0010),
         is12hFormat: !!(flags & 0b0100),

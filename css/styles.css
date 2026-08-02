@@ -323,3 +323,10 @@ body {
     justify-content: space-between;
     margin-top: 25px;
 }
+
+.world-clock-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    opacity: 0.9;
+}

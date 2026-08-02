@@ -1,6 +1,6 @@
 // js/app.js
 import { connect, disconnect, sendCommand, bleState } from './ble.js';
-import { initUI, updateConnectionState, appendLog, updateState, els } from './ui.js';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock } from './ui.js';
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -15,6 +15,18 @@ if ('serviceWorker' in navigator) {
 
 document.addEventListener('DOMContentLoaded', () => {
     initUI();
+    
+    // Live Browser Clock and Initial World Clock
+    setInterval(() => {
+        const now = new Date();
+        els.browserClock.textContent = `This device: ${now.toLocaleTimeString([], { hour12: false })}`;
+        if (!bleState.connected) {
+            renderWorldClock(Math.floor(now.getTime() / 1000));
+        }
+    }, 1000);
+    // Initial call
+    els.browserClock.textContent = `This device: ${new Date().toLocaleTimeString([], { hour12: false })}`;
+    renderWorldClock(Math.floor(Date.now() / 1000));
     
     // Theme Toggle
     const themeBtn = document.getElementById('theme-toggle');
@@ -70,15 +82,39 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-sw-pause').addEventListener('click', () => sendCommand('BTN:DOWN', appendLog));
     document.getElementById('btn-sw-reset').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
 
+    function setupHoldToRepeat(btn, cmd) {
+        let holdTimeout;
+        let holdInterval;
+
+        const start = (e) => {
+            if (e.type === 'touchstart') e.preventDefault();
+            sendCommand(cmd, appendLog);
+            holdTimeout = setTimeout(() => {
+                holdInterval = setInterval(() => sendCommand(cmd, appendLog), 120);
+            }, 400);
+        };
+        const stop = () => {
+            clearTimeout(holdTimeout);
+            clearInterval(holdInterval);
+        };
+
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('touchstart', start, { passive: false });
+        btn.addEventListener('mouseup', stop);
+        btn.addEventListener('mouseleave', stop);
+        btn.addEventListener('touchend', stop);
+        btn.addEventListener('touchcancel', stop);
+    }
+
     // Alarm
     document.getElementById('btn-alarm-cycle').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
-    document.getElementById('btn-alarm-up').addEventListener('click', () => sendCommand('BTN:UP', appendLog));
-    document.getElementById('btn-alarm-down').addEventListener('click', () => sendCommand('BTN:DOWN', appendLog));
+    setupHoldToRepeat(document.getElementById('btn-alarm-up'), 'BTN:UP');
+    setupHoldToRepeat(document.getElementById('btn-alarm-down'), 'BTN:DOWN');
     document.getElementById('btn-alarm-dismiss').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
 
     // Timer
     document.getElementById('btn-timer-cycle').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
-    document.getElementById('btn-timer-up').addEventListener('click', () => sendCommand('BTN:UP', appendLog));
-    document.getElementById('btn-timer-down').addEventListener('click', () => sendCommand('BTN:DOWN', appendLog));
+    setupHoldToRepeat(document.getElementById('btn-timer-up'), 'BTN:UP');
+    setupHoldToRepeat(document.getElementById('btn-timer-down'), 'BTN:DOWN');
     document.getElementById('btn-timer-stop').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
 });

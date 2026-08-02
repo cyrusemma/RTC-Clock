@@ -15,7 +15,10 @@ export const els = {
     views: document.querySelectorAll('.view'),
     
     clockTime: document.getElementById('clock-time'),
+    clockDate: document.getElementById('clock-date'),
     clockTz: document.getElementById('clock-tz'),
+    worldClock: document.getElementById('world-clock'),
+    browserClock: document.getElementById('browser-clock'),
     
     swTime: document.getElementById('sw-time'),
     swState: document.getElementById('sw-state'),
@@ -68,6 +71,28 @@ function pad(num, size = 2) {
     return s.substring(s.length - size);
 }
 
+const WORLD_CLOCK_ZONES = [
+    { label: 'New York',  tz: 'America/New_York' },
+    { label: 'London',    tz: 'Europe/London' },
+    { label: 'Accra',     tz: 'Africa/Accra' },
+    { label: 'Tokyo',     tz: 'Asia/Tokyo' },
+];
+
+export function renderWorldClock(epochSeconds) {
+    const base = new Date(epochSeconds * 1000);
+    const html = WORLD_CLOCK_ZONES.map(z => {
+        try {
+            const formatted = new Intl.DateTimeFormat('en-GB', {
+                timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false
+            }).format(base);
+            return `<div class="world-clock-row"><span>${z.label}</span><span>${formatted}</span></div>`;
+        } catch(e) {
+            return '';
+        }
+    }).join('');
+    els.worldClock.innerHTML = html;
+}
+
 export function updateState(state) {
     // Mode Switcher
     els.tabs.forEach(tab => {
@@ -106,6 +131,11 @@ export function updateState(state) {
         
         els.clockTime.innerHTML = `${hhStr}:${mmStr}:${ssStr}`;
         els.clockTz.textContent = `UTC${state.timezoneOffset >= 0 ? '+' : ''}${state.timezoneOffset}`;
+        
+        const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+        els.clockDate.textContent = d.toLocaleDateString(undefined, dateOptions);
+        
+        renderWorldClock(state.epoch);
     }
 
     // 2. Stopwatch

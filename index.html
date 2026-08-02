@@ -26,6 +26,7 @@
                 <div id="status-indicator" class="indicator disconnected"></div>
                 <span id="status-text">Disconnected</span>
                 <span id="device-name" class="hidden"></span>
+                <span id="browser-clock" class="digital-font small-text" style="margin-left: 10px; opacity: 0.7;">This device: --:--:--</span>
             </div>
             <div class="header-controls">
                 <button id="wifi-btn" class="clay-btn icon-btn" title="WiFi Settings">📶</button>
@@ -46,12 +47,17 @@
             <section id="view-clock" class="view active">
                 <div class="clay-display">
                     <div id="clock-time" class="digital-font large-text">00:00:00</div>
+                    <div id="clock-date" class="digital-font small-text" style="opacity: 0.8; margin-bottom: 10px;"></div>
                     <div class="display-footer">
                         <span id="clock-tz">UTC+0</span>
                     </div>
                 </div>
                 <div class="controls">
                     <button id="btn-sync" class="clay-btn wide-btn">Sync Time</button>
+                </div>
+                <div class="clay-inset" style="margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px; opacity: 0.7; font-size: 0.9rem;">World Clock</h4>
+                    <div id="world-clock" class="digital-font small-text"></div>
                 </div>
             </section>
 
@@ -114,6 +120,7 @@
     <div id="wifi-modal" class="modal-overlay hidden">
         <div class="clay-panel modal-content">
             <h3>WiFi Settings</h3>
+            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 15px; color: var(--warning-color); text-align: center;">Note: WiFi support isn't implemented in the firmware yet — coming in a future update.</p>
             <div class="input-group">
                 <label>SSID</label>
                 <input type="text" id="wifi-ssid" class="clay-input" placeholder="Network Name">
@@ -124,7 +131,7 @@
             </div>
             <div class="modal-actions">
                 <button id="btn-wifi-cancel" class="clay-btn">Cancel</button>
-                <button id="btn-wifi-send" class="clay-btn primary-btn">Send</button>
+                <button id="btn-wifi-send" class="clay-btn primary-btn" disabled style="opacity: 0.5; cursor: not-allowed;">Send</button>
             </div>
         </div>
     </div>
