@@ -1,0 +1,17 @@
+{
+  "name": "RTC Clock Controller",
+  "short_name": "RTC Clock",
+  "description": "Web Bluetooth Controller for ESP32-C3 RTC Clock",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1a202c",
+  "theme_color": "#1a202c",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

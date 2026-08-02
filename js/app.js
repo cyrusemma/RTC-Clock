@@ -2,6 +2,17 @@
 import { connect, disconnect, sendCommand, bleState } from './ble.js';
 import { initUI, updateConnectionState, appendLog, updateState, els } from './ui.js';
 
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            console.log('Service Worker registered', reg);
+        }).catch(err => {
+            console.error('Service Worker registration failed', err);
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initUI();
     
