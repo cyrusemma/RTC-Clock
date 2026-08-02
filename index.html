@@ -45,9 +45,15 @@
         <main class="views">
             <!-- CLOCK VIEW -->
             <section id="view-clock" class="view active">
-                <div class="clay-display">
-                    <div id="clock-time" class="digital-font large-text">00:00:00</div>
-                    <div id="clock-date" class="digital-font small-text" style="opacity: 0.8; margin-bottom: 10px;"></div>
+                <div class="clay-display" style="position: relative;">
+                    <button id="btn-clock-toggle" class="clay-btn icon-btn clock-toggle-btn" title="Toggle Analogue/Digital">🕐</button>
+                    <div id="clock-digital">
+                        <div id="clock-time" class="digital-font large-text">00:00:00</div>
+                        <div id="clock-date" class="digital-font small-text" style="opacity: 0.8; margin-bottom: 10px;"></div>
+                    </div>
+                    <div id="clock-analogue" class="hidden">
+                        <div id="analogue-clock-container"></div>
+                    </div>
                     <div class="display-footer">
                         <span id="clock-tz">UTC+0</span>
                     </div>
@@ -86,7 +92,25 @@
                         <span id="alarm-status" class="status-badge off">OFF</span>
                     </div>
                 </div>
-                <div class="controls row">
+                <!-- Scroll Pickers -->
+                <div class="picker-row">
+                    <div class="picker-col">
+                        <label class="picker-label">Hour</label>
+                        <div id="alarm-picker-hour" class="scroll-picker" data-min="0" data-max="23"></div>
+                        <div id="alarm-hour-display" class="picker-value">00</div>
+                    </div>
+                    <div class="picker-sep">:</div>
+                    <div class="picker-col">
+                        <label class="picker-label">Minute</label>
+                        <div id="alarm-picker-min" class="scroll-picker" data-min="0" data-max="59"></div>
+                        <div id="alarm-min-display" class="picker-value">00</div>
+                    </div>
+                </div>
+                <div class="controls row" style="margin-top: 10px;">
+                    <button id="btn-alarm-enable" class="clay-btn">Toggle ON/OFF</button>
+                    <button id="btn-alarm-set" class="clay-btn primary-btn">✔ Set Alarm</button>
+                </div>
+                <div class="controls row" style="margin-top: 8px;">
                     <button id="btn-alarm-cycle" class="clay-btn">Cycle Field</button>
                     <button id="btn-alarm-up" class="clay-btn icon-btn">▲</button>
                     <button id="btn-alarm-down" class="clay-btn icon-btn">▼</button>
@@ -99,11 +123,31 @@
                     <span>Timer is Ringing!</span>
                     <button id="btn-timer-stop" class="clay-btn danger-btn">Stop</button>
                 </div>
-                <div class="clay-display">
-                    <div id="timer-time" class="digital-font large-text">00:00.00</div>
-                    <div id="timer-state" class="state-label">Ready</div>
+                <div class="clay-display timer-ring-display">
+                    <div id="timer-ring-container"></div>
+                    <div class="timer-ring-overlay">
+                        <div id="timer-time" class="digital-font large-text">00:00.00</div>
+                        <div id="timer-state" class="state-label">Ready</div>
+                    </div>
                 </div>
-                <div class="controls row">
+                <!-- Scroll Pickers -->
+                <div class="picker-row">
+                    <div class="picker-col">
+                        <label class="picker-label">Min</label>
+                        <div id="timer-picker-min" class="scroll-picker" data-min="0" data-max="99"></div>
+                        <div id="timer-min-display" class="picker-value">00</div>
+                    </div>
+                    <div class="picker-sep">:</div>
+                    <div class="picker-col">
+                        <label class="picker-label">Sec</label>
+                        <div id="timer-picker-sec" class="scroll-picker" data-min="0" data-max="59"></div>
+                        <div id="timer-sec-display" class="picker-value">00</div>
+                    </div>
+                </div>
+                <div class="controls row" style="margin-top: 10px;">
+                    <button id="btn-timer-set" class="clay-btn primary-btn">✔ Set Timer</button>
+                </div>
+                <div class="controls row" style="margin-top: 8px;">
                     <button id="btn-timer-cycle" class="clay-btn">Cycle Field</button>
                     <button id="btn-timer-up" class="clay-btn icon-btn">▲</button>
                     <button id="btn-timer-down" class="clay-btn icon-btn">▼</button>

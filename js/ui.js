@@ -17,6 +17,9 @@ export const els = {
     clockTime: document.getElementById('clock-time'),
     clockDate: document.getElementById('clock-date'),
     clockTz: document.getElementById('clock-tz'),
+    clockDigital: document.getElementById('clock-digital'),
+    clockAnalogue: document.getElementById('clock-analogue'),
+    analogueContainer: document.getElementById('analogue-clock-container'),
     worldClock: document.getElementById('world-clock'),
     browserClock: document.getElementById('browser-clock'),
     
@@ -30,6 +33,7 @@ export const els = {
     timerRingingBanner: document.getElementById('timer-ringing-banner'),
     timerTime: document.getElementById('timer-time'),
     timerState: document.getElementById('timer-state'),
+    timerRingContainer: document.getElementById('timer-ring-container'),
     
     logContent: document.getElementById('log-content')
 };
@@ -93,6 +97,63 @@ export function renderWorldClock(epochSeconds) {
     els.worldClock.innerHTML = html;
 }
 
+export function renderAnalogueClock(epochSeconds, tzOffsetHours) {
+    const d = new Date((epochSeconds + tzOffsetHours * 3600) * 1000);
+    const h = d.getUTCHours() % 12;
+    const m = d.getUTCMinutes();
+    const s = d.getUTCSeconds();
+
+    const hourAngle = (h + m / 60) * 30;
+    const minAngle  = (m + s / 60) * 6;
+    const secAngle  = s * 6;
+
+    const hand = (angle, len) => {
+        const x = 100 + len * Math.sin(angle * Math.PI / 180);
+        const y = 100 - len * Math.cos(angle * Math.PI / 180);
+        return { x, y };
+    };
+
+    const h2 = hand(hourAngle, 50);
+    const m2 = hand(minAngle, 70);
+    const s2 = hand(secAngle, 80);
+
+    const ticks = [...Array(12)].map((_, i) => {
+        const angle = i * 30;
+        const x1 = 100 + 82 * Math.sin(angle * Math.PI / 180);
+        const y1 = 100 - 82 * Math.cos(angle * Math.PI / 180);
+        const x2 = 100 + 95 * Math.sin(angle * Math.PI / 180);
+        const y2 = 100 - 95 * Math.cos(angle * Math.PI / 180);
+        return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" class="clock-tick" />`;
+    }).join('');
+
+    els.analogueContainer.innerHTML = `
+    <svg viewBox="0 0 200 200" class="analogue-clock">
+        <circle cx="100" cy="100" r="97" class="clock-face" />
+        ${ticks}
+        <line x1="100" y1="100" x2="${h2.x.toFixed(2)}" y2="${h2.y.toFixed(2)}" class="clock-hand-hour" />
+        <line x1="100" y1="100" x2="${m2.x.toFixed(2)}" y2="${m2.y.toFixed(2)}" class="clock-hand-min" />
+        <line x1="100" y1="100" x2="${s2.x.toFixed(2)}" y2="${s2.y.toFixed(2)}" class="clock-hand-sec" />
+        <circle cx="100" cy="100" r="4" class="clock-center" />
+    </svg>`;
+}
+
+export function renderTimerRing(remainingMs, totalMs, isRinging) {
+    const radius = 90;
+    const circumference = 2 * Math.PI * radius;
+    const fraction = totalMs > 0 ? Math.max(0, remainingMs / totalMs) : 0;
+    const offset = circumference * (1 - fraction);
+    const ringClass = isRinging ? 'timer-ring-progress ringing' : 'timer-ring-progress';
+
+    els.timerRingContainer.innerHTML = `
+    <svg viewBox="0 0 200 200" class="timer-ring">
+        <circle cx="100" cy="100" r="${radius}" class="timer-ring-bg" />
+        <circle cx="100" cy="100" r="${radius}" class="${ringClass}"
+            stroke-dasharray="${circumference.toFixed(2)}"
+            stroke-dashoffset="${offset.toFixed(2)}"
+            transform="rotate(-90 100 100)" />
+    </svg>`;
+}
+
 export function updateState(state) {
     // Mode Switcher
     els.tabs.forEach(tab => {
@@ -136,6 +197,8 @@ export function updateState(state) {
         els.clockDate.textContent = d.toLocaleDateString(undefined, dateOptions);
         
         renderWorldClock(state.epoch);
+        // Always re-render analogue if visible
+        renderAnalogueClock(state.epoch, state.timezoneOffset);
     }
 
     // 2. Stopwatch
@@ -186,6 +249,10 @@ export function updateState(state) {
         const tmrStates = ['Ready', 'Running', 'Paused', 'Ringing'];
         els.timerState.textContent = tmrStates[state.tmrState] || 'Unknown';
         
+        const totalMs = (state.tmrInitMin * 60 + state.tmrInitSec) * 1000;
+        const isRinging = state.tmrState === 3;
+        renderTimerRing(state.tmrRemainingMs, totalMs, isRinging);
+
         if (state.tmrState === 3) {
             els.timerRingingBanner.classList.remove('hidden');
         } else {
