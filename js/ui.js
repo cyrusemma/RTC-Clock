@@ -25,10 +25,15 @@ export const els = {
     
     swTime: document.getElementById('sw-time'),
     swState: document.getElementById('sw-state'),
+    swLapsContainer: document.getElementById('sw-laps-container'),
+    swLaps: document.getElementById('sw-laps'),
     
     alarmRingingBanner: document.getElementById('alarm-ringing-banner'),
-    alarmTime: document.getElementById('alarm-time'),
-    alarmStatus: document.getElementById('alarm-status'),
+    alarmCardsContainer: document.getElementById('alarm-cards-container'),
+    alarmEditor: document.getElementById('alarm-editor'),
+    alarmEditSlotLabel: document.getElementById('alarm-edit-slot-label'),
+    alarmSnoozeBtn: document.getElementById('btn-alarm-snooze'),
+    alarmCancelBtn: document.getElementById('btn-alarm-cancel'),
     
     timerRingingBanner: document.getElementById('timer-ringing-banner'),
     timerTime: document.getElementById('timer-time'),
@@ -154,6 +159,31 @@ export function renderTimerRing(remainingMs, totalMs, isRinging) {
     </svg>`;
 }
 
+export function renderAlarmCards(alarms, activeSlot) {
+    if (!alarms || alarms.length === 0) return;
+    
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const html = alarms.map((alarm, i) => {
+        const timeStr = `${pad(alarm.h)}:${pad(alarm.m)}`;
+        const disabledClass = alarm.en ? '' : 'disabled';
+        const dayStr = days.map((d, di) => {
+            const active = (alarm.rep & (1 << di)) ? 'style="color: var(--primary-color);"' : '';
+            return `<span ${active}>${d}</span>`;
+        }).join(' ');
+
+        return `
+        <div class="alarm-card ${disabledClass}" data-slot="${i}">
+            <div class="alarm-card-time">${timeStr}</div>
+            <div class="alarm-card-details" style="text-align: right;">
+                <div style="font-weight: 700;">${alarm.en ? 'ON' : 'OFF'}</div>
+                <div class="alarm-card-days" style="display:flex;gap:6px;">${dayStr}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    els.alarmCardsContainer.innerHTML = html;
+}
+
 export function updateState(state) {
     // Mode Switcher
     els.tabs.forEach(tab => {
@@ -210,18 +240,30 @@ export function updateState(state) {
         els.swTime.textContent = `${pad(m)}:${pad(s)}.${pad(cm)}`;
         const swStates = ['Ready', 'Running', 'Paused'];
         els.swState.textContent = swStates[state.swState] || 'Unknown';
+
+        // Laps
+        if (state.lapCount > 0) {
+            els.swLapsContainer.classList.remove('hidden');
+            if (state.laps && state.laps.length > 0) {
+                els.swLaps.innerHTML = state.laps.map((lapMs, i) => {
+                    const lcm = Math.floor((lapMs % 1000) / 10);
+                    const ls = Math.floor(lapMs / 1000) % 60;
+                    const lm = Math.floor(lapMs / 60000);
+                    return `<div>Lap ${i + 1}: ${pad(lm)}:${pad(ls)}.${pad(lcm)}</div>`;
+                }).join('');
+            } else {
+                els.swLaps.innerHTML = `<div>${state.lapCount} laps recorded... (Syncing)</div>`;
+            }
+        } else {
+            els.swLapsContainer.classList.add('hidden');
+        }
     }
 
     // 3. Alarm
     if (state.mode === 2 || state.alarmRinging) {
-        let h = pad(state.alarmHour);
-        let m = pad(state.alarmMin);
-        if (state.alarmSetField === 1) h = `<span class="editing">${h}</span>`;
-        if (state.alarmSetField === 2) m = `<span class="editing">${m}</span>`;
-        els.alarmTime.innerHTML = `${h}:${m}`;
-        
-        els.alarmStatus.className = `status-badge ${state.alarmEnabled ? 'on' : 'off'}`;
-        els.alarmStatus.textContent = state.alarmEnabled ? 'ON' : 'OFF';
+        if (state.alarms) {
+            renderAlarmCards(state.alarms, state.alarmViewSlot);
+        }
         
         if (state.alarmRinging) {
             els.alarmRingingBanner.classList.remove('hidden');

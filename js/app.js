@@ -1,6 +1,7 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState } from './ble.js';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock } from './ui.js';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards } from './ui.js';
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -51,6 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
     els.browserClock.textContent = `This device: ${new Date().toLocaleTimeString([], { hour12: false })}`;
     renderWorldClock(Math.floor(Date.now() / 1000));
     
+    // Command Router
+    function sendCmd(cmd) {
+        if (wsState.connected) {
+            sendCommandWS(cmd, appendLog);
+        } else if (bleState.connected) {
+            sendCommand(cmd, appendLog);
+        } else {
+            appendLog('Error: Not connected', 'sys');
+        }
+    }
+
     // Connection
     els.connectBtn.addEventListener('click', () => {
         if (bleState.connected) {
@@ -59,6 +71,19 @@ document.addEventListener('DOMContentLoaded', () => {
             connect(updateConnectionState, wrappedUpdateState, appendLog);
         }
     });
+
+    const wifiConnectBtn = document.getElementById('wifi-connect-btn');
+    if (wifiConnectBtn) {
+        wifiConnectBtn.addEventListener('click', () => {
+            if (wsState.connected) {
+                disconnectWS(updateConnectionState, appendLog);
+                wifiConnectBtn.textContent = 'WiFi Connect';
+            } else {
+                connectWS(updateConnectionState, wrappedUpdateState, appendLog);
+                wifiConnectBtn.textContent = 'WiFi Disconnect';
+            }
+        });
+    }
 
     // WiFi Settings
     els.wifiBtn.addEventListener('click', () => {
@@ -83,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tabs
     els.tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            sendCommand(`MODE:${tab.dataset.mode}`, appendLog);
+            sendCmd(`MODE:${tab.dataset.mode}`);
         });
     });
 
@@ -91,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-sync').addEventListener('click', () => {
         const epoch = Math.floor(Date.now() / 1000);
         const tz = -(new Date().getTimezoneOffset() / 60);
-        sendCommand(`SYNC:${epoch},${tz}`, appendLog);
+        sendCmd(`SYNC:${epoch},${tz}`);
     });
 
     // ─── Scroll Picker Factory ────────────────────────────────────────────────
@@ -153,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Alarm pickers
-    let alarmDraft = { h: 0, m: 0 };
+    let alarmDraft = { h: 0, m: 0, en: 0, rep: 0, slot: 0 };
     const alarmPickerH = initScrollPicker(
         document.getElementById('alarm-picker-hour'), 0,
         v => { alarmDraft.h = v; }
@@ -162,13 +187,68 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('alarm-picker-min'), 0,
         v => { alarmDraft.m = v; }
     );
+    
+    // Day Repeat Buttons
+    const dayBtns = document.querySelectorAll('.day-btn');
+    dayBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const day = parseInt(btn.dataset.day);
+            btn.classList.toggle('active');
+            if (btn.classList.contains('active')) {
+                alarmDraft.rep |= (1 << day);
+            } else {
+                alarmDraft.rep &= ~(1 << day);
+            }
+        });
+    });
+
+    els.alarmCancelBtn.addEventListener('click', () => {
+        els.alarmEditor.classList.add('hidden');
+    });
+
     document.getElementById('btn-alarm-set').addEventListener('click', () => {
         alarmDraft.h = alarmPickerH.getValue();
         alarmDraft.m = alarmPickerM.getValue();
-        sendCommand(`SET_ALARM:${String(alarmDraft.h).padStart(2,'0')},${String(alarmDraft.m).padStart(2,'0')},1`, appendLog);
+        sendCmd(`SET_ALARM:${alarmDraft.slot},${String(alarmDraft.h).padStart(2,'0')},${String(alarmDraft.m).padStart(2,'0')},${alarmDraft.en},${alarmDraft.rep}`);
+        els.alarmEditor.classList.add('hidden');
     });
-    document.getElementById('btn-alarm-enable').addEventListener('click', () => {
-        sendCommand('BTN:ALARM', appendLog); // cycles enable/disable in firmware
+
+    // Alarm Cards Click
+    els.alarmCardsContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.alarm-card');
+        if (!card) return;
+        const slot = parseInt(card.dataset.slot);
+        
+        // Find existing alarm data if any
+        let existing = null;
+        if (bleState.connected && lastBleState && lastBleState.alarms) {
+            existing = lastBleState.alarms[slot];
+        } else if (wsState.connected && lastBleState && lastBleState.alarms) {
+            existing = lastBleState.alarms[slot];
+        }
+
+        alarmDraft.slot = slot;
+        if (existing) {
+            alarmDraft.h = existing.h;
+            alarmDraft.m = existing.m;
+            alarmDraft.en = existing.en ? 1 : 0;
+            alarmDraft.rep = existing.rep;
+        }
+
+        alarmPickerH.setValue(alarmDraft.h);
+        alarmPickerM.setValue(alarmDraft.m);
+        els.alarmEditSlotLabel.textContent = `(Slot ${slot + 1})`;
+        
+        dayBtns.forEach(btn => {
+            const day = parseInt(btn.dataset.day);
+            if (alarmDraft.rep & (1 << day)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        els.alarmEditor.classList.remove('hidden');
     });
 
     // Timer pickers
@@ -184,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-timer-set').addEventListener('click', () => {
         timerDraft.min = timerPickerMin.getValue();
         timerDraft.sec = timerPickerSec.getValue();
-        sendCommand(`SET_TIMER:${String(timerDraft.min).padStart(2,'0')},${String(timerDraft.sec).padStart(2,'0')}`, appendLog);
+        sendCmd(`SET_TIMER:${String(timerDraft.min).padStart(2,'0')},${String(timerDraft.sec).padStart(2,'0')}`);
     });
 
     // ─── Web Audio Alarm ──────────────────────────────────────────────────────
@@ -227,7 +307,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hook alarm state changes by wrapping updateState
     const _origUpdateState = updateState;
-    const wrappedUpdateState = (state) => {
+    let isFetchingAlarms = false;
+    let isFetchingLaps = false;
+    let lastBleState = null;
+
+    const wrappedUpdateState = async (state) => {
+        lastBleState = state;
+        
+        // Inject BLE alarms/laps if missing
+        if (bleState.connected) {
+            if (!state.alarms && !isFetchingAlarms) {
+                isFetchingAlarms = true;
+                state.alarms = await readAlarms();
+                isFetchingAlarms = false;
+            }
+            if (state.lapCount > 0 && (!state.laps || state.laps.length !== state.lapCount) && !isFetchingLaps) {
+                isFetchingLaps = true;
+                state.laps = await readLaps(state.lapCount);
+                isFetchingLaps = false;
+            }
+        }
+        
         _origUpdateState(state);
         const alarmActive = state.alarmRinging || state.tmrState === 3;
         if (alarmActive && !lastAlarmState) startAlarm();
@@ -236,12 +336,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Re-wire BLE to use our wrapped state handler
-    connect.__stateCallback = wrappedUpdateState;
+    // (WS already uses wrappedUpdateState from its connect call)
 
     // Stopwatch
-    document.getElementById('btn-sw-start').addEventListener('click', () => sendCommand('BTN:UP', appendLog));
-    document.getElementById('btn-sw-pause').addEventListener('click', () => sendCommand('BTN:DOWN', appendLog));
-    document.getElementById('btn-sw-reset').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
+    document.getElementById('btn-sw-start').addEventListener('click', () => sendCmd('BTN:UP'));
+    document.getElementById('btn-sw-pause').addEventListener('click', () => sendCmd('BTN:DOWN'));
+    document.getElementById('btn-sw-lap').addEventListener('click', () => sendCmd('BTN:LAP'));
+    document.getElementById('btn-sw-reset').addEventListener('click', () => sendCmd('BTN:ALARM'));
 
     function setupHoldToRepeat(btn, cmd) {
         let holdTimeout;
@@ -249,9 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const start = (e) => {
             if (e.type === 'touchstart') e.preventDefault();
-            sendCommand(cmd, appendLog);
+            sendCmd(cmd);
             holdTimeout = setTimeout(() => {
-                holdInterval = setInterval(() => sendCommand(cmd, appendLog), 120);
+                holdInterval = setInterval(() => sendCmd(cmd), 120);
             }, 400);
         };
         const stop = () => {
@@ -268,14 +369,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Alarm
-    document.getElementById('btn-alarm-cycle').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
-    setupHoldToRepeat(document.getElementById('btn-alarm-up'), 'BTN:UP');
-    setupHoldToRepeat(document.getElementById('btn-alarm-down'), 'BTN:DOWN');
-    document.getElementById('btn-alarm-dismiss').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
+    if (els.alarmSnoozeBtn) {
+        els.alarmSnoozeBtn.addEventListener('click', () => {
+            if (lastBleState && lastBleState.ringingSlot !== undefined && lastBleState.ringingSlot !== 0xFF) {
+                sendCmd(`SNOOZE:${lastBleState.ringingSlot}`);
+            } else {
+                sendCmd('BTN:SNOOZE');
+            }
+        });
+    }
+    document.getElementById('btn-alarm-dismiss').addEventListener('click', () => sendCmd('BTN:ALARM'));
 
     // Timer
-    document.getElementById('btn-timer-cycle').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
     setupHoldToRepeat(document.getElementById('btn-timer-up'), 'BTN:UP');
     setupHoldToRepeat(document.getElementById('btn-timer-down'), 'BTN:DOWN');
-    document.getElementById('btn-timer-stop').addEventListener('click', () => sendCommand('BTN:ALARM', appendLog));
+    document.getElementById('btn-timer-stop').addEventListener('click', () => sendCmd('BTN:ALARM'));
 });
