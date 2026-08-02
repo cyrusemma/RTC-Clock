@@ -26,7 +26,7 @@
                 <div id="status-indicator" class="indicator disconnected"></div>
                 <span id="status-text">Disconnected</span>
                 <span id="device-name" class="hidden"></span>
-                <span id="browser-clock" class="digital-font small-text" style="margin-left: 10px; opacity: 0.7;">This device: --:--:--</span>
+                <span id="browser-clock" class="digital-font small-text browser-clock-text">This device: --:--:--</span>
             </div>
             <div class="header-controls">
                 <!-- V2: Separate WiFi and BLE connection buttons -->
@@ -39,11 +39,11 @@
         <main class="views">
             <!-- CLOCK VIEW -->
             <section id="view-clock" class="view active">
-                <div class="clay-display" style="position: relative;">
+                <div class="clay-display clock-display-wrapper">
                     <button id="btn-clock-toggle" class="clay-btn icon-btn clock-toggle-btn" title="Toggle Analogue/Digital">🕐</button>
                     <div id="clock-digital">
                         <div id="clock-time" class="digital-font large-text">00:00:00</div>
-                        <div id="clock-date" class="digital-font small-text" style="opacity: 0.8; margin-bottom: 10px;"></div>
+                        <div id="clock-date" class="digital-font small-text clock-date-text"></div>
                     </div>
                     <div id="clock-analogue" class="hidden">
                         <div id="analogue-clock-container"></div>
@@ -55,8 +55,8 @@
                 <div class="controls">
                     <button id="btn-sync" class="clay-btn wide-btn">Sync Time</button>
                 </div>
-                <div class="clay-inset" style="margin-top: 20px;">
-                    <h4 style="margin-bottom: 10px; opacity: 0.7; font-size: 0.9rem;">World Clock</h4>
+                <div class="clay-inset world-clock-container">
+                    <h4 class="section-subtitle">World Clock</h4>
                     <div id="world-clock" class="digital-font small-text"></div>
                 </div>
             </section>
@@ -73,9 +73,9 @@
                     <button id="btn-sw-lap" class="clay-btn">Lap</button>
                     <button id="btn-sw-reset" class="clay-btn warning-btn">Reset</button>
                 </div>
-                <div id="sw-laps-container" class="clay-inset hidden" style="margin-top: 15px;">
-                    <h4 style="margin-bottom: 5px; opacity: 0.7; font-size: 0.9rem;">Laps</h4>
-                    <div id="sw-laps" class="digital-font small-text" style="max-height: 120px; overflow-y: auto;"></div>
+                <div id="sw-laps-container" class="clay-inset hidden laps-container">
+                    <h4 class="section-subtitle-small">Laps</h4>
+                    <div id="sw-laps" class="digital-font small-text laps-list"></div>
                 </div>
             </section>
 
@@ -93,8 +93,8 @@
                 </div>
 
                 <!-- Editor (shown when a card is clicked) -->
-                <div id="alarm-editor" class="clay-inset hidden" style="margin-top: 15px;">
-                    <h4 style="margin-bottom: 10px; opacity: 0.7; font-size: 0.9rem;">Edit Alarm <span id="alarm-edit-slot-label"></span></h4>
+                <div id="alarm-editor" class="clay-inset hidden alarm-editor-container">
+                    <h4 class="section-subtitle">Edit Alarm <span id="alarm-edit-slot-label"></span></h4>
                     
                     <div class="picker-row">
                         <div class="picker-col">
@@ -110,7 +110,7 @@
                         </div>
                     </div>
                     
-                    <div class="repeat-days" id="alarm-repeat-days" style="display: flex; gap: 5px; justify-content: center; margin: 15px 0;">
+                    <div class="repeat-days repeat-days-container" id="alarm-repeat-days">
                         <button class="clay-btn small-btn day-btn" data-day="0">S</button>
                         <button class="clay-btn small-btn day-btn" data-day="1">M</button>
                         <button class="clay-btn small-btn day-btn" data-day="2">T</button>
@@ -120,7 +120,7 @@
                         <button class="clay-btn small-btn day-btn" data-day="6">S</button>
                     </div>
 
-                    <div class="controls row" style="margin-top: 10px;">
+                    <div class="controls row controls-mt-10">
                         <button id="btn-alarm-cancel" class="clay-btn">Cancel</button>
                         <button id="btn-alarm-set" class="clay-btn primary-btn">✔ Save Alarm</button>
                     </div>
@@ -154,10 +154,10 @@
                         <div id="timer-sec-display" class="picker-value">00</div>
                     </div>
                 </div>
-                <div class="controls row" style="margin-top: 10px;">
+                <div class="controls row controls-mt-10">
                     <button id="btn-timer-set" class="clay-btn primary-btn">✔ Set Timer</button>
                 </div>
-                <div class="controls row" style="margin-top: 8px;">
+                <div class="controls row controls-mt-8">
                     <button id="btn-timer-cycle" class="clay-btn">Cycle Field</button>
                     <button id="btn-timer-up" class="clay-btn icon-btn">▲</button>
                     <button id="btn-timer-down" class="clay-btn icon-btn">▼</button>

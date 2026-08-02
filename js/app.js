@@ -30,6 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (analogueMode) {
             els.clockDigital.classList.add('hidden');
             els.clockAnalogue.classList.remove('hidden');
+            // Render immediately if not waiting for BLE tick
+            if (!bleState || !bleState.connected) {
+                renderAnalogueClock(Math.floor(Date.now() / 1000), -(new Date().getTimezoneOffset() / 60));
+            }
         } else {
             els.clockDigital.classList.remove('hidden');
             els.clockAnalogue.classList.add('hidden');

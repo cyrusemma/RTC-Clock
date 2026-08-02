@@ -477,6 +477,7 @@ body {
     cursor: ns-resize;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
+    -webkit-user-select: none;
     user-select: none;
     position: relative;
     overflow: hidden;
@@ -524,17 +525,17 @@ body {
 /* ── V2: Bottom Nav ── */
 .bottom-nav {
     position: fixed;
-    bottom: 20px;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 40px);
-    max-width: 440px;
+    width: 100%;
+    max-width: 480px; /* match app-container */
     background: var(--panel-bg);
-    border-radius: 20px;
-    box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+    border-radius: 25px 25px 0 0;
+    box-shadow: 0 -8px 20px var(--shadow-dark); /* top shadow for separation */
     display: flex;
-    justify-content: space-between;
-    padding: 10px;
+    justify-content: space-around;
+    padding: 15px 10px; /* add more padding for touch targets */
     z-index: 100;
 }
 
@@ -628,4 +629,63 @@ body {
 .small-btn {
     padding: 8px 12px;
     font-size: 0.85rem;
+}
+
+/* Utility classes to replace inline styles */
+.browser-clock-text {
+    margin-left: 10px;
+    opacity: 0.7;
+}
+
+.clock-display-wrapper {
+    position: relative;
+}
+
+.clock-date-text {
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+
+.world-clock-container {
+    margin-top: 20px;
+}
+
+.section-subtitle {
+    margin-bottom: 10px;
+    opacity: 0.7;
+    font-size: 0.9rem;
+}
+
+.section-subtitle-small {
+    margin-bottom: 5px;
+    opacity: 0.7;
+    font-size: 0.9rem;
+}
+
+.laps-container {
+    margin-top: 15px;
+}
+
+.laps-list {
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.alarm-editor-container {
+    margin-top: 15px;
+}
+
+.repeat-days-container {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.controls-mt-10 {
+    margin-top: 10px;
+}
+
+.controls-mt-8 {
+    margin-top: 8px;
 }
