@@ -55,17 +55,25 @@ export async function connect(onStateChange, onDataReceived, onLog) {
         await characteristic.startNotifications();
         characteristic.addEventListener('characteristicvaluechanged', (event) => {
             const dataView = event.target.value;
-            if (dataView.byteLength === 34) {
-                const parsed = parsePacket(dataView);
-                if (parsed.protocolVersion !== 2) {
-                    console.warn(`Protocol version mismatch: expected 2, got ${parsed.protocolVersion}`);
-                }
-                
-                // We emit the parsed packet immediately.
-                // We will rely on app.js to fetch alarms/laps periodically or trigger them.
-                onDataReceived(parsed);
+            const len = dataView.byteLength;
+
+            if (len < 25) {
+                console.warn(`BLE RX: Packet too short (${len} bytes), ignoring.`);
+                onLog(`RX Warning: Packet too short (${len} bytes), ignoring.`, 'sys');
+                return;
+            }
+
+            const proto = dataView.getUint8(0);
+
+            if (proto === 2 && len >= 34) {
+                // ── V2 protocol (34-byte) ────────────────────────────────
+                onDataReceived(parsePacketV2(dataView));
+            } else if (proto === 1 && len >= 25) {
+                // ── V1 protocol (25-byte) — fallback for older firmware ──
+                console.info('BLE RX: V1 firmware detected, using fallback parser.');
+                onDataReceived(parsePacketV1(dataView));
             } else {
-                onLog(`RX Error: Received ${dataView.byteLength} bytes, expected 34`, 'sys');
+                onLog(`RX Error: Unknown protocol v${proto} with ${len} bytes.`, 'sys');
             }
         });
         
@@ -113,10 +121,12 @@ export async function readAlarms() {
         const dv = await alarmCharacteristic.readValue();
         const alarms = [];
         for (let i = 0; i < 4; i++) {
+            const flags = dv.getUint8(i * 4 + 2);
             alarms.push({
                 h: dv.getUint8(i * 4),
                 m: dv.getUint8(i * 4 + 1),
-                en: dv.getUint8(i * 4 + 2) !== 0,
+                en: !!(flags & 0x01),
+                sn: !!(flags & 0x02),
                 rep: dv.getUint8(i * 4 + 3)
             });
         }
@@ -142,35 +152,106 @@ export async function readLaps(count) {
     }
 }
 
-function parsePacket(dv) {
+// ── V2 Parser: 34-byte packet (firmware V2.0) ────────────────────────────────
+function parsePacketV2(dv) {
     const protocolVersion = dv.getUint8(0);
-    const epoch = dv.getUint32(1, false);
-    const mode = dv.getUint8(5);
-    const flags = dv.getUint8(6);
-    const tmrState = dv.getUint8(7);
-    const swElapsedMs = dv.getUint32(8, false);
-    const tmrRemainingMs = dv.getUint32(12, false);
-    const tmrInitMin = dv.getUint8(16);
-    const tmrInitSec = dv.getUint8(17);
-    const tmrSetField = dv.getUint8(18);
-    const timezoneOffset = dv.getInt8(19);
+    const epoch           = dv.getUint32(1, false);   // big-endian
+    const mode            = dv.getUint8(5);
+    const flags           = dv.getUint8(6);
+    const tmrState        = dv.getUint8(7);
+    const swElapsedMs     = dv.getUint32(8, false);
+    const tmrRemainingMs  = dv.getUint32(12, false);
+    const tmrInitMin      = dv.getUint8(16);
+    const tmrInitSec      = dv.getUint8(17);
+    const tmrSetField     = dv.getUint8(18);
+    const timezoneOffset  = dv.getInt8(19);           // signed
     const settingPosition = dv.getUint8(20);
-    const swState = dv.getUint8(21);
-    const ringingSlot = dv.getUint8(22);
-    const lapCount = dv.getUint8(23);
-    const alarmViewSlot = dv.getUint8(24);
-    const alarmEditField = dv.getUint8(25);
+    const swState         = dv.getUint8(21);
+    const ringingSlot     = dv.getUint8(22);          // 0xFF = none
+    const lapCount        = dv.getUint8(23);
+    const alarmViewSlot   = dv.getUint8(24);
+    const alarmEditField  = dv.getUint8(25);
+    // [26-33] reserved — ignored
 
     return {
-        protocolVersion, epoch, mode,
-        alarmRinging: !!(flags & 0b0001),
-        is12hFormat: !!(flags & 0b0010),
-        settingMode: !!(flags & 0b0100),
-        bleConn: !!(flags & 0b1000),
-        wsConn: !!(flags & 0b10000),
-        tmrState, swElapsedMs, tmrRemainingMs,
-        tmrInitMin, tmrInitSec, tmrSetField,
-        timezoneOffset, settingPosition, swState,
-        ringingSlot, lapCount, alarmViewSlot, alarmEditField
+        protocolVersion,
+        epoch,
+        mode,
+        alarmRinging:    !!(flags & 0x01),
+        is12hFormat:     !!(flags & 0x02),
+        settingMode:     !!(flags & 0x04),
+        bleConn:         !!(flags & 0x08),
+        wsConn:          !!(flags & 0x10),
+        tmrState,
+        swElapsedMs,
+        tmrRemainingMs,
+        tmrInitMin,
+        tmrInitSec,
+        tmrSetField,
+        timezoneOffset,
+        settingPosition,
+        swState,
+        ringingSlot,
+        lapCount,
+        alarmViewSlot,
+        alarmEditField
+    };
+}
+
+// ── V1 Parser: 25-byte packet (firmware V1 — fallback) ───────────────────────
+// Layout:
+//  [0]     uint8   protocol version (1)
+//  [1-4]   uint32  epoch big-endian
+//  [5]     uint8   mode
+//  [6]     uint8   flags: b0=alarmRinging b1=alarmEnabled b2=is12h b3=settingMode
+//  [7]     uint8   timer state
+//  [8]     uint8   alarm hour
+//  [9]     uint8   alarm minute
+//  [10]    uint8   alarm set field
+//  [11]    uint8   stopwatch state
+//  [12-15] uint32  stopwatch elapsed ms
+//  [16-19] uint32  timer remaining ms
+//  [20]    uint8   timer init minutes
+//  [21]    uint8   timer init seconds
+//  [22]    uint8   timer set field
+//  [23]    int8    timezone offset
+//  [24]    uint8   setting position
+function parsePacketV1(dv) {
+    const protocolVersion = dv.getUint8(0);
+    const epoch           = dv.getUint32(1, false);
+    const mode            = dv.getUint8(5);
+    const flags           = dv.getUint8(6);
+    const tmrState        = dv.getUint8(7);
+    const swState         = dv.getUint8(11);
+    const swElapsedMs     = dv.getUint32(12, false);
+    const tmrRemainingMs  = dv.getUint32(16, false);
+    const tmrInitMin      = dv.getUint8(20);
+    const tmrInitSec      = dv.getUint8(21);
+    const tmrSetField     = dv.getUint8(22);
+    const timezoneOffset  = dv.getInt8(23);
+    const settingPosition = dv.getUint8(24);
+
+    return {
+        protocolVersion,
+        epoch,
+        mode,
+        alarmRinging:    !!(flags & 0x01),
+        is12hFormat:     !!(flags & 0x04),
+        settingMode:     !!(flags & 0x08),
+        bleConn:         true,   // V1 doesn't report this; assume connected
+        wsConn:          false,
+        tmrState,
+        swElapsedMs,
+        tmrRemainingMs,
+        tmrInitMin,
+        tmrInitSec,
+        tmrSetField,
+        timezoneOffset,
+        settingPosition,
+        swState,
+        ringingSlot:    0xFF,   // V1 doesn't have per-slot tracking
+        lapCount:       0,
+        alarmViewSlot:  0,
+        alarmEditField: 0
     };
 }

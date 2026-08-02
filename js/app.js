@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-alarm-set').addEventListener('click', () => {
         alarmDraft.h = alarmPickerH.getValue();
         alarmDraft.m = alarmPickerM.getValue();
-        sendCmd(`SET_ALARM:${alarmDraft.slot},${String(alarmDraft.h).padStart(2,'0')},${String(alarmDraft.m).padStart(2,'0')},${alarmDraft.en},${alarmDraft.rep}`);
+        sendCmd(`SET_ALARM:${alarmDraft.slot},${String(alarmDraft.h).padStart(2,'0')},${String(alarmDraft.m).padStart(2,'0')},${alarmDraft.en ? 1 : 0},${alarmDraft.rep}`);
         els.alarmEditor.classList.add('hidden');
     });
 
@@ -387,5 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Timer
     setupHoldToRepeat(document.getElementById('btn-timer-up'), 'BTN:UP');
     setupHoldToRepeat(document.getElementById('btn-timer-down'), 'BTN:DOWN');
+    document.getElementById('btn-timer-cycle').addEventListener('click', () => sendCmd('BTN:ALARM'));
     document.getElementById('btn-timer-stop').addEventListener('click', () => sendCmd('BTN:ALARM'));
 });

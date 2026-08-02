@@ -165,7 +165,7 @@ export function renderAlarmCards(alarms, activeSlot) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const html = alarms.map((alarm, i) => {
         const timeStr = `${pad(alarm.h)}:${pad(alarm.m)}`;
-        const disabledClass = alarm.en ? '' : 'disabled';
+        const disabledClass = (alarm.en || alarm.sn) ? '' : 'disabled';
         const dayStr = days.map((d, di) => {
             const active = (alarm.rep & (1 << di)) ? 'style="color: var(--primary-color);"' : '';
             return `<span ${active}>${d}</span>`;
@@ -175,7 +175,7 @@ export function renderAlarmCards(alarms, activeSlot) {
         <div class="alarm-card ${disabledClass}" data-slot="${i}">
             <div class="alarm-card-time">${timeStr}</div>
             <div class="alarm-card-details" style="text-align: right;">
-                <div style="font-weight: 700;">${alarm.en ? 'ON' : 'OFF'}</div>
+                <div style="font-weight: 700;">${alarm.sn ? 'SNZ' : (alarm.en ? 'ON' : 'OFF')}</div>
                 <div class="alarm-card-days" style="display:flex;gap:6px;">${dayStr}</div>
             </div>
         </div>`;
