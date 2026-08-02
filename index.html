@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32-C3 Clock Controller</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-mode">
+    <div id="ble-warning" class="hidden">
+        ⚠️ Web Bluetooth is not supported in this browser. Please use Chrome or Edge over HTTPS or localhost.
+    </div>
+
+    <div class="app-container clay-panel">
+        <header class="header">
+            <div class="connection-status">
+                <div id="status-indicator" class="indicator disconnected"></div>
+                <span id="status-text">Disconnected</span>
+                <span id="device-name" class="hidden"></span>
+            </div>
+            <div class="header-controls">
+                <button id="theme-toggle" class="clay-btn icon-btn" title="Toggle Theme">🌓</button>
+                <button id="connect-btn" class="clay-btn primary-btn">Connect</button>
+            </div>
+        </header>
+
+        <nav class="mode-tabs">
+            <button class="clay-tab active" data-mode="0">Clock</button>
+            <button class="clay-tab" data-mode="1">Stopwatch</button>
+            <button class="clay-tab" data-mode="2">Alarm</button>
+            <button class="clay-tab" data-mode="3">Timer</button>
+        </nav>
+
+        <main class="views">
+            <!-- CLOCK VIEW -->
+            <section id="view-clock" class="view active">
+                <div class="clay-display">
+                    <div id="clock-time" class="digital-font large-text">00:00:00</div>
+                    <div class="display-footer">
+                        <span id="clock-tz">UTC+0</span>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button id="btn-sync" class="clay-btn wide-btn">Sync Time</button>
+                </div>
+            </section>
+
+            <!-- STOPWATCH VIEW -->
+            <section id="view-stopwatch" class="view hidden">
+                <div class="clay-display">
+                    <div id="sw-time" class="digital-font large-text">00:00.00</div>
+                    <div id="sw-state" class="state-label">Ready</div>
+                </div>
+                <div class="controls row">
+                    <button id="btn-sw-start" class="clay-btn">Start/Resume</button>
+                    <button id="btn-sw-pause" class="clay-btn">Pause</button>
+                    <button id="btn-sw-reset" class="clay-btn warning-btn">Reset</button>
+                </div>
+            </section>
+
+            <!-- ALARM VIEW -->
+            <section id="view-alarm" class="view hidden">
+                <div id="alarm-ringing-banner" class="clay-banner hidden">
+                    <span>Alarm is Ringing!</span>
+                    <button id="btn-alarm-dismiss" class="clay-btn danger-btn">Dismiss</button>
+                </div>
+                <div class="clay-display">
+                    <div id="alarm-time" class="digital-font large-text">00:00</div>
+                    <div class="display-footer">
+                        <span id="alarm-status" class="status-badge off">OFF</span>
+                    </div>
+                </div>
+                <div class="controls row">
+                    <button id="btn-alarm-cycle" class="clay-btn">Cycle Field</button>
+                    <button id="btn-alarm-up" class="clay-btn icon-btn">▲</button>
+                    <button id="btn-alarm-down" class="clay-btn icon-btn">▼</button>
+                </div>
+            </section>
+
+            <!-- TIMER VIEW -->
+            <section id="view-timer" class="view hidden">
+                <div id="timer-ringing-banner" class="clay-banner hidden">
+                    <span>Timer is Ringing!</span>
+                    <button id="btn-timer-stop" class="clay-btn danger-btn">Stop</button>
+                </div>
+                <div class="clay-display">
+                    <div id="timer-time" class="digital-font large-text">00:00.00</div>
+                    <div id="timer-state" class="state-label">Ready</div>
+                </div>
+                <div class="controls row">
+                    <button id="btn-timer-cycle" class="clay-btn">Cycle Field</button>
+                    <button id="btn-timer-up" class="clay-btn icon-btn">▲</button>
+                    <button id="btn-timer-down" class="clay-btn icon-btn">▼</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="activity-log">
+            <h4>Activity Log</h4>
+            <div id="log-content" class="clay-inset digital-font small-text"></div>
+        </footer>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
