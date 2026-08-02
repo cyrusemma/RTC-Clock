@@ -276,3 +276,50 @@ body {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
+
+/* Modals and Inputs */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.modal-content {
+    padding: 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 350px;
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.input-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.clay-input {
+    border: none;
+    outline: none;
+    background: var(--panel-bg);
+    color: var(--text-color);
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+    font-family: inherit;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 25px;
+}

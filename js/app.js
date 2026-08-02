@@ -20,6 +20,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // WiFi Settings
+    els.wifiBtn.addEventListener('click', () => {
+        els.wifiModal.classList.remove('hidden');
+    });
+
+    els.wifiCancel.addEventListener('click', () => {
+        els.wifiModal.classList.add('hidden');
+    });
+
+    els.wifiSend.addEventListener('click', () => {
+        const ssid = els.wifiSsid.value;
+        const pass = els.wifiPass.value;
+        if (ssid) {
+            sendCommand(`WIFI:${ssid},${pass}`, appendLog);
+            els.wifiModal.classList.add('hidden');
+            els.wifiSsid.value = '';
+            els.wifiPass.value = '';
+        }
+    });
+
     // Tabs
     els.tabs.forEach(tab => {
         tab.addEventListener('click', () => {

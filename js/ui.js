@@ -5,6 +5,12 @@ export const els = {
     statusText: document.getElementById('status-text'),
     deviceName: document.getElementById('deviceName'),
     connectBtn: document.getElementById('connect-btn'),
+    wifiBtn: document.getElementById('wifi-btn'),
+    wifiModal: document.getElementById('wifi-modal'),
+    wifiSsid: document.getElementById('wifi-ssid'),
+    wifiPass: document.getElementById('wifi-pass'),
+    wifiCancel: document.getElementById('btn-wifi-cancel'),
+    wifiSend: document.getElementById('btn-wifi-send'),
     tabs: document.querySelectorAll('.clay-tab'),
     views: document.querySelectorAll('.view'),
     

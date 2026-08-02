@@ -20,6 +20,7 @@
                 <span id="device-name" class="hidden"></span>
             </div>
             <div class="header-controls">
+                <button id="wifi-btn" class="clay-btn icon-btn" title="WiFi Settings">📶</button>
                 <button id="theme-toggle" class="clay-btn icon-btn" title="Toggle Theme">🌓</button>
                 <button id="connect-btn" class="clay-btn primary-btn">Connect</button>
             </div>
@@ -100,6 +101,24 @@
             <h4>Activity Log</h4>
             <div id="log-content" class="clay-inset digital-font small-text"></div>
         </footer>
+    </div>
+
+    <div id="wifi-modal" class="modal-overlay hidden">
+        <div class="clay-panel modal-content">
+            <h3>WiFi Settings</h3>
+            <div class="input-group">
+                <label>SSID</label>
+                <input type="text" id="wifi-ssid" class="clay-input" placeholder="Network Name">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="wifi-pass" class="clay-input" placeholder="Password">
+            </div>
+            <div class="modal-actions">
+                <button id="btn-wifi-cancel" class="clay-btn">Cancel</button>
+                <button id="btn-wifi-send" class="clay-btn primary-btn">Send</button>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="js/app.js"></script>
