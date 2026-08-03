@@ -232,6 +232,14 @@ body {
     gap: 5px;
 }
 
+.ble-note {
+    max-width: 180px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    text-align: right;
+    opacity: 0.75;
+}
+
 /* ─────────────────────────────────────────
    DROPDOWN MENUS
    ───────────────────────────────────────── */
@@ -404,8 +412,8 @@ body {
     font-weight: 600;
     font-size: 0.88rem;
     cursor: pointer;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
     transition: box-shadow 0.2s;
 }
 

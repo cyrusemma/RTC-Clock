@@ -1,6 +1,7 @@
 // js/ui.js
 export const els = {
     warning: document.getElementById('ble-warning'),
+    bleNote: document.getElementById('ble-note'),
     indicator: document.getElementById('status-indicator'),
     statusText: document.getElementById('status-text'),
     deviceName: document.getElementById('device-name'),
@@ -45,7 +46,12 @@ export const els = {
 
 export function initUI() {
     if (!navigator.bluetooth) {
-        els.warning.classList.add('hidden');
+        if (els.bleNote) {
+            els.bleNote.textContent = 'Web Bluetooth is unavailable in this browser. Use Chrome or Edge on localhost or HTTPS.';
+            els.bleNote.classList.remove('hidden');
+        }
+    } else if (els.bleNote) {
+        els.bleNote.classList.add('hidden');
     }
 }
 
