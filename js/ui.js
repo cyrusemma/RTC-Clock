@@ -190,17 +190,29 @@ export function renderAlarmCards(alarms, activeSlot) {
     els.alarmCardsContainer.innerHTML = html;
 }
 
-export function updateState(state) {
-    // Mode Switcher
+export function setActiveModeView(mode) {
+    const viewIds = ['view-clock', 'view-stopwatch', 'view-alarm', 'view-timer'];
+
     els.tabs.forEach(tab => {
-        if (parseInt(tab.dataset.mode) === state.mode) {
-            tab.classList.add('active');
-            els.views.forEach(v => v.classList.add('hidden'));
-            document.getElementById(['view-clock', 'view-stopwatch', 'view-alarm', 'view-timer'][state.mode]).classList.remove('hidden');
-        } else {
-            tab.classList.remove('active');
-        }
+        tab.classList.toggle('active', parseInt(tab.dataset.mode) === mode);
     });
+
+    els.views.forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('active');
+    });
+    const activeViewId = viewIds[mode];
+    if (activeViewId) {
+        const activeView = document.getElementById(activeViewId);
+        if (activeView) {
+            activeView.classList.remove('hidden');
+            activeView.classList.add('active');
+        }
+    }
+}
+
+export function updateState(state) {
+    setActiveModeView(state.mode);
 
     // 1. Clock
     if (state.mode === 0) {

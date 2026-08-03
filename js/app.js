@@ -1,7 +1,28 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards } from './ui.js';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=4';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=4';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=4';
+
+function sendCmd(cmd) {
+    if (wsState.connected) {
+        sendCommandWS(cmd, appendLog);
+    } else if (bleState.connected) {
+        sendCommand(cmd, appendLog);
+    } else {
+        appendLog('Error: Not connected', 'sys');
+    }
+}
+
+window.selectMode = (mode) => {
+    setActiveModeView(mode);
+    sendCmd(`MODE:${mode}`);
+};
+
+els.tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        window.selectMode(parseInt(tab.dataset.mode));
+    });
+});
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -72,17 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
     els.browserClock.textContent = new Date().toLocaleTimeString([], { hour12: false });
     renderWorldClock(Math.floor(Date.now() / 1000));
     
-    // Command Router
-    function sendCmd(cmd) {
-        if (wsState.connected) {
-            sendCommandWS(cmd, appendLog);
-        } else if (bleState.connected) {
-            sendCommand(cmd, appendLog);
-        } else {
-            appendLog('Error: Not connected', 'sys');
-        }
-    }
-
     // BLE Connection (via dropdown)
     els.connectBtn.addEventListener('click', () => {
         document.getElementById('connect-menu').classList.remove('open');
@@ -115,13 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnModeLong)  btnModeLong.addEventListener('click',  () => { sendCmd('BTN:MODE_LONG');  document.getElementById('clock-settings-menu').classList.remove('open'); });
     if (btnTzUp)      btnTzUp.addEventListener('click',      () => { sendCmd('BTN:UP');          document.getElementById('clock-settings-menu').classList.remove('open'); });
     if (btnTzDown)    btnTzDown.addEventListener('click',    () => { sendCmd('BTN:DOWN');        document.getElementById('clock-settings-menu').classList.remove('open'); });
-
-    // Tabs
-    els.tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            sendCmd(`MODE:${tab.dataset.mode}`);
-        });
-    });
 
     // Clock
     document.getElementById('btn-sync').addEventListener('click', () => {
