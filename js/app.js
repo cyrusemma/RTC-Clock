@@ -96,6 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // BLE Connection (via dropdown)
     els.connectBtn.addEventListener('click', () => {
         document.getElementById('connect-menu').classList.remove('open');
+        if (!navigator.bluetooth && !bleState.connected && !wsState.connected) {
+            appendLog('Web Bluetooth is unavailable in this browser. Use Chrome or Edge over localhost or HTTPS.', 'sys');
+            return;
+        }
         if (bleState.connected) {
             disconnect(updateConnectionState, appendLog);
         } else {

@@ -45,7 +45,7 @@ export const els = {
 
 export function initUI() {
     if (!navigator.bluetooth) {
-        els.warning.classList.remove('hidden');
+        els.warning.classList.add('hidden');
     }
 }
 

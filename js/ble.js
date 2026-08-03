@@ -27,8 +27,7 @@ export async function connect(onStateChange, onDataReceived, onLog) {
     try {
         bluetoothDevice = await navigator.bluetooth.requestDevice({
             filters: [
-                { namePrefix: 'ESP32-C3' },
-                { namePrefix: 'RTC-Clock' }
+                { namePrefix: 'RTC-Clock-V2' }
             ],
             optionalServices: [SERVICE_UUID]
         });
