@@ -23,6 +23,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('dark-mode');
     });
 
+    // ── Dropdown toggle helper ─────────────────────────────────────────────
+    function setupDropdown(btnId, menuId, wrapId) {
+        const btn  = document.getElementById(btnId);
+        const menu = document.getElementById(menuId);
+        if (!btn || !menu) return;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.classList.toggle('open');
+        });
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById(wrapId);
+            if (wrap && !wrap.contains(e.target)) menu.classList.remove('open');
+        });
+    }
+    setupDropdown('connect-menu-btn', 'connect-menu', 'connect-dropdown-wrap');
+    setupDropdown('clock-settings-btn', 'clock-settings-menu', 'clock-settings-wrap');
+
     // Analogue / Digital Clock Toggle
     let analogueMode = false;
     document.getElementById('btn-clock-toggle').addEventListener('click', () => {
@@ -41,10 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Independent browser clock / offline analogue clock
-    // (Runs when not connected so analogue view still works)
     setInterval(() => {
         const now = new Date();
-        els.browserClock.textContent = `This device: ${now.toLocaleTimeString([], { hour12: false })}`;
+        els.browserClock.textContent = now.toLocaleTimeString([], { hour12: false });
         if (!bleState.connected) {
             renderWorldClock(Math.floor(now.getTime() / 1000));
             if (analogueMode) {
@@ -53,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 1000);
     // Initial call
-    els.browserClock.textContent = `This device: ${new Date().toLocaleTimeString([], { hour12: false })}`;
+    els.browserClock.textContent = new Date().toLocaleTimeString([], { hour12: false });
     renderWorldClock(Math.floor(Date.now() / 1000));
     
     // Command Router
@@ -67,47 +83,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Connection
+    // BLE Connection (via dropdown)
     els.connectBtn.addEventListener('click', () => {
+        document.getElementById('connect-menu').classList.remove('open');
         if (bleState.connected) {
             disconnect(updateConnectionState, appendLog);
         } else {
-            connect(updateConnectionState, wrappedUpdateState, appendLog);
+            connect((state) => updateConnectionState(state, bleState.deviceName), wrappedUpdateState, appendLog);
         }
     });
 
+    // WiFi Connection (via dropdown)
     const wifiConnectBtn = document.getElementById('wifi-connect-btn');
     if (wifiConnectBtn) {
         wifiConnectBtn.addEventListener('click', () => {
+            document.getElementById('connect-menu').classList.remove('open');
             if (wsState.connected) {
                 disconnectWS(updateConnectionState, appendLog);
-                wifiConnectBtn.textContent = 'WiFi Connect';
             } else {
-                connectWS(updateConnectionState, wrappedUpdateState, appendLog);
-                wifiConnectBtn.textContent = 'WiFi Disconnect';
+                connectWS((state) => updateConnectionState(state, 'WiFi'), wrappedUpdateState, appendLog);
             }
         });
     }
 
-    // WiFi Settings
-    els.wifiBtn.addEventListener('click', () => {
-        els.wifiModal.classList.remove('hidden');
-    });
-
-    els.wifiCancel.addEventListener('click', () => {
-        els.wifiModal.classList.add('hidden');
-    });
-
-    els.wifiSend.addEventListener('click', () => {
-        const ssid = els.wifiSsid.value;
-        const pass = els.wifiPass.value;
-        if (ssid) {
-            sendCommand(`WIFI:${ssid},${pass}`, appendLog);
-            els.wifiModal.classList.add('hidden');
-            els.wifiSsid.value = '';
-            els.wifiPass.value = '';
-        }
-    });
+    // Clock settings dropdown buttons
+    const btnModeShort = document.getElementById('btn-mode-short');
+    const btnModeLong  = document.getElementById('btn-mode-long');
+    const btnTzUp      = document.getElementById('btn-tz-up');
+    const btnTzDown    = document.getElementById('btn-tz-down');
+    if (btnModeShort) btnModeShort.addEventListener('click', () => { sendCmd('BTN:MODE_SHORT'); document.getElementById('clock-settings-menu').classList.remove('open'); });
+    if (btnModeLong)  btnModeLong.addEventListener('click',  () => { sendCmd('BTN:MODE_LONG');  document.getElementById('clock-settings-menu').classList.remove('open'); });
+    if (btnTzUp)      btnTzUp.addEventListener('click',      () => { sendCmd('BTN:UP');          document.getElementById('clock-settings-menu').classList.remove('open'); });
+    if (btnTzDown)    btnTzDown.addEventListener('click',    () => { sendCmd('BTN:DOWN');        document.getElementById('clock-settings-menu').classList.remove('open'); });
 
     // Tabs
     els.tabs.forEach(tab => {
@@ -183,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Alarm pickers
     let alarmDraft = { h: 0, m: 0, en: 0, rep: 0, slot: 0 };
+    const alarmEnabledToggle = document.getElementById('alarm-enabled-toggle');
     const alarmPickerH = initScrollPicker(
         document.getElementById('alarm-picker-hour'), 0,
         v => { alarmDraft.h = v; }
@@ -191,6 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('alarm-picker-min'), 0,
         v => { alarmDraft.m = v; }
     );
+
+    function refreshAlarmEnabledToggle() {
+        if (!alarmEnabledToggle) return;
+        alarmEnabledToggle.textContent = alarmDraft.en ? 'ON' : 'OFF';
+        alarmEnabledToggle.classList.toggle('primary-btn', !!alarmDraft.en);
+    }
     
     // Day Repeat Buttons
     const dayBtns = document.querySelectorAll('.day-btn');
@@ -205,6 +219,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    if (alarmEnabledToggle) {
+        alarmEnabledToggle.addEventListener('click', () => {
+            alarmDraft.en = alarmDraft.en ? 0 : 1;
+            refreshAlarmEnabledToggle();
+        });
+    }
 
     els.alarmCancelBtn.addEventListener('click', () => {
         els.alarmEditor.classList.add('hidden');
@@ -237,11 +258,15 @@ document.addEventListener('DOMContentLoaded', () => {
             alarmDraft.m = existing.m;
             alarmDraft.en = existing.en ? 1 : 0;
             alarmDraft.rep = existing.rep;
+        } else {
+            alarmDraft.en = 0;
+            alarmDraft.rep = 0;
         }
 
         alarmPickerH.setValue(alarmDraft.h);
         alarmPickerM.setValue(alarmDraft.m);
         els.alarmEditSlotLabel.textContent = `(Slot ${slot + 1})`;
+        refreshAlarmEnabledToggle();
         
         dayBtns.forEach(btn => {
             const day = parseInt(btn.dataset.day);

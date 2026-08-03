@@ -3,7 +3,7 @@ export const els = {
     warning: document.getElementById('ble-warning'),
     indicator: document.getElementById('status-indicator'),
     statusText: document.getElementById('status-text'),
-    deviceName: document.getElementById('deviceName'),
+    deviceName: document.getElementById('device-name'),
     connectBtn: document.getElementById('connect-btn'),
     wifiBtn: document.getElementById('wifi-btn'),
     wifiModal: document.getElementById('wifi-modal'),
@@ -53,12 +53,18 @@ export function updateConnectionState(state, deviceName) {
     els.indicator.className = `indicator ${state}`;
     if (state === 'connected') {
         els.statusText.textContent = 'Connected';
+        if (deviceName) {
+            els.deviceName.textContent = deviceName;
+            els.deviceName.classList.remove('hidden');
+        }
         els.connectBtn.textContent = 'Disconnect';
     } else if (state === 'connecting') {
         els.statusText.textContent = 'Connecting...';
+        els.deviceName.classList.add('hidden');
         els.connectBtn.textContent = 'Connecting';
     } else {
         els.statusText.textContent = 'Disconnected';
+        els.deviceName.classList.add('hidden');
         els.connectBtn.textContent = 'Connect';
     }
 }

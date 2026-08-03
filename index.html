@@ -17,30 +17,49 @@
 </head>
 <body class="dark-mode">
     <div id="ble-warning" class="hidden">
-        ⚠️ Web Bluetooth is not supported in this browser. Please use Chrome or Edge over HTTPS or localhost.
+        ⚠️ Web Bluetooth is not supported. Use Chrome or Edge over HTTPS or localhost.
     </div>
 
     <div class="app-container clay-panel">
+
+        <!-- ── HEADER ─────────────────────────────────────── -->
         <header class="header">
             <div class="connection-status">
                 <div id="status-indicator" class="indicator disconnected"></div>
-                <span id="status-text">Disconnected</span>
-                <span id="device-name" class="hidden"></span>
-                <span id="browser-clock" class="digital-font small-text browser-clock-text">This device: --:--:--</span>
+                <div class="status-info">
+                    <span id="status-text">Disconnected</span>
+                    <span id="device-name" class="device-name-text hidden"></span>
+                </div>
             </div>
-            <div class="header-controls">
-                <!-- V2: Separate WiFi and BLE connection buttons -->
-                <button id="wifi-connect-btn" class="clay-btn">WiFi Connect</button>
+
+            <div class="header-right">
+                <span id="browser-clock" class="digital-font browser-clock-text">--:--:--</span>
                 <button id="theme-toggle" class="clay-btn icon-btn" title="Toggle Theme">🌓</button>
-                <button id="connect-btn" class="clay-btn primary-btn">BLE Connect</button>
+
+                <!-- Connect dropdown -->
+                <div class="dropdown-wrap" id="connect-dropdown-wrap">
+                    <button id="connect-menu-btn" class="clay-btn primary-btn connect-btn">
+                        <span id="connect-btn-icon">⚡</span>
+                        <span id="connect-btn-label">Connect</span>
+                    </button>
+                    <div class="dropdown-menu clay-panel" id="connect-menu" role="menu">
+                        <button id="connect-btn" class="dropdown-item" role="menuitem">
+                            <span class="di-icon">📡</span> BLE Connect
+                        </button>
+                        <button id="wifi-connect-btn" class="dropdown-item" role="menuitem">
+                            <span class="di-icon">🌐</span> WiFi Connect
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
 
+        <!-- ── MAIN VIEWS ──────────────────────────────────── -->
         <main class="views">
+
             <!-- CLOCK VIEW -->
             <section id="view-clock" class="view active">
                 <div class="clay-display clock-display-wrapper">
-                    <button id="btn-clock-toggle" class="clay-btn icon-btn clock-toggle-btn" title="Toggle Analogue/Digital">🕐</button>
                     <div id="clock-digital">
                         <div id="clock-time" class="digital-font large-text">00:00:00</div>
                         <div id="clock-date" class="digital-font small-text clock-date-text"></div>
@@ -52,13 +71,43 @@
                         <span id="clock-tz">UTC+0</span>
                     </div>
                 </div>
-                <div class="controls">
-                    <button id="btn-sync" class="clay-btn wide-btn">Sync Time</button>
+
+                <!-- Compact action row -->
+                <div class="clock-actions">
+                    <button id="btn-sync" class="clay-btn action-btn primary-btn">
+                        <span>🔄</span><span>Sync</span>
+                    </button>
+                    <button id="btn-clock-toggle" class="clay-btn action-btn" title="Toggle Analogue/Digital">
+                        <span>🕐</span><span>Style</span>
+                    </button>
+                    <!-- Clock settings dropdown -->
+                    <div class="dropdown-wrap" id="clock-settings-wrap">
+                        <button class="clay-btn action-btn" id="clock-settings-btn">
+                            <span>⚙️</span><span>Settings</span>
+                        </button>
+                        <div class="dropdown-menu clay-panel" id="clock-settings-menu" role="menu">
+                            <button id="btn-mode-short" class="dropdown-item" role="menuitem">
+                                <span class="di-icon">🔁</span> Next Mode
+                            </button>
+                            <button id="btn-mode-long" class="dropdown-item" role="menuitem">
+                                <span class="di-icon">✏️</span> Set Clock
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button id="btn-tz-up" class="dropdown-item" role="menuitem">
+                                <span class="di-icon">🌍</span> TZ +1 Hour
+                            </button>
+                            <button id="btn-tz-down" class="dropdown-item" role="menuitem">
+                                <span class="di-icon">🌍</span> TZ -1 Hour
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="clay-inset world-clock-container">
-                    <h4 class="section-subtitle">World Clock</h4>
-                    <div id="world-clock" class="digital-font small-text"></div>
-                </div>
+
+                <!-- World Clock — collapsible -->
+                <details class="collapsible-section">
+                    <summary class="collapsible-summary">🌐 World Clock</summary>
+                    <div id="world-clock" class="digital-font small-text world-clock-inner"></div>
+                </details>
             </section>
 
             <!-- STOPWATCH VIEW -->
@@ -67,35 +116,52 @@
                     <div id="sw-time" class="digital-font large-text">00:00.00</div>
                     <div id="sw-state" class="state-label">Ready</div>
                 </div>
-                <div class="controls row">
-                    <button id="btn-sw-start" class="clay-btn">Start/Resume</button>
-                    <button id="btn-sw-pause" class="clay-btn">Pause</button>
-                    <button id="btn-sw-lap" class="clay-btn">Lap</button>
-                    <button id="btn-sw-reset" class="clay-btn warning-btn">Reset</button>
+                <div class="sw-actions">
+                    <button id="btn-sw-start" class="clay-btn action-btn primary-btn">
+                        <span>▶</span><span>Start</span>
+                    </button>
+                    <button id="btn-sw-pause" class="clay-btn action-btn">
+                        <span>⏸</span><span>Pause</span>
+                    </button>
+                    <button id="btn-sw-lap" class="clay-btn action-btn">
+                        <span>🏁</span><span>Lap</span>
+                    </button>
+                    <button id="btn-sw-reset" class="clay-btn action-btn warning-btn">
+                        <span>↺</span><span>Reset</span>
+                    </button>
                 </div>
-                <div id="sw-laps-container" class="clay-inset hidden laps-container">
-                    <h4 class="section-subtitle-small">Laps</h4>
-                    <div id="sw-laps" class="digital-font small-text laps-list"></div>
+
+                <!-- Laps — collapsible -->
+                <div id="sw-laps-container" class="hidden">
+                    <details class="collapsible-section" open>
+                        <summary class="collapsible-summary">🏁 Laps</summary>
+                        <div id="sw-laps" class="digital-font small-text laps-list"></div>
+                    </details>
                 </div>
             </section>
 
             <!-- ALARM VIEW -->
             <section id="view-alarm" class="view hidden">
                 <div id="alarm-ringing-banner" class="clay-banner hidden">
-                    <span>Alarm is Ringing!</span>
-                    <button id="btn-alarm-snooze" class="clay-btn">Snooze (5m)</button>
-                    <button id="btn-alarm-dismiss" class="clay-btn danger-btn">Dismiss</button>
+                    <span>🔔 Alarm Ringing!</span>
+                    <div class="banner-actions">
+                        <button id="btn-alarm-snooze" class="clay-btn small-btn">💤 Snooze</button>
+                        <button id="btn-alarm-dismiss" class="clay-btn small-btn danger-btn">✕ Dismiss</button>
+                    </div>
                 </div>
-                
-                <!-- V2: 4-Slot Alarm Cards -->
+
+                <!-- 4-Slot Alarm Cards -->
                 <div id="alarm-cards-container" class="alarm-cards-container">
                     <!-- Injected by ui.js -->
                 </div>
 
                 <!-- Editor (shown when a card is clicked) -->
                 <div id="alarm-editor" class="clay-inset hidden alarm-editor-container">
-                    <h4 class="section-subtitle">Edit Alarm <span id="alarm-edit-slot-label"></span></h4>
-                    
+                    <div class="alarm-editor-header">
+                        <h4 class="section-subtitle">Edit Alarm <span id="alarm-edit-slot-label"></span></h4>
+                        <button id="alarm-enabled-toggle" class="clay-btn small-btn" title="Toggle enabled">ON</button>
+                    </div>
+
                     <div class="picker-row">
                         <div class="picker-col">
                             <label class="picker-label">Hour</label>
@@ -109,20 +175,21 @@
                             <div id="alarm-min-display" class="picker-value">00</div>
                         </div>
                     </div>
-                    
+
+                    <!-- Repeat days -->
                     <div class="repeat-days repeat-days-container" id="alarm-repeat-days">
-                        <button class="clay-btn small-btn day-btn" data-day="0">S</button>
-                        <button class="clay-btn small-btn day-btn" data-day="1">M</button>
-                        <button class="clay-btn small-btn day-btn" data-day="2">T</button>
-                        <button class="clay-btn small-btn day-btn" data-day="3">W</button>
-                        <button class="clay-btn small-btn day-btn" data-day="4">T</button>
-                        <button class="clay-btn small-btn day-btn" data-day="5">F</button>
-                        <button class="clay-btn small-btn day-btn" data-day="6">S</button>
+                        <button class="clay-btn small-btn day-btn" data-day="0">Su</button>
+                        <button class="clay-btn small-btn day-btn" data-day="1">Mo</button>
+                        <button class="clay-btn small-btn day-btn" data-day="2">Tu</button>
+                        <button class="clay-btn small-btn day-btn" data-day="3">We</button>
+                        <button class="clay-btn small-btn day-btn" data-day="4">Th</button>
+                        <button class="clay-btn small-btn day-btn" data-day="5">Fr</button>
+                        <button class="clay-btn small-btn day-btn" data-day="6">Sa</button>
                     </div>
 
                     <div class="controls row controls-mt-10">
-                        <button id="btn-alarm-cancel" class="clay-btn">Cancel</button>
-                        <button id="btn-alarm-set" class="clay-btn primary-btn">✔ Save Alarm</button>
+                        <button id="btn-alarm-cancel" class="clay-btn">✕ Cancel</button>
+                        <button id="btn-alarm-set" class="clay-btn primary-btn">✔ Save</button>
                     </div>
                 </div>
             </section>
@@ -130,9 +197,10 @@
             <!-- TIMER VIEW -->
             <section id="view-timer" class="view hidden">
                 <div id="timer-ringing-banner" class="clay-banner hidden">
-                    <span>Timer is Ringing!</span>
-                    <button id="btn-timer-stop" class="clay-btn danger-btn">Stop</button>
+                    <span>⏰ Timer Done!</span>
+                    <button id="btn-timer-stop" class="clay-btn small-btn danger-btn">✕ Stop</button>
                 </div>
+
                 <div class="clay-display timer-ring-display">
                     <div id="timer-ring-container"></div>
                     <div class="timer-ring-overlay">
@@ -140,6 +208,7 @@
                         <div id="timer-state" class="state-label">Ready</div>
                     </div>
                 </div>
+
                 <!-- Scroll Pickers -->
                 <div class="picker-row">
                     <div class="picker-col">
@@ -154,18 +223,30 @@
                         <div id="timer-sec-display" class="picker-value">00</div>
                     </div>
                 </div>
-                <div class="controls row controls-mt-10">
-                    <button id="btn-timer-set" class="clay-btn primary-btn">✔ Set Timer</button>
+
+                <div class="controls-mt-10">
+                    <button id="btn-timer-set" class="clay-btn wide-btn primary-btn">✔ Set Timer</button>
                 </div>
-                <div class="controls row controls-mt-8">
-                    <button id="btn-timer-cycle" class="clay-btn">Cycle Field</button>
-                    <button id="btn-timer-up" class="clay-btn icon-btn">▲</button>
-                    <button id="btn-timer-down" class="clay-btn icon-btn">▼</button>
-                </div>
+
+                <!-- Manual Adjust — collapsible (for physical button mirroring) -->
+                <details class="collapsible-section controls-mt-8">
+                    <summary class="collapsible-summary">🎛 Manual Adjust</summary>
+                    <div class="timer-manual-row">
+                        <button id="btn-timer-cycle" class="clay-btn action-btn">
+                            <span>🔁</span><span>Field</span>
+                        </button>
+                        <button id="btn-timer-up" class="clay-btn action-btn">
+                            <span>▲</span><span>Up</span>
+                        </button>
+                        <button id="btn-timer-down" class="clay-btn action-btn">
+                            <span>▼</span><span>Down</span>
+                        </button>
+                    </div>
+                </details>
             </section>
         </main>
 
-        <!-- V2 Mobile Bottom Navigation -->
+        <!-- ── BOTTOM NAV ───────────────────────────────────── -->
         <nav class="mode-tabs bottom-nav">
             <button class="clay-tab active" data-mode="0">
                 <span class="nav-icon">⌚</span>
@@ -185,11 +266,11 @@
             </button>
         </nav>
 
-        <footer class="activity-log">
-            <h4>Activity Log</h4>
-            <div id="log-content" class="clay-inset digital-font small-text"></div>
-        </footer>
-    </div>
+        <!-- ── ACTIVITY LOG — collapsible drawer ────────────── -->
+        <details class="activity-log-drawer" id="log-drawer">
+            <summary class="log-drawer-summary">📋 Activity Log</summary>
+            <div id="log-content" class="clay-inset digital-font small-text log-content"></div>
+        </details>
 
     </div>
 
