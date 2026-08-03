@@ -26,7 +26,10 @@ const textEncoder = new TextEncoder();
 export async function connect(onStateChange, onDataReceived, onLog) {
     try {
         bluetoothDevice = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: 'RTC-Clock' }],
+            filters: [
+                { namePrefix: 'ESP32-C3' },
+                { namePrefix: 'RTC-Clock' }
+            ],
             optionalServices: [SERVICE_UUID]
         });
         
