@@ -1037,7 +1037,7 @@ void setup() {
   u8g2.drawStr(0, 35, "Starting BLE...");
   u8g2.sendBuffer();
 
-  BLEDevice::init("ESP32-C3 CLOCK");
+  BLEDevice::init("RTC-Clock-V2");
   BLEDevice::setMTU(247);
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new BLEServerCB());
@@ -1094,7 +1094,7 @@ void setup() {
   u8g2.drawStr(0, 20, "RTC Clock V2.0");
   char ipStr[24]; snprintf(ipStr, sizeof(ipStr), "WiFi: %s", myIP.toString().c_str());
   u8g2.drawStr(0, 35, ipStr);
-  u8g2.drawStr(0, 50, "BLE: ESP32-C3 CLOCK");
+  u8g2.drawStr(0, 50, "BLE: RTC-Clock-V2");
   u8g2.sendBuffer();
   delay(2000);
 
