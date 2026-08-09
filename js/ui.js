@@ -299,6 +299,7 @@ export function updateState(state) {
         // Laps
         if (state.lapCount > 0) {
             els.swLapsContainer.classList.remove('hidden');
+            if (state.laps && state.laps.length > 0) {
                 let lastLap = 0;
                 els.swLaps.innerHTML = state.laps.map((lapMs, i) => {
                     const deltaMs = i === 0 ? lapMs : lapMs - lastLap;
