@@ -36,6 +36,7 @@
 
             <div class="header-right">
                 <span id="browser-clock" class="digital-font browser-clock-text">--:--:--</span>
+                <button id="fullscreen-toggle" class="clay-btn icon-btn" title="Toggle Fullscreen">⛶</button>
                 <button id="theme-toggle" class="clay-btn icon-btn" title="Toggle Theme">🌓</button>
 
                 <!-- Connect dropdown -->
@@ -115,9 +116,12 @@
 
             <!-- STOPWATCH VIEW -->
             <section id="view-stopwatch" class="view hidden">
-                <div class="clay-display">
-                    <div id="sw-time" class="digital-font large-text">00:00.00</div>
-                    <div id="sw-state" class="state-label">Ready</div>
+                <div class="clay-display timer-ring-display">
+                    <div id="sw-ring-container"></div>
+                    <div class="timer-ring-overlay">
+                        <div id="sw-time" class="digital-font large-text">00:00.000</div>
+                        <div id="sw-state" class="state-label">Ready</div>
+                    </div>
                 </div>
                 <div class="sw-actions">
                     <button id="btn-sw-start" class="clay-btn action-btn primary-btn">
@@ -207,7 +211,7 @@
                 <div class="clay-display timer-ring-display">
                     <div id="timer-ring-container"></div>
                     <div class="timer-ring-overlay">
-                        <div id="timer-time" class="digital-font large-text">00:00.00</div>
+                        <div id="timer-time" class="digital-font large-text">00:00.000</div>
                         <div id="timer-state" class="state-label">Ready</div>
                     </div>
                 </div>
@@ -217,14 +221,24 @@
                     <div class="picker-col">
                         <label class="picker-label">Min</label>
                         <div id="timer-picker-min" class="scroll-picker" data-min="0" data-max="99"></div>
-                        <div id="timer-min-display" class="picker-value">00</div>
+                        <div id="timer-min-display" class="picker-value picker-editable" title="Click to edit">00</div>
+                        <input type="number" id="timer-input-min" class="picker-input hidden" min="0" max="99">
                     </div>
                     <div class="picker-sep">:</div>
                     <div class="picker-col">
                         <label class="picker-label">Sec</label>
                         <div id="timer-picker-sec" class="scroll-picker" data-min="0" data-max="59"></div>
-                        <div id="timer-sec-display" class="picker-value">00</div>
+                        <div id="timer-sec-display" class="picker-value picker-editable" title="Click to edit">00</div>
+                        <input type="number" id="timer-input-sec" class="picker-input hidden" min="0" max="59">
                     </div>
+                </div>
+
+                <!-- Timer Quick Presets -->
+                <div class="timer-presets controls-mt-8">
+                    <button class="clay-btn small-btn preset-btn" data-preset="1">1m</button>
+                    <button class="clay-btn small-btn preset-btn" data-preset="3">3m</button>
+                    <button class="clay-btn small-btn preset-btn" data-preset="5">5m</button>
+                    <button class="clay-btn small-btn preset-btn" data-preset="10">10m</button>
                 </div>
 
                 <div class="controls-mt-10">
@@ -275,6 +289,20 @@
             <div id="log-content" class="clay-inset digital-font small-text log-content"></div>
         </details>
 
+    </div>
+
+    <!-- PWA Install Prompts -->
+    <div id="pwa-install-banner" class="clay-banner pwa-banner hidden">
+        <span>📲 Install App for better experience</span>
+        <div class="banner-actions">
+            <button id="btn-pwa-install" class="clay-btn small-btn primary-btn">Install</button>
+            <button id="btn-pwa-dismiss" class="clay-btn small-btn icon-btn pwa-dismiss">✕</button>
+        </div>
+    </div>
+    
+    <div id="ios-install-tooltip" class="clay-panel ios-tooltip hidden">
+        <p>To install, tap <span class="share-icon">↑</span> and select <strong>Add to Home Screen</strong>.</p>
+        <button id="btn-ios-dismiss" class="clay-btn small-btn wide-btn controls-mt-8">Got it</button>
     </div>
 
     <script type="module" src="js/app.js?v=4"></script>

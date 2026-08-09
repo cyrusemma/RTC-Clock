@@ -40,8 +40,22 @@ export const els = {
     timerTime: document.getElementById('timer-time'),
     timerState: document.getElementById('timer-state'),
     timerRingContainer: document.getElementById('timer-ring-container'),
+    timerInputMin: document.getElementById('timer-input-min'),
+    timerInputSec: document.getElementById('timer-input-sec'),
+    timerMinDisplay: document.getElementById('timer-min-display'),
+    timerSecDisplay: document.getElementById('timer-sec-display'),
     
-    logContent: document.getElementById('log-content')
+    swRingContainer: document.getElementById('sw-ring-container'),
+
+    logContent: document.getElementById('log-content'),
+    
+    fullscreenToggle: document.getElementById('fullscreen-toggle'),
+    pwaInstallBanner: document.getElementById('pwa-install-banner'),
+    btnPwaInstall: document.getElementById('btn-pwa-install'),
+    pwaDismissBtns: document.querySelectorAll('.pwa-dismiss'),
+    iosInstallTooltip: document.getElementById('ios-install-tooltip'),
+    btnIosDismiss: document.getElementById('btn-ios-dismiss'),
+    presetBtns: document.querySelectorAll('.preset-btn')
 };
 
 export function initUI() {
@@ -90,6 +104,11 @@ export function appendLog(msg, type = 'sys') {
 function pad(num, size = 2) {
     let s = "0000" + num;
     return s.substring(s.length - size);
+}
+
+function padMs(num) {
+    let s = "000" + num;
+    return s.substring(s.length - 3);
 }
 
 const WORLD_CLOCK_ZONES = [
@@ -154,14 +173,18 @@ export function renderAnalogueClock(epochSeconds, tzOffsetHours) {
     </svg>`;
 }
 
-export function renderTimerRing(remainingMs, totalMs, isRinging) {
+export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ringClassBase = 'timer-ring-progress', stateClass = '') {
     const radius = 90;
     const circumference = 2 * Math.PI * radius;
     const fraction = totalMs > 0 ? Math.max(0, remainingMs / totalMs) : 0;
     const offset = circumference * (1 - fraction);
-    const ringClass = isRinging ? 'timer-ring-progress ringing' : 'timer-ring-progress';
+    
+    let ringClass = ringClassBase;
+    if (isRinging) ringClass += ' ringing';
+    if (stateClass) ringClass += ' ' + stateClass;
 
-    els.timerRingContainer.innerHTML = `
+    if (!containerEl) return;
+    containerEl.innerHTML = `
     <svg viewBox="0 0 200 200" class="timer-ring">
         <circle cx="100" cy="100" r="${radius}" class="timer-ring-bg" />
         <circle cx="100" cy="100" r="${radius}" class="${ringClass}"
@@ -258,22 +281,49 @@ export function updateState(state) {
     // 2. Stopwatch
     if (state.mode === 1) {
         const ms = state.swElapsedMs;
-        const cm = Math.floor((ms % 1000) / 10);
+        const millis = ms % 1000;
         const s = Math.floor(ms / 1000) % 60;
         const m = Math.floor(ms / 60000);
-        els.swTime.textContent = `${pad(m)}:${pad(s)}.${pad(cm)}`;
+        els.swTime.textContent = `${pad(m)}:${pad(s)}.${padMs(millis)}`;
+        
         const swStates = ['Ready', 'Running', 'Paused'];
         els.swState.textContent = swStates[state.swState] || 'Unknown';
+        
+        let stateClass = '';
+        if (state.swState === 1) stateClass = 'state-running';
+        else if (state.swState === 2) stateClass = 'state-paused';
+        
+        // Stopwatch ring resets every 60 seconds (60000 ms)
+        renderTimerRing(ms % 60000, 60000, false, els.swRingContainer, 'timer-ring-progress', stateClass);
 
         // Laps
         if (state.lapCount > 0) {
             els.swLapsContainer.classList.remove('hidden');
-            if (state.laps && state.laps.length > 0) {
+                let lastLap = 0;
                 els.swLaps.innerHTML = state.laps.map((lapMs, i) => {
-                    const lcm = Math.floor((lapMs % 1000) / 10);
+                    const deltaMs = i === 0 ? lapMs : lapMs - lastLap;
+                    lastLap = lapMs;
+                    
+                    const deltaMillis = deltaMs % 1000;
+                    const ds = Math.floor(deltaMs / 1000) % 60;
+                    const dm = Math.floor(deltaMs / 60000);
+                    
+                    // We can show delta if we want, or just the lap time with a delta indicator.
+                    const lcm = lapMs % 1000;
                     const ls = Math.floor(lapMs / 1000) % 60;
                     const lm = Math.floor(lapMs / 60000);
-                    return `<div>Lap ${i + 1}: ${pad(lm)}:${pad(ls)}.${pad(lcm)}</div>`;
+                    
+                    let deltaStr = '';
+                    if (i > 0) {
+                        const diff = deltaMs - (state.laps[i-1] - (i > 1 ? state.laps[i-2] : 0));
+                        if (diff < 0) {
+                            deltaStr = `<span class="lap-delta faster">-${padMs(Math.abs(diff))}</span>`;
+                        } else {
+                            deltaStr = `<span class="lap-delta slower">+${padMs(diff)}</span>`;
+                        }
+                    }
+                    
+                    return `<div>Lap ${i + 1}: ${pad(lm)}:${pad(ls)}.${padMs(lcm)} ${deltaStr}</div>`;
                 }).join('');
             } else {
                 els.swLaps.innerHTML = `<div>${state.lapCount} laps recorded... (Syncing)</div>`;
@@ -303,21 +353,25 @@ export function updateState(state) {
             let s = pad(state.tmrInitSec);
             if (state.tmrSetField === 1) m = `<span class="editing">${m}</span>`;
             if (state.tmrSetField === 2) s = `<span class="editing">${s}</span>`;
-            els.timerTime.innerHTML = `${m}:${s}.00`;
+            els.timerTime.innerHTML = `${m}:${s}.000`;
         } else {
             const ms = state.tmrRemainingMs;
-            const cm = Math.floor((ms % 1000) / 10);
+            const millis = ms % 1000;
             const s = Math.floor(ms / 1000) % 60;
             const m = Math.floor(ms / 60000);
-            els.timerTime.textContent = `${pad(m)}:${pad(s)}.${pad(cm)}`;
+            els.timerTime.textContent = `${pad(m)}:${pad(s)}.${padMs(millis)}`;
         }
         
         const tmrStates = ['Ready', 'Running', 'Paused', 'Ringing'];
         els.timerState.textContent = tmrStates[state.tmrState] || 'Unknown';
         
+        let stateClass = '';
+        if (state.tmrState === 1) stateClass = 'state-running';
+        else if (state.tmrState === 2) stateClass = 'state-paused';
+        
         const totalMs = (state.tmrInitMin * 60 + state.tmrInitSec) * 1000;
         const isRinging = state.tmrState === 3;
-        renderTimerRing(state.tmrRemainingMs, totalMs, isRinging);
+        renderTimerRing(state.tmrRemainingMs, totalMs, isRinging, els.timerRingContainer, 'timer-ring-progress', stateClass);
 
         if (state.tmrState === 3) {
             els.timerRingingBanner.classList.remove('hidden');

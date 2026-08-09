@@ -44,6 +44,65 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('dark-mode');
     });
 
+    // Fullscreen Toggle
+    if (els.fullscreenToggle) {
+        els.fullscreenToggle.addEventListener('click', () => {
+            document.body.classList.toggle('fullscreen-mode');
+        });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        els.pwaInstallBanner.classList.remove('hidden');
+    });
+    if (els.btnPwaInstall) {
+        els.btnPwaInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    els.pwaInstallBanner.classList.add('hidden');
+                }
+                deferredPrompt = null;
+            }
+        });
+    }
+    els.pwaDismissBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            els.pwaInstallBanner.classList.add('hidden');
+        });
+    });
+
+    // iOS Install Tooltip
+    const isIos = () => {
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        return /iphone|ipad|ipod/.test(userAgent);
+    };
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+    if (isIos() && !isInStandaloneMode()) {
+        els.iosInstallTooltip.classList.remove('hidden');
+    }
+    if (els.btnIosDismiss) {
+        els.btnIosDismiss.addEventListener('click', () => els.iosInstallTooltip.classList.add('hidden'));
+    }
+
+    // Notifications
+    function requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            Notification.requestPermission();
+        }
+    }
+    document.body.addEventListener('click', requestNotificationPermission, { once: true });
+
+    function showNotification(title, body) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(title, { body, icon: 'icon.png' });
+        }
+    }
+
     // ── Dropdown toggle helper ─────────────────────────────────────────────
     function setupDropdown(btnId, menuId, wrapId) {
         const btn  = document.getElementById(btnId);
@@ -296,6 +355,45 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('timer-picker-sec'), 0,
         v => { timerDraft.sec = v; }
     );
+    
+    // Timer Input editing logic
+    function setupTimerInput(displayEl, inputEl, pickerObj, updateDraft) {
+        displayEl.addEventListener('click', () => {
+            inputEl.value = pickerObj.getValue();
+            inputEl.classList.remove('hidden');
+            displayEl.classList.add('hidden');
+            inputEl.focus();
+        });
+        
+        inputEl.addEventListener('blur', () => {
+            inputEl.classList.add('hidden');
+            displayEl.classList.remove('hidden');
+            let val = parseInt(inputEl.value);
+            if (isNaN(val)) val = pickerObj.getValue();
+            pickerObj.setValue(val);
+            updateDraft(val);
+        });
+        
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') inputEl.blur();
+        });
+    }
+    setupTimerInput(els.timerMinDisplay, els.timerInputMin, timerPickerMin, v => timerDraft.min = v);
+    setupTimerInput(els.timerSecDisplay, els.timerInputSec, timerPickerSec, v => timerDraft.sec = v);
+
+    // Timer Presets
+    els.presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const presetMin = parseInt(btn.dataset.preset);
+            timerPickerMin.setValue(presetMin);
+            timerPickerSec.setValue(0);
+            timerDraft.min = presetMin;
+            timerDraft.sec = 0;
+            sendCmd(`SET_TIMER:${String(presetMin).padStart(2,'0')},00`);
+            if (navigator.vibrate) navigator.vibrate(20);
+        });
+    });
+
     document.getElementById('btn-timer-set').addEventListener('click', () => {
         timerDraft.min = timerPickerMin.getValue();
         timerDraft.sec = timerPickerSec.getValue();
@@ -365,8 +463,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         _origUpdateState(state);
         const alarmActive = state.alarmRinging || state.tmrState === 3;
-        if (alarmActive && !lastAlarmState) startAlarm();
-        if (!alarmActive && lastAlarmState) stopAlarm();
+        if (alarmActive && !lastAlarmState) {
+            startAlarm();
+            let notifTitle = state.alarmRinging ? 'Alarm Ringing!' : 'Timer Done!';
+            showNotification(notifTitle, 'Open the clock app to dismiss.');
+        }
+        if (!alarmActive && lastAlarmState) {
+            stopAlarm();
+        }
         lastAlarmState = alarmActive;
     };
 
@@ -376,7 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Stopwatch
     document.getElementById('btn-sw-start').addEventListener('click', () => sendCmd('BTN:UP'));
     document.getElementById('btn-sw-pause').addEventListener('click', () => sendCmd('BTN:DOWN'));
-    document.getElementById('btn-sw-lap').addEventListener('click', () => sendCmd('BTN:LAP'));
+    document.getElementById('btn-sw-lap').addEventListener('click', () => {
+        sendCmd('BTN:LAP');
+        if (navigator.vibrate) navigator.vibrate(30);
+    });
     document.getElementById('btn-sw-reset').addEventListener('click', () => sendCmd('BTN:ALARM'));
 
     function setupHoldToRepeat(btn, cmd) {

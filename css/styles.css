@@ -798,6 +798,117 @@ details[open] > .collapsible-summary {
 .activity-log-drawer {
     margin-top: 12px;
     margin-bottom: 8px;
+}
+
+/* ─────────────────────────────────────────
+   NEW FEATURES (Timer Input, Presets, PWA)
+   ───────────────────────────────────────── */
+
+.picker-editable {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.picker-editable:hover {
+    color: var(--primary-color);
+}
+.picker-input {
+    width: 50px;
+    height: 40px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    background: var(--panel-bg);
+    color: var(--text-color);
+    outline: none;
+}
+/* Hide arrows in input[type=number] */
+.picker-input::-webkit-outer-spin-button,
+.picker-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.picker-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.timer-presets {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+.preset-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    border-radius: 20px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+/* PWA Prompts */
+.pwa-banner {
+    position: fixed;
+    bottom: calc(var(--nav-height) + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 440px;
+    z-index: 1000;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    animation: none;
+}
+.ios-tooltip {
+    position: fixed;
+    bottom: calc(var(--nav-height) + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 320px;
+    z-index: 1000;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.ios-tooltip .share-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: inline-block;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 0 4px;
+}
+
+/* Fullscreen Mode */
+body.fullscreen-mode .app-container {
+    padding-top: 50px;
+}
+body.fullscreen-mode .header, 
+body.fullscreen-mode .bottom-nav,
+body.fullscreen-mode .log-drawer-summary,
+body.fullscreen-mode .clock-actions,
+body.fullscreen-mode .sw-actions,
+body.fullscreen-mode .controls-mt-10,
+body.fullscreen-mode .collapsible-section,
+body.fullscreen-mode .picker-row,
+body.fullscreen-mode .timer-presets {
+    display: none !important;
+}
+
+/* Dynamic Ring Colors */
+.timer-ring-progress.state-running { stroke: var(--success-color); }
+.timer-ring-progress.state-paused { stroke: var(--warning-color); }
+
+/* Lap Delta styling */
+.lap-delta {
+    float: right;
+    font-weight: 700;
+}
+.lap-delta.faster { color: var(--success-color); }
+.lap-delta.slower { color: var(--danger-color); }
     border-radius: 14px;
     overflow: hidden;
 }
