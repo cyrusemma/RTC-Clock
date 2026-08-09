@@ -112,6 +112,39 @@
                     <summary class="collapsible-summary">🌐 World Clock</summary>
                     <div id="world-clock" class="digital-font small-text world-clock-inner"></div>
                 </details>
+
+                <!-- Diagnostics & Settings — collapsible -->
+                <details class="collapsible-section">
+                    <summary class="collapsible-summary">🛠 Diagnostics & Settings</summary>
+                    
+                    <div class="clay-inset" style="padding: 12px; margin-bottom: 12px;">
+                        <h4 class="section-subtitle" style="text-align:center; margin-bottom:8px;">Test Buzzer Frequency</h4>
+                        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">
+                            <button class="clay-btn small-btn freq-test-btn" data-freq="2000">2000Hz</button>
+                            <button class="clay-btn small-btn freq-test-btn" data-freq="2500">2500Hz</button>
+                            <button class="clay-btn small-btn freq-test-btn" data-freq="3000">3000Hz</button>
+                            <button class="clay-btn small-btn freq-test-btn" data-freq="3500">3500Hz</button>
+                            <button class="clay-btn small-btn freq-test-btn" data-freq="4000">4000Hz</button>
+                        </div>
+                        <div style="margin-top:12px; text-align:center;">
+                            <button id="btn-freq-stop" class="clay-btn action-btn danger-btn" style="width:100px;">Stop</button>
+                        </div>
+                        <p class="small-text" style="text-align:center; opacity:0.7; margin-top:12px; line-height:1.4;">
+                            Tap each button and listen — pick whichever sounds loudest on your buzzer
+                        </p>
+                    </div>
+                    
+                    <div class="clay-inset" style="padding: 12px;">
+                        <h4 class="section-subtitle" style="text-align:center; margin-bottom:8px;">Custom Alarm Sound</h4>
+                        <p class="small-text" style="text-align:center; opacity:0.7; margin-bottom:12px;">Upload an audio file to play when the app is offline.</p>
+                        <input type="file" id="custom-alarm-file" accept="audio/*" class="hidden">
+                        <div style="text-align:center;">
+                            <button id="btn-upload-alarm" class="clay-btn action-btn">Upload Sound</button>
+                            <button id="btn-clear-alarm" class="clay-btn action-btn hidden">Clear Custom</button>
+                        </div>
+                        <div id="custom-alarm-status" class="small-text" style="text-align:center; margin-top:12px;">Using Default Synth Beep</div>
+                    </div>
+                </details>
             </section>
 
             <!-- STOPWATCH VIEW -->

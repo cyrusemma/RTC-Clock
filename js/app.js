@@ -2,6 +2,7 @@
 import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=4';
 import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=4';
 import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=4';
+import { VirtualRTC } from './VirtualRTC.js?v=4';
 
 function sendCmd(cmd) {
     if (wsState.connected) {
@@ -9,7 +10,11 @@ function sendCmd(cmd) {
     } else if (bleState.connected) {
         sendCommand(cmd, appendLog);
     } else {
-        appendLog('Error: Not connected', 'sys');
+        const newState = virtualRTC.handleCommand(cmd);
+        if (newState) {
+            wrappedUpdateState(newState);
+        }
+        appendLog(`VirtualRTC: ${cmd}`, 'sys');
     }
 }
 
@@ -141,10 +146,27 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
         const now = new Date();
         els.browserClock.textContent = now.toLocaleTimeString([], { hour12: false });
-        if (!bleState.connected) {
+        if (!bleState.connected && !wsState.connected) {
             renderWorldClock(Math.floor(now.getTime() / 1000));
             if (analogueMode) {
                 renderAnalogueClock(Math.floor(now.getTime() / 1000), -(new Date().getTimezoneOffset() / 60));
+            }
+            
+            // Check VirtualRTC alarms
+            const vState = virtualRTC.getState();
+            const timeObj = { h: now.getHours(), m: now.getMinutes() };
+            if (!vState.alarmRinging) {
+                for (let i = 0; i < vState.alarms.length; i++) {
+                    const alarm = vState.alarms[i];
+                    if (alarm.en && alarm.h === timeObj.h && alarm.m === timeObj.m) {
+                        // Prevent re-triggering in same minute
+                        if (virtualRTC.lastTriggeredAlarm !== `${i}-${timeObj.h}-${timeObj.m}`) {
+                            virtualRTC.lastTriggeredAlarm = `${i}-${timeObj.h}-${timeObj.m}`;
+                            virtualRTC.state.alarmRinging = true;
+                            virtualRTC.state.ringingSlot = i;
+                        }
+                    }
+                }
             }
         }
     }, 1000);
@@ -404,6 +426,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioCtx = null;
     let alarmInterval = null;
     let lastAlarmState = false;
+    let customAudio = null;
+
+    // Load custom audio on startup
+    const customAudioData = localStorage.getItem('customAlarmSound');
+    if (customAudioData) {
+        customAudio = new Audio(customAudioData);
+        customAudio.loop = true;
+        const statusEl = document.getElementById('custom-alarm-status');
+        const clearBtn = document.getElementById('btn-clear-alarm');
+        if (statusEl) statusEl.textContent = 'Using Custom Sound';
+        if (clearBtn) clearBtn.classList.remove('hidden');
+    }
 
     function getAudioCtx() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -428,12 +462,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startAlarm() {
+        if (customAudio) {
+            customAudio.currentTime = 0;
+            customAudio.play().catch(e => console.error("Audio play failed:", e));
+            return;
+        }
+        
         if (alarmInterval) return;
         playAlarmSound();
         alarmInterval = setInterval(playAlarmSound, 700);
     }
 
     function stopAlarm() {
+        if (customAudio) {
+            customAudio.pause();
+            customAudio.currentTime = 0;
+            return;
+        }
+        
         clearInterval(alarmInterval);
         alarmInterval = null;
     }
@@ -459,6 +505,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.laps = await readLaps(state.lapCount);
                 isFetchingLaps = false;
             }
+            // Sync virtual RTC
+            virtualRTC.setState(state);
+        } else if (wsState.connected) {
+             virtualRTC.setState(state);
         }
         
         _origUpdateState(state);
@@ -473,6 +523,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lastAlarmState = alarmActive;
     };
+
+    const virtualRTC = new VirtualRTC();
+    function renderLoop() {
+        if (!bleState.connected && !wsState.connected) {
+            const state = virtualRTC.tick();
+            if (state) {
+                wrappedUpdateState(state);
+            }
+        }
+        requestAnimationFrame(renderLoop);
+    }
+    renderLoop();
+    
+    // Set initial VirtualRTC state so UI isn't blank
+    wrappedUpdateState(virtualRTC.getState());
 
     // Re-wire BLE to use our wrapped state handler
     // (WS already uses wrappedUpdateState from its connect call)
@@ -527,4 +592,63 @@ document.addEventListener('DOMContentLoaded', () => {
     setupHoldToRepeat(document.getElementById('btn-timer-down'), 'BTN:DOWN');
     document.getElementById('btn-timer-cycle').addEventListener('click', () => sendCmd('BTN:ALARM'));
     document.getElementById('btn-timer-stop').addEventListener('click', () => sendCmd('BTN:ALARM'));
+    
+    // ─── Diagnostics & Settings ───────────────────────────────────────────────
+    
+    // Buzzer Frequency Test
+    document.querySelectorAll('.freq-test-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const freq = btn.dataset.freq;
+            sendCmd(`FREQ_TEST:${freq}`);
+        });
+    });
+    
+    const btnFreqStop = document.getElementById('btn-freq-stop');
+    if (btnFreqStop) {
+        btnFreqStop.addEventListener('click', () => {
+            sendCmd('FREQ_STOP');
+        });
+    }
+    
+    // Custom Alarm Audio
+    const btnUploadAlarm = document.getElementById('btn-upload-alarm');
+    const customAlarmFile = document.getElementById('custom-alarm-file');
+    const btnClearAlarm = document.getElementById('btn-clear-alarm');
+    const customAlarmStatus = document.getElementById('custom-alarm-status');
+    
+    if (btnUploadAlarm && customAlarmFile) {
+        btnUploadAlarm.addEventListener('click', () => {
+            customAlarmFile.click();
+        });
+        
+        customAlarmFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                try {
+                    localStorage.setItem('customAlarmSound', dataUrl);
+                    customAudio = new Audio(dataUrl);
+                    customAudio.loop = true;
+                    if (customAlarmStatus) customAlarmStatus.textContent = 'Using Custom Sound';
+                    if (btnClearAlarm) btnClearAlarm.classList.remove('hidden');
+                    alert('Custom alarm sound loaded!');
+                } catch (err) {
+                    alert('Failed to save audio file. It might be too large for local storage.');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    if (btnClearAlarm) {
+        btnClearAlarm.addEventListener('click', () => {
+            localStorage.removeItem('customAlarmSound');
+            customAudio = null;
+            if (customAlarmStatus) customAlarmStatus.textContent = 'Using Default Synth Beep';
+            btnClearAlarm.classList.add('hidden');
+        });
+    }
 });
