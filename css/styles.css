@@ -832,6 +832,7 @@ details[open] > .collapsible-summary {
 }
 .picker-input[type=number] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .timer-presets {
@@ -909,9 +910,6 @@ body.fullscreen-mode .timer-presets {
 }
 .lap-delta.faster { color: var(--success-color); }
 .lap-delta.slower { color: var(--danger-color); }
-    border-radius: 14px;
-    overflow: hidden;
-}
 
 .log-drawer-summary {
     list-style: none;

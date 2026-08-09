@@ -117,32 +117,32 @@
                 <details class="collapsible-section">
                     <summary class="collapsible-summary">🛠 Diagnostics & Settings</summary>
                     
-                    <div class="clay-inset" style="padding: 12px; margin-bottom: 12px;">
-                        <h4 class="section-subtitle" style="text-align:center; margin-bottom:8px;">Test Buzzer Frequency</h4>
-                        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">
+                    <div class="clay-inset diagnostic-panel diagnostic-panel-mb">
+                        <h4 class="section-subtitle diagnostic-title">Test Buzzer Frequency</h4>
+                        <div class="freq-test-row">
                             <button class="clay-btn small-btn freq-test-btn" data-freq="2000">2000Hz</button>
                             <button class="clay-btn small-btn freq-test-btn" data-freq="2500">2500Hz</button>
                             <button class="clay-btn small-btn freq-test-btn" data-freq="3000">3000Hz</button>
                             <button class="clay-btn small-btn freq-test-btn" data-freq="3500">3500Hz</button>
                             <button class="clay-btn small-btn freq-test-btn" data-freq="4000">4000Hz</button>
                         </div>
-                        <div style="margin-top:12px; text-align:center;">
-                            <button id="btn-freq-stop" class="clay-btn action-btn danger-btn" style="width:100px;">Stop</button>
+                        <div class="center-mt-12">
+                            <button id="btn-freq-stop" class="clay-btn action-btn danger-btn stop-btn">Stop</button>
                         </div>
-                        <p class="small-text" style="text-align:center; opacity:0.7; margin-top:12px; line-height:1.4;">
+                        <p class="small-text diagnostic-desc">
                             Tap each button and listen — pick whichever sounds loudest on your buzzer
                         </p>
                     </div>
                     
-                    <div class="clay-inset" style="padding: 12px;">
-                        <h4 class="section-subtitle" style="text-align:center; margin-bottom:8px;">Custom Alarm Sound</h4>
-                        <p class="small-text" style="text-align:center; opacity:0.7; margin-bottom:12px;">Upload an audio file to play when the app is offline.</p>
+                    <div class="clay-inset diagnostic-panel">
+                        <h4 class="section-subtitle diagnostic-title">Custom Alarm Sound</h4>
+                        <p class="small-text diagnostic-desc diagnostic-desc-mb">Upload an audio file to play when the app is offline.</p>
                         <input type="file" id="custom-alarm-file" accept="audio/*" class="hidden">
-                        <div style="text-align:center;">
+                        <div class="center-actions">
                             <button id="btn-upload-alarm" class="clay-btn action-btn">Upload Sound</button>
                             <button id="btn-clear-alarm" class="clay-btn action-btn hidden">Clear Custom</button>
                         </div>
-                        <div id="custom-alarm-status" class="small-text" style="text-align:center; margin-top:12px;">Using Default Synth Beep</div>
+                        <div id="custom-alarm-status" class="small-text center-mt-12">Using Default Synth Beep</div>
                     </div>
                 </details>
             </section>
@@ -255,14 +255,14 @@
                         <label class="picker-label">Min</label>
                         <div id="timer-picker-min" class="scroll-picker" data-min="0" data-max="99"></div>
                         <div id="timer-min-display" class="picker-value picker-editable" title="Click to edit">00</div>
-                        <input type="number" id="timer-input-min" class="picker-input hidden" min="0" max="99">
+                        <input type="number" id="timer-input-min" class="picker-input hidden" min="0" max="99" title="Timer Minutes" placeholder="00">
                     </div>
                     <div class="picker-sep">:</div>
                     <div class="picker-col">
                         <label class="picker-label">Sec</label>
                         <div id="timer-picker-sec" class="scroll-picker" data-min="0" data-max="59"></div>
                         <div id="timer-sec-display" class="picker-value picker-editable" title="Click to edit">00</div>
-                        <input type="number" id="timer-input-sec" class="picker-input hidden" min="0" max="59">
+                        <input type="number" id="timer-input-sec" class="picker-input hidden" min="0" max="59" title="Timer Seconds" placeholder="00">
                     </div>
                 </div>
 
