@@ -332,7 +332,6 @@ export function updateState(state) {
         } else {
             els.swLapsContainer.classList.add('hidden');
         }
-    }
 
     // 3. Alarm
     if (state.mode === 2 || state.alarmRinging) {

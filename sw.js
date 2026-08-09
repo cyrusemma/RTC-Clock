@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rtc-clock-v5';
+const CACHE_NAME = 'rtc-clock-v6';
 const ASSETS = [
     './',
     './index.html',
@@ -7,7 +7,9 @@ const ASSETS = [
     './js/ble.js',
     './js/ui.js',
     './js/ws.js',
+    './js/VirtualRTC.js',
     './icon.png',
+    './favicon.ico',
     './manifest.json'
 ];
 
