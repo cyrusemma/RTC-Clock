@@ -23,6 +23,7 @@ export class VirtualRTC {
             ringingSlot: 0xFF,
             
             // Timer
+            tmrInitHr: 0,
             tmrInitMin: 0,
             tmrInitSec: 0,
             tmrRemainingMs: 0,
@@ -109,7 +110,7 @@ export class VirtualRTC {
             } else if (this.state.mode === 3) { // Timer
                 if (this.state.tmrState === 3 && btn === 'ALARM') {
                     this.state.tmrState = 0; // Stop ringing
-                    this.state.tmrRemainingMs = (this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
+                    this.state.tmrRemainingMs = (this.state.tmrInitHr * 3600 + this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
                 } else if (btn === 'UP') {
                     if (this.state.tmrState === 0 || this.state.tmrState === 2) {
                         this.state.tmrState = 1; // Start
@@ -120,7 +121,7 @@ export class VirtualRTC {
                     }
                 } else if (btn === 'ALARM') {
                     this.state.tmrState = 0;
-                    this.state.tmrRemainingMs = (this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
+                    this.state.tmrRemainingMs = (this.state.tmrInitHr * 3600 + this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
                 }
             } else if (this.state.mode === 2 || this.state.alarmRinging) {
                 if (btn === 'ALARM') {
@@ -128,9 +129,16 @@ export class VirtualRTC {
                 }
             }
         } else if (cmd === 'SET_TIMER') {
-            this.state.tmrInitMin = parseInt(args[0]);
-            this.state.tmrInitSec = parseInt(args[1]);
-            this.state.tmrRemainingMs = (this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
+            if (args.length === 3) {
+                this.state.tmrInitHr = parseInt(args[0]) || 0;
+                this.state.tmrInitMin = parseInt(args[1]) || 0;
+                this.state.tmrInitSec = parseInt(args[2]) || 0;
+            } else {
+                this.state.tmrInitHr = 0;
+                this.state.tmrInitMin = parseInt(args[0]) || 0;
+                this.state.tmrInitSec = parseInt(args[1]) || 0;
+            }
+            this.state.tmrRemainingMs = (this.state.tmrInitHr * 3600 + this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
             this.state.tmrState = 0;
         } else if (cmd === 'SET_ALARM') {
             const slot = parseInt(args[0]);

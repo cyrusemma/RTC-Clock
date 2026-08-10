@@ -37,14 +37,12 @@ export const els = {
     alarmCancelBtn: document.getElementById('btn-alarm-cancel'),
     
     timerRingingBanner: document.getElementById('timer-ringing-banner'),
-    timerTime: document.getElementById('timer-time'),
-    timerState: document.getElementById('timer-state'),
-    timerRingContainer: document.getElementById('timer-ring-container'),
-    timerInputMin: document.getElementById('timer-input-min'),
-    timerInputSec: document.getElementById('timer-input-sec'),
+    timerSetupView: document.getElementById('timer-setup-view'),
+    timerRunView: document.getElementById('timer-run-view'),
+    timerHrDisplay: document.getElementById('timer-hr-display'),
     timerMinDisplay: document.getElementById('timer-min-display'),
     timerSecDisplay: document.getElementById('timer-sec-display'),
-    timerMsDisplay: document.getElementById('timer-ms-display'),
+    timerActionIcon: document.getElementById('timer-action-icon'),
     
     swRingContainer: document.getElementById('sw-ring-container'),
 
@@ -369,40 +367,55 @@ export function updateState(state) {
 
     // 4. Timer
     if (state.mode === 3 || state.tmrState === 3) {
-        if (state.tmrSetField !== 0) {
-            let m = pad(state.tmrInitMin);
-            let s = pad(state.tmrInitSec);
-            if (state.tmrSetField === 1) {
-                els.timerMinDisplay.innerHTML = `<span class="editing">${m}</span>`;
-            } else {
-                els.timerMinDisplay.textContent = m;
-            }
-            if (state.tmrSetField === 2) {
-                els.timerSecDisplay.innerHTML = `<span class="editing">${s}</span>`;
-            } else {
-                els.timerSecDisplay.textContent = s;
-            }
-            els.timerMsDisplay.textContent = `.00`;
+        const isRunningOrPaused = state.tmrState === 1 || state.tmrState === 2;
+        
+        if (isRunningOrPaused || state.tmrState === 3) {
+            els.timerSetupView.classList.add('hidden');
+            els.timerRunView.classList.remove('hidden');
+            els.timerRunView.classList.add('flex');
         } else {
-            const ms = state.tmrRemainingMs;
-            const millis = ms % 1000;
-            const s = Math.floor(ms / 1000) % 60;
-            const m = Math.floor(ms / 60000);
-            els.timerMinDisplay.textContent = pad(m);
-            els.timerSecDisplay.textContent = pad(s);
-            els.timerMsDisplay.textContent = `.${padMs(millis)}`;
+            els.timerSetupView.classList.remove('hidden');
+            els.timerRunView.classList.add('hidden');
+            els.timerRunView.classList.remove('flex');
         }
+
+        const ms = state.tmrRemainingMs;
+        const totalMs = (state.tmrInitHr * 3600 + state.tmrInitMin * 60 + state.tmrInitSec) * 1000;
+        
+        let displayHr, displayMin, displaySec;
+        
+        if (state.tmrSetField !== 0) {
+            displayHr = state.tmrInitHr;
+            displayMin = state.tmrInitMin;
+            displaySec = state.tmrInitSec;
+        } else {
+            displaySec = Math.floor(ms / 1000) % 60;
+            displayMin = Math.floor(ms / 60000) % 60;
+            displayHr = Math.floor(ms / 3600000);
+        }
+
+        if (els.timerHrDisplay) els.timerHrDisplay.textContent = pad(displayHr);
+        if (els.timerMinDisplay) els.timerMinDisplay.textContent = pad(displayMin);
+        if (els.timerSecDisplay) els.timerSecDisplay.textContent = pad(displaySec);
         
         const tmrStates = ['Ready', 'Running', 'Paused', 'Ringing'];
-        els.timerState.textContent = tmrStates[state.tmrState] || 'Unknown';
+        const stateStr = tmrStates[state.tmrState] || 'Unknown';
         
+        const timerStateEl = document.getElementById('timer-state');
+        if (timerStateEl) timerStateEl.textContent = stateStr.toUpperCase();
+        
+        if (els.timerActionIcon) {
+            if (state.tmrState === 1) els.timerActionIcon.textContent = 'pause';
+            else els.timerActionIcon.textContent = 'play_arrow';
+        }
+
         let stateClass = '';
         if (state.tmrState === 1) stateClass = 'state-running';
         else if (state.tmrState === 2) stateClass = 'state-paused';
         
-        const totalMs = (state.tmrInitMin * 60 + state.tmrInitSec) * 1000;
         const isRinging = state.tmrState === 3;
-        renderTimerRing(state.tmrRemainingMs, totalMs, isRinging, els.timerRingContainer, 'timer-ring-progress', stateClass);
+        const ringContainer = document.getElementById('timer-ring-container');
+        if (ringContainer) renderTimerRing(state.tmrRemainingMs, totalMs, isRinging, ringContainer, 'timer-ring-progress', stateClass);
 
         if (state.tmrState === 3) {
             els.timerRingingBanner.classList.remove('hidden');

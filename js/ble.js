@@ -173,7 +173,8 @@ function parsePacketV2(dv) {
     const lapCount        = dv.getUint8(23);
     const alarmViewSlot   = dv.getUint8(24);
     const alarmEditField  = dv.getUint8(25);
-    // [26-33] reserved — ignored
+    const tmrInitHr       = dv.getUint8(26);
+    // [27-33] reserved — ignored
 
     return {
         protocolVersion,
@@ -187,6 +188,7 @@ function parsePacketV2(dv) {
         tmrState,
         swElapsedMs,
         tmrRemainingMs,
+        tmrInitHr,
         tmrInitMin,
         tmrInitSec,
         tmrSetField,

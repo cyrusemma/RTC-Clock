@@ -107,9 +107,10 @@ uint8_t         lapCount      = 0;
 // COUNTDOWN TIMER
 // ============================================================================
 TmrState      tmr_state        = TMR_STOPPED;
+int           tmr_init_hr      = 0;
 int           tmr_init_min     = 5;
 int           tmr_init_sec     = 0;
-int           tmr_set_field    = 0;   // 0=view, 1=min, 2=sec
+int           tmr_set_field    = 0;   // 0=view, 1=hr, 2=min, 3=sec
 unsigned long tmr_target_ms    = 0;
 unsigned long tmr_remaining_ms = 300000;
 
@@ -166,6 +167,7 @@ void loadSettings() {
   prefs.begin("clk2", true);
   is_12h    = prefs.getBool("12h", false);
   tz_offset = prefs.getChar("tz", 0);
+  tmr_init_hr  = prefs.getUChar("tmh", 0);
   tmr_init_min = prefs.getUChar("tmm", 5);
   tmr_init_sec = prefs.getUChar("tms", 0);
   for (int i = 0; i < MAX_ALARMS; i++) {
@@ -177,13 +179,14 @@ void loadSettings() {
     alarms[i].snoozeActive = false;
   }
   prefs.end();
-  tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+  tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
 }
 
 void saveSettings() {
   prefs.begin("clk2", false);
   prefs.putBool("12h", is_12h);
   prefs.putChar("tz",  (int8_t)tz_offset);
+  prefs.putUChar("tmh", tmr_init_hr);
   prefs.putUChar("tmm", tmr_init_min);
   prefs.putUChar("tms", tmr_init_sec);
   for (int i = 0; i < MAX_ALARMS; i++) {
@@ -317,6 +320,8 @@ void publishTelemetry(struct tm* now) {
     p[23] = lapCount;
     p[24] = (uint8_t)alarmViewSlot;
     p[25] = (uint8_t)alarmEditField;
+    p[26] = (uint8_t)tmr_init_hr;
+    for (int i = 27; i < 34; i++) p[i] = 0;
     pCharTelemetry->setValue(p, sizeof(p));
     pCharTelemetry->notify();
   }
@@ -473,13 +478,21 @@ void parseCommand(const String& raw) {
     return;
   }
 
-  // --- Timer preset: SET_TIMER:<min>,<sec> ---
+  // --- Timer preset: SET_TIMER:<hr>,<min>,<sec> (or <min>,<sec>) ---
   if (cmd.startsWith("SET_TIMER:")) {
     int comma = cmd.indexOf(',', 10);
     if (comma > 0) {
-      tmr_init_min = cmd.substring(10, comma).toInt();
-      tmr_init_sec = cmd.substring(comma + 1).toInt();
-      tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+      int comma2 = cmd.indexOf(',', comma + 1);
+      if (comma2 > 0) {
+        tmr_init_hr = cmd.substring(10, comma).toInt();
+        tmr_init_min = cmd.substring(comma + 1, comma2).toInt();
+        tmr_init_sec = cmd.substring(comma2 + 1).toInt();
+      } else {
+        tmr_init_hr = 0;
+        tmr_init_min = cmd.substring(10, comma).toInt();
+        tmr_init_sec = cmd.substring(comma + 1).toInt();
+      }
+      tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
       saveSettings();
     }
     return;
@@ -575,12 +588,16 @@ void doUpPress() {
       break;
     case MODE_TIMER:
       if (tmr_set_field == 1) {
-        tmr_init_min = (tmr_init_min + 1) % 100;
-        tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+        tmr_init_hr = (tmr_init_hr + 1) % 24;
+        tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
         saveSettings();
       } else if (tmr_set_field == 2) {
+        tmr_init_min = (tmr_init_min + 1) % 100;
+        tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
+        saveSettings();
+      } else if (tmr_set_field == 3) {
         tmr_init_sec = (tmr_init_sec + 1) % 60;
-        tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+        tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
         saveSettings();
       } else if (tmr_set_field == 0 && (tmr_state == TMR_STOPPED || tmr_state == TMR_PAUSED)) {
         if (tmr_remaining_ms > 0) {
@@ -616,12 +633,16 @@ void doDownPress() {
       break;
     case MODE_TIMER:
       if (tmr_set_field == 1) {
-        tmr_init_min = (tmr_init_min + 99) % 100;
-        tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+        tmr_init_hr = (tmr_init_hr + 23) % 24;
+        tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
         saveSettings();
       } else if (tmr_set_field == 2) {
+        tmr_init_min = (tmr_init_min + 99) % 100;
+        tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
+        saveSettings();
+      } else if (tmr_set_field == 3) {
         tmr_init_sec = (tmr_init_sec + 59) % 60;
-        tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+        tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
         saveSettings();
       } else if (tmr_set_field == 0) {
         if (tmr_state == TMR_RUNNING) {
@@ -629,7 +650,7 @@ void doDownPress() {
           logEvent("Timer paused");
         } else if (tmr_state == TMR_PAUSED || tmr_state == TMR_STOPPED) {
           tmr_state = TMR_STOPPED;
-          tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+          tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
         }
       }
       break;
@@ -646,7 +667,7 @@ void doAlarmPress() {
   }
   if (tmr_state == TMR_RINGING) {
     tmr_state = TMR_STOPPED;
-    tmr_remaining_ms = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+    tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
     buzzer(false);
     logEvent("Timer dismissed");
     return;
@@ -670,7 +691,7 @@ void doAlarmPress() {
       break;
     case MODE_TIMER:
       if (tmr_state == TMR_STOPPED || tmr_state == TMR_PAUSED) {
-        tmr_set_field = (tmr_set_field + 1) % 3;
+        tmr_set_field = (tmr_set_field + 1) % 4;
       }
       break;
     default: break;
@@ -892,13 +913,13 @@ void drawAlarmSet() {
 }
 
 void drawTimer() {
-  char ts[14];
+  char ts[16];
   if (tmr_set_field != 0) {
-    snprintf(ts, sizeof(ts), "%02d:%02d", tmr_init_min, tmr_init_sec);
+    snprintf(ts, sizeof(ts), "%02d:%02d:%02d", tmr_init_hr, tmr_init_min, tmr_init_sec);
   } else {
     unsigned long rem = tmr_remaining_ms;
     unsigned long s   = rem / 1000;
-    snprintf(ts, sizeof(ts), "%02lu:%02lu.%02lu", (s/60)%100, s%60, (rem%1000)/10);
+    snprintf(ts, sizeof(ts), "%02lu:%02lu:%02lu", (s/3600), (s/60)%60, s%60);
   }
 
   u8g2.setFont(u8g2_font_6x10_tf);
@@ -910,20 +931,22 @@ void drawTimer() {
   u8g2.drawLine(0, 14, 128, 14);
 
   // Progress bar (only when running/paused and total > 0)
-  unsigned long total = ((tmr_init_min * 60UL) + tmr_init_sec) * 1000UL;
+  unsigned long total = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
   if (total > 0 && tmr_set_field == 0) {
     int barW = (int)((128.0f * tmr_remaining_ms) / total);
     u8g2.drawBox(0, 50, barW, 4);
   }
 
   u8g2.setFont(u8g2_font_logisoso18_tf);
-  if (tmr_set_field == 1) { u8g2.setDrawColor(0); drawEditBox(4, 45, 26, 18); u8g2.setDrawColor(1); }
-  if (tmr_set_field == 2) { u8g2.setDrawColor(0); drawEditBox(40, 45, 26, 18); u8g2.setDrawColor(1); }
-  u8g2.drawStr(4, 45, ts);
+  if (tmr_set_field == 1) { u8g2.setDrawColor(0); drawEditBox(0, 45, 26, 18); u8g2.setDrawColor(1); }
+  if (tmr_set_field == 2) { u8g2.setDrawColor(0); drawEditBox(36, 45, 26, 18); u8g2.setDrawColor(1); }
+  if (tmr_set_field == 3) { u8g2.setDrawColor(0); drawEditBox(72, 45, 26, 18); u8g2.setDrawColor(1); }
+  u8g2.drawStr(0, 45, ts);
 
   u8g2.setFont(u8g2_font_6x10_tf);
-  if      (tmr_set_field == 1) u8g2.drawStr(10, 63, "EDITING: MIN");
-  else if (tmr_set_field == 2) u8g2.drawStr(10, 63, "EDITING: SEC");
+  if      (tmr_set_field == 1) u8g2.drawStr(10, 63, "EDITING: HR");
+  else if (tmr_set_field == 2) u8g2.drawStr(10, 63, "EDITING: MIN");
+  else if (tmr_set_field == 3) u8g2.drawStr(10, 63, "EDITING: SEC");
   else                         u8g2.drawStr(0,  63, "UP:GO DN:PAUSE");
 }
 

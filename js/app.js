@@ -4,6 +4,9 @@ import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=4';
 import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=4';
 import { VirtualRTC } from './VirtualRTC.js?v=4';
 
+let virtualRTC = null;
+let wrappedUpdateState = null;
+
 function sendCmd(cmd) {
     if (wsState.connected) {
         sendCommandWS(cmd, appendLog);
@@ -386,7 +389,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Timer pickers
-    let timerDraft = { min: 0, sec: 0 };
+    let timerDraft = { hr: 0, min: 0, sec: 0 };
+    const timerPickerHr = initScrollPicker(
+        document.getElementById('timer-picker-hr'), 0,
+        v => { timerDraft.hr = v; }
+    );
     const timerPickerMin = initScrollPicker(
         document.getElementById('timer-picker-min'), 0,
         v => { timerDraft.min = v; }
@@ -396,49 +403,68 @@ document.addEventListener('DOMContentLoaded', () => {
         v => { timerDraft.sec = v; }
     );
     
-    // Timer Input editing logic
-    function setupTimerInput(displayEl, inputEl, pickerObj, updateDraft) {
-        displayEl.addEventListener('click', () => {
-            inputEl.value = pickerObj.getValue();
-            inputEl.classList.remove('hidden');
-            displayEl.classList.add('hidden');
-            inputEl.focus();
-        });
-        
-        inputEl.addEventListener('blur', () => {
-            inputEl.classList.add('hidden');
-            displayEl.classList.remove('hidden');
-            let val = parseInt(inputEl.value);
-            if (isNaN(val)) val = pickerObj.getValue();
-            pickerObj.setValue(val);
-            updateDraft(val);
-        });
-        
-        inputEl.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') inputEl.blur();
-        });
-    }
-    setupTimerInput(els.timerMinDisplay, els.timerInputMin, timerPickerMin, v => timerDraft.min = v);
-    setupTimerInput(els.timerSecDisplay, els.timerInputSec, timerPickerSec, v => timerDraft.sec = v);
-
     // Timer Presets
     els.presetBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            const presetMin = parseInt(btn.dataset.preset);
-            timerPickerMin.setValue(presetMin);
-            timerPickerSec.setValue(0);
-            timerDraft.min = presetMin;
-            timerDraft.sec = 0;
-            sendCmd(`SET_TIMER:${String(presetMin).padStart(2,'0')},00`);
-            if (navigator.vibrate) navigator.vibrate(20);
+            if (btn.hasAttribute('data-hr') || btn.hasAttribute('data-min')) {
+                const presetHr = parseInt(btn.dataset.hr || '0');
+                const presetMin = parseInt(btn.dataset.min || '0');
+                const presetSec = parseInt(btn.dataset.sec || '0');
+                timerPickerHr.setValue(presetHr);
+                timerPickerMin.setValue(presetMin);
+                timerPickerSec.setValue(presetSec);
+                timerDraft.hr = presetHr;
+                timerDraft.min = presetMin;
+                timerDraft.sec = presetSec;
+                sendCmd(`SET_TIMER:${presetHr},${presetMin},${presetSec}`);
+                if (navigator.vibrate) navigator.vibrate(20);
+            } else {
+                // Future functionality: add custom preset
+            }
         });
     });
 
-    document.getElementById('btn-timer-set').addEventListener('click', () => {
-        timerDraft.min = timerPickerMin.getValue();
-        timerDraft.sec = timerPickerSec.getValue();
-        sendCmd(`SET_TIMER:${String(timerDraft.min).padStart(2,'0')},${String(timerDraft.sec).padStart(2,'0')}`);
-    });
+    const btnTimerAction = document.getElementById('btn-timer-action');
+    if (btnTimerAction) {
+        btnTimerAction.addEventListener('click', () => {
+            // First time clicking play, if we are in READY state
+            if (lastBleState && lastBleState.tmrState === 0) {
+                timerDraft.hr = timerPickerHr.getValue();
+                timerDraft.min = timerPickerMin.getValue();
+                timerDraft.sec = timerPickerSec.getValue();
+                sendCmd(`SET_TIMER:${timerDraft.hr},${timerDraft.min},${timerDraft.sec}`);
+                // Give it a tiny delay then send start
+                setTimeout(() => sendCmd('BTN:UP'), 50);
+            } else if (lastBleState && lastBleState.tmrState === 1) {
+                // Running, so pause
+                sendCmd('BTN:DOWN');
+            } else if (lastBleState && lastBleState.tmrState === 2) {
+                // Paused, so resume
+                sendCmd('BTN:UP');
+            } else if (lastBleState && lastBleState.tmrState === 3) {
+                // Ringing, stop
+                sendCmd('BTN:ALARM');
+            } else {
+                // Fallback virtual RTC case if no connection
+                sendCmd('BTN:UP'); 
+            }
+        });
+    }
+
+    const btnTimerResetCmd = document.getElementById('btn-timer-reset-cmd');
+    if (btnTimerResetCmd) {
+        btnTimerResetCmd.addEventListener('click', () => {
+            sendCmd('BTN:ALARM'); // Stop/Reset
+            setTimeout(() => sendCmd('BTN:ALARM'), 50); // Make sure it cycles back out of edit mode if stuck
+        });
+    }
+
+    const btnTimerBellCmd = document.getElementById('btn-timer-bell-cmd');
+    if (btnTimerBellCmd) {
+        btnTimerBellCmd.addEventListener('click', () => {
+            document.getElementById('alarm-sound-select').focus();
+        });
+    }
 
     // ─── Web Audio Alarm ──────────────────────────────────────────────────────
     let audioCtx = null;
@@ -616,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isFetchingLaps = false;
     let lastBleState = null;
 
-    const wrappedUpdateState = async (state) => {
+    wrappedUpdateState = async (state) => {
         lastBleState = state;
         lastBleState._localTs = Date.now();
         
@@ -651,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastAlarmState = alarmActive;
     };
 
-    const virtualRTC = new VirtualRTC();
+    virtualRTC = new VirtualRTC();
     function renderLoop() {
         if (!bleState.connected && !wsState.connected) {
             const state = virtualRTC.tick();
@@ -724,10 +750,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.getElementById('btn-alarm-dismiss').addEventListener('click', () => sendCmd('BTN:ALARM'));
 
-    // Timer
-    setupHoldToRepeat(document.getElementById('btn-timer-up'), 'BTN:UP');
-    setupHoldToRepeat(document.getElementById('btn-timer-down'), 'BTN:DOWN');
-    document.getElementById('btn-timer-cycle').addEventListener('click', () => sendCmd('BTN:ALARM'));
-    document.getElementById('btn-timer-stop').addEventListener('click', () => sendCmd('BTN:ALARM'));
+    // Timer (Hardware Sync) - we can keep hold to repeat if we want
+    const btnUp = document.getElementById('btn-timer-up');
+    const btnDown = document.getElementById('btn-timer-down');
+    const btnCycle = document.getElementById('btn-timer-cycle');
+    if (btnUp) setupHoldToRepeat(btnUp, 'BTN:UP');
+    if (btnDown) setupHoldToRepeat(btnDown, 'BTN:DOWN');
+    if (btnCycle) btnCycle.addEventListener('click', () => sendCmd('BTN:ALARM'));
+    const btnStop = document.getElementById('btn-timer-stop');
+    if (btnStop) btnStop.addEventListener('click', () => sendCmd('BTN:ALARM'));
 
 });
