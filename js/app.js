@@ -49,15 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Theme Toggle
     const themeBtn = document.getElementById('theme-toggle');
     themeBtn.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
+        document.documentElement.classList.toggle('dark');
+        document.body.classList.toggle('dark-mode'); // keep for backwards compatibility with any custom styles
     });
-
-    // Fullscreen Toggle
-    if (els.fullscreenToggle) {
-        els.fullscreenToggle.addEventListener('click', () => {
-            document.body.classList.toggle('fullscreen-mode');
-        });
-    }
 
     // PWA Install Prompt
     let deferredPrompt;

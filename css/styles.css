@@ -173,25 +173,4 @@ body {
     appearance: textfield;
 }
 
-/* ─────────────────────────────────────────
-   FULLSCREEN MODE
-   ───────────────────────────────────────── */
-body.fullscreen-mode header,
-body.fullscreen-mode .bottom-nav,
-body.fullscreen-mode .activity-log-drawer,
-body.fullscreen-mode #log-drawer,
-body.fullscreen-mode .clock-actions,
-body.fullscreen-mode .sw-actions,
-body.fullscreen-mode details,
-body.fullscreen-mode .timer-presets,
-body.fullscreen-mode .glass-card {
-    display: none !important;
-}
 
-body.fullscreen-mode .view {
-    margin-top: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    height: 100vh !important;
-}
