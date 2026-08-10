@@ -24,53 +24,53 @@
             theme: {
                 extend: {
                     "colors": {
-                        "surface-container-lowest": "#0e0e0e",
-                        "on-primary-container": "#006970",
-                        "on-secondary-fixed-variant": "#5e4200",
-                        "inverse-primary": "#006970",
-                        "surface-dim": "#131313",
-                        "on-surface": "#e5e2e1",
-                        "on-secondary-container": "#6b4b00",
-                        "surface-bright": "#393939",
-                        "on-primary-fixed": "#002022",
-                        "on-error-container": "#ffdad6",
-                        "secondary": "#ffdb9d",
-                        "surface": "#131313",
-                        "error-container": "#93000a",
-                        "outline": "#849495",
-                        "on-secondary-fixed": "#271900",
-                        "primary-fixed-dim": "#00dbe9",
-                        "primary-fixed": "#7df4ff",
-                        "secondary-fixed": "#ffdea8",
-                        "on-error": "#690005",
-                        "surface-container": "#201f1f",
-                        "surface-container-highest": "#353534",
-                        "secondary-fixed-dim": "#ffba20",
-                        "on-tertiary-fixed-variant": "#00522c",
-                        "inverse-on-surface": "#313030",
-                        "on-tertiary-fixed": "#00210e",
-                        "on-background": "#e5e2e1",
-                        "on-secondary": "#412d00",
-                        "surface-variant": "#353534",
-                        "outline-variant": "#3b494b",
-                        "on-primary": "#00363a",
-                        "background": "#131313",
-                        "error": "#ffb4ab",
-                        "on-tertiary-container": "#006d3c",
-                        "primary-container": "#00f0ff",
-                        "tertiary": "#dcffe2",
-                        "surface-container-low": "#1c1b1b",
-                        "primary": "#dbfcff",
-                        "tertiary-fixed": "#5bffa1",
-                        "on-surface-variant": "#b9cacb",
-                        "tertiary-fixed-dim": "#00e383",
-                        "secondary-container": "#feb700",
-                        "tertiary-container": "#00f990",
-                        "on-primary-fixed-variant": "#004f54",
-                        "inverse-surface": "#e5e2e1",
-                        "surface-container-high": "#2a2a2a",
-                        "surface-tint": "#00dbe9",
-                        "on-tertiary": "#00391d"
+                        "surface-container-lowest": "var(--md-sys-color-surface-container-lowest)",
+                        "on-primary-container": "var(--md-sys-color-on-primary-container)",
+                        "on-secondary-fixed-variant": "var(--md-sys-color-on-secondary-fixed-variant)",
+                        "inverse-primary": "var(--md-sys-color-inverse-primary)",
+                        "surface-dim": "var(--md-sys-color-surface-dim)",
+                        "on-surface": "var(--md-sys-color-on-surface)",
+                        "on-secondary-container": "var(--md-sys-color-on-secondary-container)",
+                        "surface-bright": "var(--md-sys-color-surface-bright)",
+                        "on-primary-fixed": "var(--md-sys-color-on-primary-fixed)",
+                        "on-error-container": "var(--md-sys-color-on-error-container)",
+                        "secondary": "var(--md-sys-color-secondary)",
+                        "surface": "var(--md-sys-color-surface)",
+                        "error-container": "var(--md-sys-color-error-container)",
+                        "outline": "var(--md-sys-color-outline)",
+                        "on-secondary-fixed": "var(--md-sys-color-on-secondary-fixed)",
+                        "primary-fixed-dim": "var(--md-sys-color-primary-fixed-dim)",
+                        "primary-fixed": "var(--md-sys-color-primary-fixed)",
+                        "secondary-fixed": "var(--md-sys-color-secondary-fixed)",
+                        "on-error": "var(--md-sys-color-on-error)",
+                        "surface-container": "var(--md-sys-color-surface-container)",
+                        "surface-container-highest": "var(--md-sys-color-surface-container-highest)",
+                        "secondary-fixed-dim": "var(--md-sys-color-secondary-fixed-dim)",
+                        "on-tertiary-fixed-variant": "var(--md-sys-color-on-tertiary-fixed-variant)",
+                        "inverse-on-surface": "var(--md-sys-color-inverse-on-surface)",
+                        "on-tertiary-fixed": "var(--md-sys-color-on-tertiary-fixed)",
+                        "on-background": "var(--md-sys-color-on-background)",
+                        "on-secondary": "var(--md-sys-color-on-secondary)",
+                        "surface-variant": "var(--md-sys-color-surface-variant)",
+                        "outline-variant": "var(--md-sys-color-outline-variant)",
+                        "on-primary": "var(--md-sys-color-on-primary)",
+                        "background": "var(--md-sys-color-background)",
+                        "error": "var(--md-sys-color-error)",
+                        "on-tertiary-container": "var(--md-sys-color-on-tertiary-container)",
+                        "primary-container": "var(--md-sys-color-primary-container)",
+                        "tertiary": "var(--md-sys-color-tertiary)",
+                        "surface-container-low": "var(--md-sys-color-surface-container-low)",
+                        "primary": "var(--md-sys-color-primary)",
+                        "tertiary-fixed": "var(--md-sys-color-tertiary-fixed)",
+                        "on-surface-variant": "var(--md-sys-color-on-surface-variant)",
+                        "tertiary-fixed-dim": "var(--md-sys-color-tertiary-fixed-dim)",
+                        "secondary-container": "var(--md-sys-color-secondary-container)",
+                        "tertiary-container": "var(--md-sys-color-tertiary-container)",
+                        "on-primary-fixed-variant": "var(--md-sys-color-on-primary-fixed-variant)",
+                        "inverse-surface": "var(--md-sys-color-inverse-surface)",
+                        "surface-container-high": "var(--md-sys-color-surface-container-high)",
+                        "surface-tint": "var(--md-sys-color-surface-tint)",
+                        "on-tertiary": "var(--md-sys-color-on-tertiary)"
                     },
                     "borderRadius": {
                         "DEFAULT": "0.125rem",
@@ -146,38 +146,41 @@
                 
                 <div class="dropdown-menu absolute right-0 mt-2 w-64 rounded-xl bg-surface-container/90 backdrop-blur-3xl shadow-2xl hidden flex-col py-1 border border-outline-variant/30 max-h-[80vh] overflow-y-auto" id="main-menu">
                     <!-- Connection -->
-                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-wider">Connection</div>
-                    <button id="connect-btn" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
-                        <span class="text-lg">📡</span> BLE Connect
+                    <div class="px-4 py-2 mt-1 font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">Connection</div>
+                    <button id="connect-btn" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-primary">bluetooth</span> BLE Connect
                     </button>
-                    <button id="wifi-connect-btn" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
-                        <span class="text-lg">🌐</span> WiFi Connect
+                    <button id="wifi-connect-btn" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-primary">wifi</span> WiFi Connect
                     </button>
                     
-                    <div class="border-t border-outline-variant/30 my-1"></div>
+                    <div class="border-t border-outline-variant/30 my-2 mx-4"></div>
                     
                     <!-- View Options -->
-                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-wider">View Options</div>
-                    <button id="theme-toggle" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
-                        <span class="material-symbols-outlined text-[20px]">contrast</span> Toggle Theme
+                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">View Options</div>
+                    <button id="theme-toggle" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-secondary">contrast</span> Toggle Theme
+                    </button>
+                    <button id="btn-fullscreen" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-secondary">fullscreen</span> Fullscreen
                     </button>
 
                     
-                    <div class="border-t border-outline-variant/30 my-1"></div>
+                    <div class="border-t border-outline-variant/30 my-2 mx-4"></div>
                     
                     <!-- Hardware Settings -->
-                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-wider">Hardware Settings</div>
-                    <button id="btn-mode-short" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
-                        <span class="text-lg">🔁</span> Next Mode
+                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">Hardware Settings</div>
+                    <button id="btn-mode-short" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-tertiary">swap_horiz</span> Next Mode
                     </button>
-                    <button id="btn-mode-long" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
-                        <span class="text-lg">✏️</span> Set Clock
+                    <button id="btn-mode-long" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-tertiary">edit_calendar</span> Set Clock
                     </button>
-                    <button id="btn-tz-up" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
-                        <span class="text-lg">🌍</span> TZ +1 Hour
+                    <button id="btn-tz-up" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-tertiary">language</span> TZ +1 Hour
                     </button>
-                    <button id="btn-tz-down" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
-                        <span class="text-lg">🌍</span> TZ -1 Hour
+                    <button id="btn-tz-down" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-tertiary">public</span> TZ -1 Hour
                     </button>
                 </div>
             </div>
@@ -200,12 +203,15 @@
                     <div id="analogue-clock-container" class="w-full h-full"></div>
                 </div>
 
-                <div class="mt-8 flex gap-4">
+                <div class="mt-8 flex flex-wrap gap-4 justify-center">
                     <button id="btn-sync" class="btn-primary rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold flex items-center gap-2">
                         <span>🔄</span> Sync Clock
                     </button>
                     <button id="btn-clock-toggle" class="glass-button rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold text-on-surface flex items-center gap-2">
                         <span>🕐</span> Toggle Analogue Mode
+                    </button>
+                    <button id="btn-clock-format" class="glass-button rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold text-on-surface flex items-center gap-2">
+                        <span>12h</span> Format
                     </button>
                 </div>
 
@@ -251,18 +257,29 @@
                 </div>
 
                 <!-- Stopwatch Controls -->
-                <div class="flex gap-6 mt-10 w-full max-w-sm justify-center items-center">
-                    <button id="btn-sw-pause" class="btn-ghost rounded-2xl w-14 h-14 flex items-center justify-center">
-                        <span class="material-symbols-outlined">pause</span>
+                <div class="flex gap-6 mt-10 w-full max-w-sm justify-center items-center h-24">
+                    <!-- Secondary Action (Lap / Reset) -->
+                    <button id="btn-sw-lap" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center hidden text-on-surface-variant hover:text-on-surface">
+                        <span class="material-symbols-outlined text-2xl">flag</span>
+                        <span class="text-[10px] font-bold uppercase mt-0.5">Lap</span>
                     </button>
-                    <button id="btn-sw-start" class="btn-primary rounded-2xl w-20 h-20 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-4xl">play_arrow</span>
+                    <button id="btn-sw-reset" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-error hidden">
+                        <span class="material-symbols-outlined text-2xl">restart_alt</span>
+                        <span class="text-[10px] font-bold uppercase mt-0.5">Reset</span>
                     </button>
-                    <button id="btn-sw-lap" class="btn-ghost rounded-2xl w-14 h-14 flex items-center justify-center">
-                        <span class="material-symbols-outlined">flag</span>
+
+                    <!-- Primary Action (Start / Resume / Stop) -->
+                    <button id="btn-sw-start" class="bg-[#1b71fb] rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-white">
+                        <span class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
+                        <span class="text-xs font-bold uppercase mt-1">Start</span>
                     </button>
-                    <button id="btn-sw-reset" class="btn-ghost rounded-2xl w-14 h-14 flex items-center justify-center text-error">
-                        <span class="material-symbols-outlined">restart_alt</span>
+                    <button id="btn-sw-resume" class="bg-[#1b71fb] rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-white hidden">
+                        <span class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
+                        <span class="text-xs font-bold uppercase mt-1">Resume</span>
+                    </button>
+                    <button id="btn-sw-pause" class="bg-error/20 rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-error hidden border border-error/50">
+                        <span class="material-symbols-outlined text-[40px] leading-none">pause</span>
+                        <span class="text-xs font-bold uppercase mt-1">Stop</span>
                     </button>
                 </div>
             </div>
@@ -305,6 +322,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter" id="alarm-cards-container">
                 <!-- Injected by ui.js -->
             </div>
+
+            <!-- Add Alarm FAB -->
+            <button id="btn-alarm-add" class="fixed bottom-28 right-6 md:bottom-12 md:right-12 bg-primary rounded-full w-16 h-16 flex items-center justify-center shadow-2xl z-40 hover:scale-110 transition-transform text-on-primary">
+                <span class="material-symbols-outlined text-3xl">add</span>
+            </button>
 
             <!-- Alarm Editor -->
             <div id="alarm-editor" class="glass-card rounded-2xl p-6 max-w-md mx-auto w-full flex flex-col gap-4 hidden">
@@ -467,6 +489,46 @@
             </div>
             
         </section>
+
+        <!-- TIMER TONES VIEW -->
+        <section id="view-timer-tones" class="view hidden max-w-2xl mx-auto mt-6 flex flex-col gap-6">
+            <div class="flex items-center gap-4 mb-4 cursor-pointer hover:opacity-80 transition-opacity w-fit" id="btn-tones-back">
+                <span class="material-symbols-outlined text-primary text-3xl">arrow_back</span>
+                <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">Timer Tones</h2>
+            </div>
+            
+            <div class="glass-card rounded-2xl overflow-hidden flex flex-col divide-y divide-outline-variant/30">
+                <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all active" data-tone="classic">
+                    <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined text-outline-variant text-[24px]">music_note</span>
+                        <span class="font-mono-label text-sm text-on-surface">Classic Beep</span>
+                    </div>
+                    <span class="material-symbols-outlined text-primary checkmark">check_circle</span>
+                </div>
+                <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all" data-tone="digital">
+                    <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined text-outline-variant text-[24px]">watch</span>
+                        <span class="font-mono-label text-sm text-on-surface">Digital Watch</span>
+                    </div>
+                    <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                </div>
+                <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all" data-tone="chime">
+                    <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined text-outline-variant text-[24px]">notifications_active</span>
+                        <span class="font-mono-label text-sm text-on-surface">Gentle Chime</span>
+                    </div>
+                    <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                </div>
+                <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all" data-tone="radar">
+                    <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined text-outline-variant text-[24px]">radar</span>
+                        <span class="font-mono-label text-sm text-on-surface">Radar</span>
+                    </div>
+                    <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                </div>
+            </div>
+            <p class="font-mono-label text-xs text-outline-variant text-center mt-4">These custom tones play from your device's browser when the timer finishes.</p>
+        </section>
     </main>
 
     <!-- BottomNavBar (Visible only on mobile) -->
@@ -490,15 +552,15 @@
     </nav>
 
     <!-- ── ACTIVITY LOG — collapsible drawer ────────────── -->
-    <details class="activity-log-drawer fixed bottom-16 md:bottom-2 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-50 rounded-2xl overflow-hidden shadow-2xl" id="log-drawer">
-        <summary class="log-drawer-summary glass-panel text-on-surface-variant flex items-center justify-between px-4 py-2.5 font-mono-label text-xs cursor-pointer select-none">
+    <details class="activity-log-drawer fixed bottom-24 md:bottom-2 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-50 rounded-2xl overflow-hidden shadow-2xl" id="log-drawer">
+        <summary class="log-drawer-summary glass-panel text-on-surface flex items-center justify-between px-4 py-3 font-mono-label text-sm cursor-pointer select-none">
             <span class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[16px]">list_alt</span>
+                <span class="material-symbols-outlined text-[18px]">list_alt</span>
                 ACTIVITY LOG
             </span>
-            <span class="material-symbols-outlined text-[16px] transition-transform">expand_less</span>
+            <span class="material-symbols-outlined text-[18px] transition-transform">expand_less</span>
         </summary>
-        <div id="log-content" class="log-content glass-card font-mono-label text-[10px] text-on-surface p-3 max-h-[120px] overflow-y-auto border-t-0 rounded-t-none">
+        <div id="log-content" class="log-content glass-card font-mono-label text-[11px] text-on-surface p-4 max-h-[240px] overflow-y-auto border-t-0 rounded-t-none">
             <!-- Injected by app.js -->
         </div>
     </details>

@@ -211,8 +211,24 @@ export function renderAlarmCards(alarms, activeSlot) {
     if (!alarms || alarms.length === 0) return;
     
     const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-    const html = alarms.map((alarm, i) => {
-        const timeStr = `${pad(alarm.h)}:${pad(alarm.m)}`;
+    
+    // Check if we have state.is12hFormat (we need it from global or pass it, we can just use the exported one or read from localStorage)
+    const is12h = localStorage.getItem('is12hFormat') === 'true';
+
+    let html = alarms.map((alarm, i) => {
+        // Hide unused alarms to make it feel like a dynamic list
+        if (!alarm.en && !alarm.sn && alarm.h === 0 && alarm.m === 0 && alarm.rep === 0) {
+            return '';
+        }
+
+        let h = alarm.h;
+        let amPm = '';
+        if (is12h) {
+            amPm = h >= 12 ? ' PM' : ' AM';
+            h = h % 12 || 12;
+        }
+
+        const timeStr = `${pad(h)}:${pad(alarm.m)}${amPm}`;
         const disabledClass = (alarm.en || alarm.sn) ? '' : 'opacity-50';
         const dayStr = days.map((d, di) => {
             const active = (alarm.rep & (1 << di)) ? 'class="text-primary font-bold"' : 'class="text-on-surface-variant/40"';
@@ -233,6 +249,10 @@ export function renderAlarmCards(alarms, activeSlot) {
             </div>
         </div>`;
     }).join('');
+    
+    if (html.trim() === '') {
+        html = `<div class="text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`;
+    }
     
     els.alarmCardsContainer.innerHTML = html;
 }
@@ -285,7 +305,8 @@ export function updateState(state) {
             els.clockTz.classList.remove('editing');
         }
         
-        els.clockTime.innerHTML = `${hhStr}:${mmStr}:${ssStr}`;
+        const amPm = state.is12hFormat ? `<span class="text-3xl md:text-5xl ml-2 text-on-surface-variant">${d.getUTCHours() >= 12 ? 'PM' : 'AM'}</span>` : '';
+        els.clockTime.innerHTML = `${hhStr}:${mmStr}:${ssStr}${amPm}`;
         els.clockTz.textContent = `UTC${state.timezoneOffset >= 0 ? '+' : ''}${state.timezoneOffset}`;
         
         const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
@@ -313,6 +334,33 @@ export function updateState(state) {
         
         // Stopwatch ring resets every 60 seconds (60000 ms)
         renderTimerRing(ms % 60000, 60000, false, els.swRingContainer, 'timer-ring-progress', stateClass);
+
+        // Buttons
+        const btnSwStart = document.getElementById('btn-sw-start');
+        const btnSwResume = document.getElementById('btn-sw-resume');
+        const btnSwPause = document.getElementById('btn-sw-pause');
+        const btnSwLap = document.getElementById('btn-sw-lap');
+        const btnSwReset = document.getElementById('btn-sw-reset');
+        
+        if (state.swState === 0) { // READY
+            if (btnSwStart) btnSwStart.classList.remove('hidden');
+            if (btnSwResume) btnSwResume.classList.add('hidden');
+            if (btnSwPause) btnSwPause.classList.add('hidden');
+            if (btnSwLap) btnSwLap.classList.add('hidden');
+            if (btnSwReset) btnSwReset.classList.add('hidden');
+        } else if (state.swState === 1) { // RUNNING
+            if (btnSwStart) btnSwStart.classList.add('hidden');
+            if (btnSwResume) btnSwResume.classList.add('hidden');
+            if (btnSwPause) btnSwPause.classList.remove('hidden');
+            if (btnSwLap) btnSwLap.classList.remove('hidden');
+            if (btnSwReset) btnSwReset.classList.add('hidden');
+        } else if (state.swState === 2) { // PAUSED
+            if (btnSwStart) btnSwStart.classList.add('hidden');
+            if (btnSwResume) btnSwResume.classList.remove('hidden');
+            if (btnSwPause) btnSwPause.classList.add('hidden');
+            if (btnSwLap) btnSwLap.classList.add('hidden');
+            if (btnSwReset) btnSwReset.classList.remove('hidden');
+        }
 
         // Laps
         if (state.lapCount > 0) {
@@ -345,7 +393,7 @@ export function updateState(state) {
                     return `<div class="py-1 border-b border-outline-variant/30 last:border-0 text-sm">Lap ${i + 1}: ${pad(lm)}:${pad(ls)}.${padMs(lcm)} ${deltaStr}</div>`;
                 }).join('');
             } else {
-                els.swLaps.innerHTML = `<div class="py-2 text-on-surface-variant text-sm italic">${state.lapCount} laps recorded... (Syncing)</div>`;
+                els.swLaps.innerHTML = `<div class="py-2 text-on-surface-variant text-sm italic text-center">Loading laps...</div>`;
             }
         } else {
             els.swLapsContainer.classList.add('hidden');

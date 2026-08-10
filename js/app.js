@@ -125,6 +125,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setupDropdown('main-menu-btn', 'main-menu', 'main-menu-wrap');
 
+    // Fullscreen Toggle
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message} (${err.name})`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+            // Close menu
+            const menu = document.getElementById('main-menu');
+            menu.classList.add('hidden');
+            menu.classList.remove('flex');
+        });
+    }
+
     // Analogue / Digital Clock Toggle
     let analogueMode = false;
     const btnClockToggle = document.getElementById('btn-clock-toggle');
@@ -159,6 +179,32 @@ document.addEventListener('DOMContentLoaded', () => {
             btnClockToggle.innerHTML = `<span>🕐</span> Toggle Analogue Mode`;
         }
     });
+
+    // 12/24hr Format Toggle
+    const btnClockFormat = document.getElementById('btn-clock-format');
+    if (btnClockFormat) {
+        // Initial state
+        if (localStorage.getItem('is12hFormat') === 'true') {
+            btnClockFormat.innerHTML = `<span>24h</span> Format`;
+        } else {
+            btnClockFormat.innerHTML = `<span>12h</span> Format`;
+        }
+        
+        btnClockFormat.addEventListener('click', () => {
+            const current = localStorage.getItem('is12hFormat') === 'true';
+            localStorage.setItem('is12hFormat', !current);
+            is12hFormat = !current;
+            
+            if (is12hFormat) {
+                btnClockFormat.innerHTML = `<span>24h</span> Format`;
+            } else {
+                btnClockFormat.innerHTML = `<span>12h</span> Format`;
+            }
+            
+            // Force re-render
+            if (lastBleState) wrappedUpdateState(lastBleState);
+        });
+    }
 
     // Independent browser clock / offline analogue clock
     setInterval(() => {
@@ -400,6 +446,40 @@ document.addEventListener('DOMContentLoaded', () => {
         els.alarmEditor.classList.remove('hidden');
     });
 
+    const btnAlarmAdd = document.getElementById('btn-alarm-add');
+    if (btnAlarmAdd) {
+        btnAlarmAdd.addEventListener('click', () => {
+            let slot = -1;
+            if (lastBleState && lastBleState.alarms) {
+                // Find first completely unused slot
+                slot = lastBleState.alarms.findIndex(a => !a.en && !a.sn && a.h === 0 && a.m === 0 && a.rep === 0);
+                if (slot === -1) {
+                    // Find first disabled slot
+                    slot = lastBleState.alarms.findIndex(a => !a.en);
+                }
+            }
+            if (slot === -1) {
+                alert("Maximum 4 alarms reached. Please edit or disable an existing alarm.");
+                return;
+            }
+            
+            alarmDraft.slot = slot;
+            alarmDraft.h = 7;
+            alarmDraft.m = 0;
+            alarmDraft.en = 1;
+            alarmDraft.rep = 0;
+
+            alarmPickerH.setValue(alarmDraft.h);
+            alarmPickerM.setValue(alarmDraft.m);
+            els.alarmEditSlotLabel.textContent = `(New)`;
+            refreshAlarmEnabledToggle();
+            
+            dayBtns.forEach(btn => btn.classList.remove('active'));
+            
+            els.alarmEditor.classList.remove('hidden');
+        });
+    }
+
     // Timer pickers
     let timerDraft = { hr: 0, min: 0, sec: 0 };
     const timerPickerHr = initScrollPicker(
@@ -551,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 osc.start(now + offset);
                 osc.stop(now + offset + 0.12);
             });
-        } else if (type === 'wake') {
+        } else if (type === 'chime' || type === 'wake') {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sine';
@@ -564,7 +644,21 @@ document.addEventListener('DOMContentLoaded', () => {
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
             osc.start(now);
             osc.stop(now + 0.8);
-        } else { // 'synth'
+        } else if (type === 'radar') {
+            [0, 0.15, 0.3, 0.45].forEach((offset, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = 800 - (i * 100);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                gain.gain.setValueAtTime(0, now + offset);
+                gain.gain.linearRampToValueAtTime(0.1, now + offset + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.15);
+                osc.start(now + offset);
+                osc.stop(now + offset + 0.15);
+            });
+        } else { // 'classic' or 'synth'
             [880, 660].forEach((freq, i) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -624,17 +718,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function startAlarm() {
-        if (selectedAlarmSound === 'custom' && customAudio) {
+    function startAlarm(isTimer = false) {
+        if (!isTimer && selectedAlarmSound === 'custom' && customAudio) {
             customAudio.currentTime = 0;
             customAudio.play().catch(e => console.error("Audio play failed:", e));
             return;
         }
         
         if (alarmInterval) return;
-        playAlarmSoundType(selectedAlarmSound);
-        const interval = selectedAlarmSound === 'digital' ? 450 : (selectedAlarmSound === 'wake' ? 1000 : 700);
-        alarmInterval = setInterval(() => playAlarmSoundType(selectedAlarmSound), interval);
+        const toneToPlay = isTimer ? (localStorage.getItem('timerTone') || 'classic') : selectedAlarmSound;
+        
+        playAlarmSoundType(toneToPlay);
+        const interval = toneToPlay === 'digital' ? 450 : (toneToPlay === 'wake' ? 1000 : 700);
+        alarmInterval = setInterval(() => playAlarmSoundType(toneToPlay), interval);
     }
 
     function stopAlarm() {
@@ -654,9 +750,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let isFetchingLaps = false;
     let lastBleState = null;
 
+    let is12hFormat = localStorage.getItem('is12hFormat') === 'true';
+
     wrappedUpdateState = async (state) => {
         lastBleState = state;
         lastBleState._localTs = Date.now();
+        state.is12hFormat = is12hFormat;
         
         // Inject BLE alarms/laps if missing
         if (bleState.connected) {
@@ -679,7 +778,8 @@ document.addEventListener('DOMContentLoaded', () => {
         _origUpdateState(state);
         const alarmActive = state.alarmRinging || state.tmrState === 3;
         if (alarmActive && !lastAlarmState) {
-            startAlarm();
+            const isTimer = state.tmrState === 3 && !state.alarmRinging;
+            startAlarm(isTimer);
             let notifTitle = state.alarmRinging ? 'Alarm Ringing!' : 'Timer Done!';
             showNotification(notifTitle, 'Open the clock app to dismiss.');
         }
@@ -719,6 +819,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Stopwatch
     document.getElementById('btn-sw-start').addEventListener('click', () => sendCmd('BTN:UP'));
+    const btnSwResume = document.getElementById('btn-sw-resume');
+    if (btnSwResume) btnSwResume.addEventListener('click', () => sendCmd('BTN:UP'));
     document.getElementById('btn-sw-pause').addEventListener('click', () => sendCmd('BTN:DOWN'));
     document.getElementById('btn-sw-lap').addEventListener('click', () => {
         sendCmd('BTN:LAP');
@@ -768,8 +870,57 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCycle = document.getElementById('btn-timer-cycle');
     if (btnUp) setupHoldToRepeat(btnUp, 'BTN:UP');
     if (btnDown) setupHoldToRepeat(btnDown, 'BTN:DOWN');
-    if (btnCycle) btnCycle.addEventListener('click', () => sendCmd('BTN:ALARM'));
-    const btnStop = document.getElementById('btn-timer-stop');
-    if (btnStop) btnStop.addEventListener('click', () => sendCmd('BTN:ALARM'));
+    // Timer Tones UI
+    const btnTimerBell = document.getElementById('btn-timer-bell-cmd');
+    const viewTimerTones = document.getElementById('view-timer-tones');
+    const viewTimer = document.getElementById('view-timer');
+    const btnTonesBack = document.getElementById('btn-tones-back');
+    const toneOptions = document.querySelectorAll('.tone-option');
+    let timerTone = localStorage.getItem('timerTone') || 'classic';
+
+    // Initialize tone UI
+    toneOptions.forEach(opt => {
+        if (opt.dataset.tone === timerTone) {
+            opt.classList.add('active');
+            opt.querySelector('.checkmark').classList.remove('hidden');
+        } else {
+            opt.classList.remove('active');
+            opt.querySelector('.checkmark').classList.add('hidden');
+        }
+    });
+
+    if (btnTimerBell && viewTimerTones && viewTimer) {
+        btnTimerBell.addEventListener('click', () => {
+            viewTimer.classList.add('hidden');
+            viewTimerTones.classList.remove('hidden');
+        });
+    }
+
+    if (btnTonesBack && viewTimerTones && viewTimer) {
+        btnTonesBack.addEventListener('click', () => {
+            viewTimerTones.classList.add('hidden');
+            viewTimer.classList.remove('hidden');
+        });
+    }
+
+    toneOptions.forEach(opt => {
+        opt.addEventListener('click', () => {
+            // Remove active from all
+            toneOptions.forEach(o => {
+                o.classList.remove('active');
+                o.querySelector('.checkmark').classList.add('hidden');
+            });
+            // Add active to clicked
+            opt.classList.add('active');
+            opt.querySelector('.checkmark').classList.remove('hidden');
+            
+            // Save & play
+            timerTone = opt.dataset.tone;
+            localStorage.setItem('timerTone', timerTone);
+            
+            // Re-use alarm sound type mechanism just for preview
+            playAlarmSoundType(timerTone);
+        });
+    });
 
 });
