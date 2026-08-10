@@ -291,67 +291,114 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ─── Scroll Picker Factory ────────────────────────────────────────────────
+    const ITEM_HEIGHT = 48;      // px per scroll item
+    const VISIBLE_ITEMS = 5;     // how many items visible in the picker viewport
+    const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS; // total picker container height
+    const PADDING_ITEMS = Math.floor(VISIBLE_ITEMS / 2); // spacer items top & bottom
+
     function initScrollPicker(el, initialValue, onCommit) {
         const min = parseInt(el.dataset.min);
         const max = parseInt(el.dataset.max);
         
-        let html = '<div style="height: 44px; flex-shrink: 0;"></div>';
-        for (let i = min; i <= max; i++) {
-            html += `<div class="scroll-item flex items-center justify-center h-10 w-full snap-center cursor-pointer flex-shrink-0">${String(i).padStart(2, '0')}</div>`;
-        }
-        html += '<div style="height: 44px; flex-shrink: 0;"></div>';
-        el.innerHTML = html;
-        
+        // Set the picker height explicitly
+        el.style.height = PICKER_HEIGHT + 'px';
         el.style.scrollSnapType = 'y mandatory';
+        el.style.overscrollBehavior = 'contain';
+        
+        // Build items: top padding + values + bottom padding
+        let html = '';
+        for (let p = 0; p < PADDING_ITEMS; p++) {
+            html += `<div class="scroll-spacer" style="height:${ITEM_HEIGHT}px;flex-shrink:0;"></div>`;
+        }
+        for (let i = min; i <= max; i++) {
+            html += `<div class="scroll-item flex items-center justify-center snap-center cursor-pointer" style="height:${ITEM_HEIGHT}px;flex-shrink:0;">${String(i).padStart(2, '0')}</div>`;
+        }
+        for (let p = 0; p < PADDING_ITEMS; p++) {
+            html += `<div class="scroll-spacer" style="height:${ITEM_HEIGHT}px;flex-shrink:0;"></div>`;
+        }
+        el.innerHTML = html;
         
         let currentValue = initialValue;
         let commitTimer = null;
+        let isScrolling = false;
         
-        const update = (val) => {
-            currentValue = Math.max(min, Math.min(max, val));
+        // Highlight the selected item visually
+        function highlightSelected() {
             const items = el.querySelectorAll('.scroll-item');
-            const target = items[currentValue - min];
-            if (target) {
-                el.scrollTo({ top: target.offsetTop - el.offsetTop - 44, behavior: 'auto' });
-            }
+            const centerY = el.scrollTop + (PICKER_HEIGHT / 2);
+            items.forEach((item, i) => {
+                const itemCenterY = item.offsetTop - el.offsetTop + (ITEM_HEIGHT / 2);
+                const dist = Math.abs(centerY - itemCenterY);
+                if (dist < ITEM_HEIGHT * 0.6) {
+                    // Selected
+                    item.style.color = 'var(--md-sys-color-primary)';
+                    item.style.transform = 'scale(1.25)';
+                    item.style.fontWeight = '700';
+                    item.style.opacity = '1';
+                } else if (dist < ITEM_HEIGHT * 1.6) {
+                    // Adjacent
+                    item.style.color = 'var(--md-sys-color-on-surface-variant)';
+                    item.style.transform = 'scale(1)';
+                    item.style.fontWeight = '400';
+                    item.style.opacity = '0.5';
+                } else {
+                    // Far
+                    item.style.color = 'var(--md-sys-color-on-surface-variant)';
+                    item.style.transform = 'scale(0.85)';
+                    item.style.fontWeight = '400';
+                    item.style.opacity = '0.2';
+                }
+                item.style.transition = 'all 0.15s ease';
+            });
+        }
+        
+        // Scroll to a specific value
+        const scrollToValue = (val, smooth = false) => {
+            currentValue = Math.max(min, Math.min(max, val));
+            const targetScrollTop = (currentValue - min) * ITEM_HEIGHT;
+            el.scrollTo({ top: targetScrollTop, behavior: smooth ? 'smooth' : 'auto' });
+            highlightSelected();
         };
         
+        // On scroll, find closest value and highlight
         el.addEventListener('scroll', () => {
+            isScrolling = true;
+            highlightSelected();
             clearTimeout(commitTimer);
             commitTimer = setTimeout(() => {
-                const items = el.querySelectorAll('.scroll-item');
-                let closest = null;
-                let minDiff = Infinity;
-                const center = el.scrollTop + 64;
-                items.forEach((item, i) => {
-                    const itemCenter = (item.offsetTop - el.offsetTop) + 20;
-                    const diff = Math.abs(center - itemCenter);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closest = i + min;
-                    }
-                });
-                if (closest !== null && closest !== currentValue) {
-                    currentValue = closest;
+                isScrolling = false;
+                // Find closest item
+                const rawIdx = Math.round(el.scrollTop / ITEM_HEIGHT);
+                const newVal = Math.max(min, Math.min(max, rawIdx + min));
+                if (newVal !== currentValue) {
+                    currentValue = newVal;
                     onCommit(currentValue);
                     if (navigator.vibrate) navigator.vibrate(8);
                 }
-            }, 100);
+                // Snap precisely
+                scrollToValue(currentValue, true);
+            }, 80);
         }, { passive: true });
         
+        // Click to select
         el.addEventListener('click', (e) => {
             const item = e.target.closest('.scroll-item');
             if (item) {
                 const idx = Array.from(el.querySelectorAll('.scroll-item')).indexOf(item);
                 if (idx !== -1) {
-                    update(idx + min);
+                    scrollToValue(idx + min, true);
+                    onCommit(currentValue);
+                    if (navigator.vibrate) navigator.vibrate(8);
                 }
             }
         });
         
-        setTimeout(() => update(initialValue), 0);
+        // Initial position
+        requestAnimationFrame(() => {
+            scrollToValue(initialValue, false);
+        });
         
-        return { getValue: () => currentValue, setValue: update };
+        return { getValue: () => currentValue, setValue: (v) => scrollToValue(v, false) };
     }
 
     // Alarm pickers
@@ -551,12 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const btnTimerBellCmd = document.getElementById('btn-timer-bell-cmd');
-    if (btnTimerBellCmd) {
-        btnTimerBellCmd.addEventListener('click', () => {
-            document.getElementById('alarm-sound-select').focus();
-        });
-    }
+    // Bell button is now handled by Timer Tones page below
 
     // ─── Web Audio Alarm ──────────────────────────────────────────────────────
     let audioCtx = null;

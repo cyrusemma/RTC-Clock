@@ -144,7 +144,7 @@
                     <span class="material-symbols-outlined">menu</span>
                 </button>
                 
-                <div class="dropdown-menu absolute right-0 mt-2 w-64 rounded-xl bg-surface-container/90 backdrop-blur-3xl shadow-2xl hidden flex-col py-1 border border-outline-variant/30 max-h-[80vh] overflow-y-auto" id="main-menu">
+                <div class="dropdown-menu absolute right-0 mt-2 w-64 rounded-xl bg-surface-container shadow-2xl hidden flex-col py-1 border border-outline-variant/30 max-h-[80vh] overflow-y-auto" id="main-menu">
                     <!-- Connection -->
                     <div class="px-4 py-2 mt-1 font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">Connection</div>
                     <button id="connect-btn" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
@@ -406,28 +406,31 @@
             <!-- Timer Setup View (Pickers + Presets) -->
             <div id="timer-setup-view" class="flex flex-col gap-8 w-full">
                 <!-- Pickers -->
-                <div class="flex justify-center items-center h-56 relative scroll-mask z-0">
-                    <div class="absolute top-1/2 -translate-y-1/2 w-full h-16 border-y border-outline-variant/30 pointer-events-none z-0"></div>
+                <div class="flex justify-center items-center relative scroll-mask z-0" style="height: 240px;">
+                    <!-- Selection highlight bar -->
+                    <div class="absolute top-1/2 -translate-y-1/2 w-[85%] max-w-sm h-12 border-y border-primary/30 bg-primary/5 pointer-events-none z-0 rounded-lg"></div>
                     <!-- Hours -->
-                    <div class="flex items-center gap-2">
-                        <div class="scroll-picker h-full overflow-y-auto w-24 flex flex-col items-center text-center font-display-time-mobile text-display-time-mobile text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-hr" data-min="0" data-max="23">
+                    <div class="flex flex-col items-center">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-hr" data-min="0" data-max="23">
                             <!-- Hours list -->
                         </div>
-                        <span class="font-mono-label text-mono-label text-on-surface z-10 pt-4">h</span>
+                        <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">hr</span>
                     </div>
+                    <span class="font-bold text-2xl text-primary mx-1 z-10">:</span>
                     <!-- Minutes -->
-                    <div class="flex items-center gap-2 ml-4">
-                        <div class="scroll-picker h-full overflow-y-auto w-24 flex flex-col items-center text-center font-display-time-mobile text-display-time-mobile text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-min" data-min="0" data-max="59">
+                    <div class="flex flex-col items-center">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-min" data-min="0" data-max="59">
                             <!-- Minutes list -->
                         </div>
-                        <span class="font-mono-label text-mono-label text-on-surface z-10 pt-4">m</span>
+                        <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">min</span>
                     </div>
+                    <span class="font-bold text-2xl text-primary mx-1 z-10">:</span>
                     <!-- Seconds -->
-                    <div class="flex items-center gap-2 ml-4">
-                        <div class="scroll-picker h-full overflow-y-auto w-24 flex flex-col items-center text-center font-display-time-mobile text-display-time-mobile text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-sec" data-min="0" data-max="59">
+                    <div class="flex flex-col items-center">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-sec" data-min="0" data-max="59">
                             <!-- Seconds list -->
                         </div>
-                        <span class="font-mono-label text-mono-label text-on-surface z-10 pt-4">s</span>
+                        <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">sec</span>
                     </div>
                 </div>
 
@@ -475,16 +478,19 @@
 
             <!-- Primary Controls (Bottom Fixed or relative) -->
             <div class="flex justify-between items-center w-full px-8 mt-12">
-                <button id="btn-timer-reset-cmd" class="glass-button rounded-full w-14 h-14 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
-                    <span class="material-symbols-outlined text-[24px]">replay</span>
+                <button id="btn-timer-reset-cmd" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-[22px]">replay</span>
+                    <span class="text-[9px] font-bold uppercase mt-0.5">Reset</span>
                 </button>
                 
-                <button id="btn-timer-action" class="bg-[#1b71fb] rounded-full w-24 h-24 flex items-center justify-center shadow-lg hover:scale-105 transition-transform text-white">
-                    <span id="timer-action-icon" class="material-symbols-outlined text-[48px]">play_arrow</span>
+                <button id="btn-timer-action" class="bg-[#1b71fb] rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-white">
+                    <span id="timer-action-icon" class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
+                    <span id="timer-action-label" class="text-xs font-bold uppercase mt-1">Start</span>
                 </button>
 
-                <button id="btn-timer-bell-cmd" class="glass-button rounded-full w-14 h-14 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
-                    <span class="material-symbols-outlined text-[24px]">notifications</span>
+                <button id="btn-timer-bell-cmd" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-[22px]">notifications</span>
+                    <span class="text-[9px] font-bold uppercase mt-0.5">Tone</span>
                 </button>
             </div>
             

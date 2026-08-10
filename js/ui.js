@@ -453,8 +453,20 @@ export function updateState(state) {
         if (timerStateEl) timerStateEl.textContent = stateStr.toUpperCase();
         
         if (els.timerActionIcon) {
-            if (state.tmrState === 1) els.timerActionIcon.textContent = 'pause';
-            else els.timerActionIcon.textContent = 'play_arrow';
+            const label = document.getElementById('timer-action-label');
+            if (state.tmrState === 1) {
+                els.timerActionIcon.textContent = 'pause';
+                if (label) label.textContent = 'Pause';
+            } else if (state.tmrState === 2) {
+                els.timerActionIcon.textContent = 'play_arrow';
+                if (label) label.textContent = 'Resume';
+            } else if (state.tmrState === 3) {
+                els.timerActionIcon.textContent = 'stop';
+                if (label) label.textContent = 'Stop';
+            } else {
+                els.timerActionIcon.textContent = 'play_arrow';
+                if (label) label.textContent = 'Start';
+            }
         }
 
         let stateClass = '';
