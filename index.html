@@ -1,343 +1,520 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32-C3 Clock Controller</title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>RTC-C3 Master</title>
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a202c">
+    <meta name="theme-color" content="#131313">
     <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="shortcut icon" href="favicon.ico">
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <link rel="stylesheet" href="css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="css/styles.css?v=6">
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-primary-container": "#006970",
+                        "on-secondary-fixed-variant": "#5e4200",
+                        "inverse-primary": "#006970",
+                        "surface-dim": "#131313",
+                        "on-surface": "#e5e2e1",
+                        "on-secondary-container": "#6b4b00",
+                        "surface-bright": "#393939",
+                        "on-primary-fixed": "#002022",
+                        "on-error-container": "#ffdad6",
+                        "secondary": "#ffdb9d",
+                        "surface": "#131313",
+                        "error-container": "#93000a",
+                        "outline": "#849495",
+                        "on-secondary-fixed": "#271900",
+                        "primary-fixed-dim": "#00dbe9",
+                        "primary-fixed": "#7df4ff",
+                        "secondary-fixed": "#ffdea8",
+                        "on-error": "#690005",
+                        "surface-container": "#201f1f",
+                        "surface-container-highest": "#353534",
+                        "secondary-fixed-dim": "#ffba20",
+                        "on-tertiary-fixed-variant": "#00522c",
+                        "inverse-on-surface": "#313030",
+                        "on-tertiary-fixed": "#00210e",
+                        "on-background": "#e5e2e1",
+                        "on-secondary": "#412d00",
+                        "surface-variant": "#353534",
+                        "outline-variant": "#3b494b",
+                        "on-primary": "#00363a",
+                        "background": "#131313",
+                        "error": "#ffb4ab",
+                        "on-tertiary-container": "#006d3c",
+                        "primary-container": "#00f0ff",
+                        "tertiary": "#dcffe2",
+                        "surface-container-low": "#1c1b1b",
+                        "primary": "#dbfcff",
+                        "tertiary-fixed": "#5bffa1",
+                        "on-surface-variant": "#b9cacb",
+                        "tertiary-fixed-dim": "#00e383",
+                        "secondary-container": "#feb700",
+                        "tertiary-container": "#00f990",
+                        "on-primary-fixed-variant": "#004f54",
+                        "inverse-surface": "#e5e2e1",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-tint": "#00dbe9",
+                        "on-tertiary": "#00391d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "margin-mobile": "16px",
+                        "md": "24px",
+                        "gutter": "16px",
+                        "sm": "16px",
+                        "lg": "32px",
+                        "margin-desktop": "40px",
+                        "xl": "48px",
+                        "xs": "8px"
+                    },
+                    "fontFamily": {
+                        "display-time": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-time-mobile": ["JetBrains Mono"],
+                        "mono-label": ["JetBrains Mono"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-time": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "display-time-mobile": ["36px", { "lineHeight": "44px", "fontWeight": "700" }],
+                        "mono-label": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
 </head>
-<body class="dark-mode">
-    <div id="ble-warning" class="hidden">
+<body class="bg-background text-on-background antialiased selection:bg-primary-container selection:text-on-primary-container flex flex-col h-screen overflow-hidden dark-mode">
+    <div id="ble-warning" class="hidden bg-error-container text-on-error-container px-4 py-2 text-center text-sm font-semibold z-[100]">
         ⚠️ Web Bluetooth is not supported. Use Chrome or Edge over HTTPS or localhost.
     </div>
 
-    <div class="app-container clay-panel">
-
-        <!-- ── HEADER ─────────────────────────────────────── -->
-        <header class="header">
-            <div class="connection-status">
-                <div id="status-indicator" class="indicator disconnected"></div>
-                <div class="status-info">
-                    <span id="status-text">Disconnected</span>
-                    <span id="device-name" class="device-name-text hidden"></span>
-                </div>
-            </div>
-
-            <div class="header-right">
-                <span id="browser-clock" class="digital-font browser-clock-text">--:--:--</span>
-                <button id="fullscreen-toggle" class="clay-btn icon-btn" title="Toggle Fullscreen">⛶</button>
-                <button id="theme-toggle" class="clay-btn icon-btn" title="Toggle Theme">🌓</button>
-
-                <!-- Connect dropdown -->
-                <div class="dropdown-wrap" id="connect-dropdown-wrap">
-                    <button id="connect-menu-btn" class="clay-btn primary-btn connect-btn">
-                        <span id="connect-btn-icon">⚡</span>
-                        <span id="connect-btn-label">Connect</span>
-                    </button>
-                    <div class="dropdown-menu clay-panel" id="connect-menu" role="menu">
-                        <button id="connect-btn" class="dropdown-item" role="menuitem">
-                            <span class="di-icon">📡</span> BLE Connect
-                        </button>
-                        <button id="wifi-connect-btn" class="dropdown-item" role="menuitem">
-                            <span class="di-icon">🌐</span> WiFi Connect
-                        </button>
-                    </div>
-                </div>
-                <div id="ble-note" class="ble-note hidden"></div>
-            </div>
-        </header>
-
-        <!-- ── MAIN VIEWS ──────────────────────────────────── -->
-        <main class="views">
-
-            <!-- CLOCK VIEW -->
-            <section id="view-clock" class="view active">
-                <div class="clay-display clock-display-wrapper">
-                    <div id="clock-digital">
-                        <div id="clock-time" class="digital-font large-text">00:00:00</div>
-                        <div id="clock-date" class="digital-font small-text clock-date-text"></div>
-                    </div>
-                    <div id="clock-analogue" class="hidden">
-                        <div id="analogue-clock-container"></div>
-                    </div>
-                    <div class="display-footer">
-                        <span id="clock-tz">UTC+0</span>
-                    </div>
-                </div>
-
-                <!-- Compact action row -->
-                <div class="clock-actions">
-                    <button id="btn-sync" class="clay-btn action-btn primary-btn">
-                        <span>🔄</span><span>Sync</span>
-                    </button>
-                    <button id="btn-clock-toggle" class="clay-btn action-btn" title="Toggle Analogue/Digital">
-                        <span>🕐</span><span>Style</span>
-                    </button>
-                    <!-- Clock settings dropdown -->
-                    <div class="dropdown-wrap" id="clock-settings-wrap">
-                        <button class="clay-btn action-btn" id="clock-settings-btn">
-                            <span>⚙️</span><span>Settings</span>
-                        </button>
-                        <div class="dropdown-menu clay-panel" id="clock-settings-menu" role="menu">
-                            <button id="btn-mode-short" class="dropdown-item" role="menuitem">
-                                <span class="di-icon">🔁</span> Next Mode
-                            </button>
-                            <button id="btn-mode-long" class="dropdown-item" role="menuitem">
-                                <span class="di-icon">✏️</span> Set Clock
-                            </button>
-                            <div class="dropdown-divider"></div>
-                            <button id="btn-tz-up" class="dropdown-item" role="menuitem">
-                                <span class="di-icon">🌍</span> TZ +1 Hour
-                            </button>
-                            <button id="btn-tz-down" class="dropdown-item" role="menuitem">
-                                <span class="di-icon">🌍</span> TZ -1 Hour
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- World Clock — collapsible -->
-                <details class="collapsible-section">
-                    <summary class="collapsible-summary">🌐 World Clock</summary>
-                    <div id="world-clock" class="digital-font small-text world-clock-inner"></div>
-                </details>
-
-                <!-- Diagnostics & Settings — collapsible -->
-                <details class="collapsible-section">
-                    <summary class="collapsible-summary">🛠 Diagnostics & Settings</summary>
-                    
-                    <div class="clay-inset diagnostic-panel diagnostic-panel-mb">
-                        <h4 class="section-subtitle diagnostic-title">Test Buzzer Frequency</h4>
-                        <div class="freq-test-row">
-                            <button class="clay-btn small-btn freq-test-btn" data-freq="2000">2000Hz</button>
-                            <button class="clay-btn small-btn freq-test-btn" data-freq="2500">2500Hz</button>
-                            <button class="clay-btn small-btn freq-test-btn" data-freq="3000">3000Hz</button>
-                            <button class="clay-btn small-btn freq-test-btn" data-freq="3500">3500Hz</button>
-                            <button class="clay-btn small-btn freq-test-btn" data-freq="4000">4000Hz</button>
-                        </div>
-                        <div class="center-mt-12">
-                            <button id="btn-freq-stop" class="clay-btn action-btn danger-btn stop-btn">Stop</button>
-                        </div>
-                        <p class="small-text diagnostic-desc">
-                            Tap each button and listen — pick whichever sounds loudest on your buzzer
-                        </p>
-                    </div>
-                    
-                    <div class="clay-inset diagnostic-panel">
-                        <h4 class="section-subtitle diagnostic-title">Custom Alarm Sound</h4>
-                        <p class="small-text diagnostic-desc diagnostic-desc-mb">Upload an audio file to play when the app is offline.</p>
-                        <input type="file" id="custom-alarm-file" accept="audio/*" class="hidden">
-                        <div class="center-actions">
-                            <button id="btn-upload-alarm" class="clay-btn action-btn">Upload Sound</button>
-                            <button id="btn-clear-alarm" class="clay-btn action-btn hidden">Clear Custom</button>
-                        </div>
-                        <div id="custom-alarm-status" class="small-text center-mt-12">Using Default Synth Beep</div>
-                    </div>
-                </details>
-            </section>
-
-            <!-- STOPWATCH VIEW -->
-            <section id="view-stopwatch" class="view hidden">
-                <div class="clay-display timer-ring-display">
-                    <div id="sw-ring-container"></div>
-                    <div class="timer-ring-overlay">
-                        <div id="sw-time" class="digital-font large-text">00:00.000</div>
-                        <div id="sw-state" class="state-label">Ready</div>
-                    </div>
-                </div>
-                <div class="sw-actions">
-                    <button id="btn-sw-start" class="clay-btn action-btn primary-btn">
-                        <span>▶</span><span>Start</span>
-                    </button>
-                    <button id="btn-sw-pause" class="clay-btn action-btn">
-                        <span>⏸</span><span>Pause</span>
-                    </button>
-                    <button id="btn-sw-lap" class="clay-btn action-btn">
-                        <span>🏁</span><span>Lap</span>
-                    </button>
-                    <button id="btn-sw-reset" class="clay-btn action-btn warning-btn">
-                        <span>↺</span><span>Reset</span>
-                    </button>
-                </div>
-
-                <!-- Laps — collapsible -->
-                <div id="sw-laps-container" class="hidden">
-                    <details class="collapsible-section" open>
-                        <summary class="collapsible-summary">🏁 Laps</summary>
-                        <div id="sw-laps" class="digital-font small-text laps-list"></div>
-                    </details>
-                </div>
-            </section>
-
-            <!-- ALARM VIEW -->
-            <section id="view-alarm" class="view hidden">
-                <div id="alarm-ringing-banner" class="clay-banner hidden">
-                    <span>🔔 Alarm Ringing!</span>
-                    <div class="banner-actions">
-                        <button id="btn-alarm-snooze" class="clay-btn small-btn">💤 Snooze</button>
-                        <button id="btn-alarm-dismiss" class="clay-btn small-btn danger-btn">✕ Dismiss</button>
-                    </div>
-                </div>
-
-                <!-- 4-Slot Alarm Cards -->
-                <div id="alarm-cards-container" class="alarm-cards-container">
-                    <!-- Injected by ui.js -->
-                </div>
-
-                <!-- Editor (shown when a card is clicked) -->
-                <div id="alarm-editor" class="clay-inset hidden alarm-editor-container">
-                    <div class="alarm-editor-header">
-                        <h4 class="section-subtitle">Edit Alarm <span id="alarm-edit-slot-label"></span></h4>
-                        <button id="alarm-enabled-toggle" class="clay-btn small-btn" title="Toggle enabled">ON</button>
-                    </div>
-
-                    <div class="picker-row">
-                        <div class="picker-col">
-                            <label class="picker-label">Hour</label>
-                            <div id="alarm-picker-hour" class="scroll-picker" data-min="0" data-max="23"></div>
-                            <div id="alarm-hour-display" class="picker-value">00</div>
-                        </div>
-                        <div class="picker-sep">:</div>
-                        <div class="picker-col">
-                            <label class="picker-label">Minute</label>
-                            <div id="alarm-picker-min" class="scroll-picker" data-min="0" data-max="59"></div>
-                            <div id="alarm-min-display" class="picker-value">00</div>
-                        </div>
-                    </div>
-
-                    <!-- Repeat days -->
-                    <div class="repeat-days repeat-days-container" id="alarm-repeat-days">
-                        <button class="clay-btn small-btn day-btn" data-day="0">Su</button>
-                        <button class="clay-btn small-btn day-btn" data-day="1">Mo</button>
-                        <button class="clay-btn small-btn day-btn" data-day="2">Tu</button>
-                        <button class="clay-btn small-btn day-btn" data-day="3">We</button>
-                        <button class="clay-btn small-btn day-btn" data-day="4">Th</button>
-                        <button class="clay-btn small-btn day-btn" data-day="5">Fr</button>
-                        <button class="clay-btn small-btn day-btn" data-day="6">Sa</button>
-                    </div>
-
-                    <div class="controls row controls-mt-10">
-                        <button id="btn-alarm-cancel" class="clay-btn">✕ Cancel</button>
-                        <button id="btn-alarm-set" class="clay-btn primary-btn">✔ Save</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TIMER VIEW -->
-            <section id="view-timer" class="view hidden">
-                <div id="timer-ringing-banner" class="clay-banner hidden">
-                    <span>⏰ Timer Done!</span>
-                    <button id="btn-timer-stop" class="clay-btn small-btn danger-btn">✕ Stop</button>
-                </div>
-
-                <div class="clay-display timer-ring-display">
-                    <div id="timer-ring-container"></div>
-                    <div class="timer-ring-overlay">
-                        <div id="timer-time" class="digital-font large-text">00:00.000</div>
-                        <div id="timer-state" class="state-label">Ready</div>
-                    </div>
-                </div>
-
-                <!-- Scroll Pickers -->
-                <div class="picker-row">
-                    <div class="picker-col">
-                        <label class="picker-label">Min</label>
-                        <div id="timer-picker-min" class="scroll-picker" data-min="0" data-max="99"></div>
-                        <div id="timer-min-display" class="picker-value picker-editable" title="Click to edit">00</div>
-                        <input type="number" id="timer-input-min" class="picker-input hidden" min="0" max="99" title="Timer Minutes" placeholder="00">
-                    </div>
-                    <div class="picker-sep">:</div>
-                    <div class="picker-col">
-                        <label class="picker-label">Sec</label>
-                        <div id="timer-picker-sec" class="scroll-picker" data-min="0" data-max="59"></div>
-                        <div id="timer-sec-display" class="picker-value picker-editable" title="Click to edit">00</div>
-                        <input type="number" id="timer-input-sec" class="picker-input hidden" min="0" max="59" title="Timer Seconds" placeholder="00">
-                    </div>
-                </div>
-
-                <!-- Timer Quick Presets -->
-                <div class="timer-presets controls-mt-8">
-                    <button class="clay-btn small-btn preset-btn" data-preset="1">1m</button>
-                    <button class="clay-btn small-btn preset-btn" data-preset="3">3m</button>
-                    <button class="clay-btn small-btn preset-btn" data-preset="5">5m</button>
-                    <button class="clay-btn small-btn preset-btn" data-preset="10">10m</button>
-                </div>
-
-                <div class="controls-mt-10">
-                    <button id="btn-timer-set" class="clay-btn wide-btn primary-btn">✔ Set Timer</button>
-                </div>
-
-                <!-- Manual Adjust — collapsible (for physical button mirroring) -->
-                <details class="collapsible-section controls-mt-8">
-                    <summary class="collapsible-summary">🎛 Manual Adjust</summary>
-                    <div class="timer-manual-row">
-                        <button id="btn-timer-cycle" class="clay-btn action-btn">
-                            <span>🔁</span><span>Field</span>
-                        </button>
-                        <button id="btn-timer-up" class="clay-btn action-btn">
-                            <span>▲</span><span>Up</span>
-                        </button>
-                        <button id="btn-timer-down" class="clay-btn action-btn">
-                            <span>▼</span><span>Down</span>
-                        </button>
-                    </div>
-                </details>
-            </section>
-        </main>
-
-        <!-- ── BOTTOM NAV ───────────────────────────────────── -->
-        <nav class="mode-tabs bottom-nav">
-            <button class="clay-tab active" data-mode="0">
-                <span class="nav-icon">⌚</span>
-                <span class="nav-text">Clock</span>
-            </button>
-            <button class="clay-tab" data-mode="1">
-                <span class="nav-icon">⏱️</span>
-                <span class="nav-text">Stopwatch</span>
-            </button>
-            <button class="clay-tab" data-mode="2">
-                <span class="nav-icon">⏰</span>
-                <span class="nav-text">Alarm</span>
-            </button>
-            <button class="clay-tab" data-mode="3">
-                <span class="nav-icon">⏳</span>
-                <span class="nav-text">Timer</span>
-            </button>
-        </nav>
-
-        <!-- ── ACTIVITY LOG — collapsible drawer ────────────── -->
-        <details class="activity-log-drawer" id="log-drawer">
-            <summary class="log-drawer-summary">📋 Activity Log</summary>
-            <div id="log-content" class="clay-inset digital-font small-text log-content"></div>
-        </details>
-
-    </div>
-
-    <!-- PWA Install Prompts -->
-    <div id="pwa-install-banner" class="clay-banner pwa-banner hidden">
-        <span>📲 Install App for better experience</span>
-        <div class="banner-actions">
-            <button id="btn-pwa-install" class="clay-btn small-btn primary-btn">Install</button>
-            <button id="btn-pwa-dismiss" class="clay-btn small-btn icon-btn pwa-dismiss">✕</button>
+    <!-- TopAppBar -->
+    <header class="bg-surface-container/60 backdrop-blur-xl text-primary border-b border-outline-variant/30 flex justify-between items-center px-margin-mobile h-16 w-full z-50 absolute top-0 left-0">
+        
+        <!-- Left: Browser Clock -->
+        <div class="flex items-center w-1/4">
+            <span id="browser-clock" class="font-mono-label text-sm font-bold text-on-surface">--:--:--</span>
         </div>
-    </div>
-    
-    <div id="ios-install-tooltip" class="clay-panel ios-tooltip hidden">
-        <p>To install, tap <span class="share-icon">↑</span> and select <strong>Add to Home Screen</strong>.</p>
-        <button id="btn-ios-dismiss" class="clay-btn small-btn wide-btn controls-mt-8">Got it</button>
-    </div>
 
-    <script type="module" src="js/app.js?v=4"></script>
+        <!-- Center: Connection Status -->
+        <div class="flex items-center justify-center gap-2 w-2/4">
+            <div id="status-indicator" class="w-3.5 h-3.5 rounded-full shadow-inner bg-error"></div>
+            <span id="status-text" class="font-mono-label text-xs uppercase tracking-widest text-on-surface-variant hidden md:inline">Disconnected</span>
+            <span id="device-name" class="font-mono-label text-xs text-primary-fixed-dim uppercase hidden"></span>
+        </div>
+
+        <!-- Right: Hamburger Menu -->
+        <div class="flex items-center justify-end w-1/4">
+            <div class="relative z-50" id="main-menu-wrap">
+                <button id="main-menu-btn" class="glass-button p-2 rounded-xl flex items-center justify-center text-on-surface hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                
+                <div class="dropdown-menu absolute right-0 mt-2 w-64 rounded-xl glass-card hidden flex-col py-1 border border-outline-variant/30 max-h-[80vh] overflow-y-auto" id="main-menu">
+                    <!-- Connection -->
+                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-wider">Connection</div>
+                    <button id="connect-btn" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="text-lg">📡</span> BLE Connect
+                    </button>
+                    <button id="wifi-connect-btn" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="text-lg">🌐</span> WiFi Connect
+                    </button>
+                    
+                    <div class="border-t border-outline-variant/30 my-1"></div>
+                    
+                    <!-- View Options -->
+                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-wider">View Options</div>
+                    <button id="theme-toggle" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="material-symbols-outlined text-[20px]">contrast</span> Toggle Theme
+                    </button>
+                    <button id="fullscreen-toggle" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="material-symbols-outlined text-[20px]">fullscreen</span> Fullscreen
+                    </button>
+                    
+                    <div class="border-t border-outline-variant/30 my-1"></div>
+                    
+                    <!-- Hardware Settings -->
+                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-wider">Hardware Settings</div>
+                    <button id="btn-mode-short" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="text-lg">🔁</span> Next Mode
+                    </button>
+                    <button id="btn-mode-long" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="text-lg">✏️</span> Set Clock
+                    </button>
+                    <button id="btn-tz-up" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="text-lg">🌍</span> TZ +1 Hour
+                    </button>
+                    <button id="btn-tz-down" class="w-full text-left px-4 py-2 hover:bg-surface-variant/40 transition-colors flex items-center gap-3 text-on-surface">
+                        <span class="text-lg">🌍</span> TZ -1 Hour
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Canvas -->
+    <main class="flex-1 overflow-y-auto pt-16 pb-24 md:pb-6 px-margin-mobile md:px-margin-desktop bg-surface-container-lowest bg-gradient-to-b from-surface-container-lowest to-background views">
+        
+        <!-- CLOCK VIEW -->
+        <section id="view-clock" class="view active max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter">
+            <!-- Clock display panel -->
+            <div class="md:col-span-8 flex flex-col items-center justify-center min-h-[300px] relative">
+                <div id="clock-digital" class="text-center z-10">
+                    <div id="clock-time" class="font-display-time-mobile md:font-display-time text-display-time-mobile md:text-display-time text-primary-fixed glow-text tracking-tighter">00:00:00</div>
+                    <div id="clock-date" class="font-mono-label text-mono-label text-on-surface-variant mt-2 uppercase tracking-widest bg-surface-variant/30 px-3 py-1 rounded-full border border-outline-variant/30">DATE</div>
+                </div>
+                
+                <div id="clock-analogue" class="hidden w-full max-w-[280px] aspect-square flex items-center justify-center mt-4">
+                    <div id="analogue-clock-container" class="w-full h-full"></div>
+                </div>
+
+                <div class="mt-8 flex gap-4">
+                    <button id="btn-sync" class="btn-primary rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold flex items-center gap-2">
+                        <span>🔄</span> Sync Clock
+                    </button>
+                    <button id="btn-clock-toggle" class="glass-button rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold text-on-surface flex items-center gap-2">
+                        <span>🕐</span> Toggle Style
+                    </button>
+                </div>
+
+                <span id="clock-tz" class="absolute bottom-0 right-0 font-mono-label text-[10px] text-outline uppercase tracking-widest bg-surface-variant/30 px-2.5 py-1 rounded border border-outline-variant/30">UTC+0</span>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="md:col-span-4 flex flex-col gap-6">
+                <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
+                    <h3 class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">language</span>
+                            WORLD CLOCK
+                        </span>
+                    </h3>
+                    <div id="world-clock" class="font-mono-label text-body-sm flex flex-col gap-2 mt-3 text-on-surface">
+                        <!-- Injected by ui.js -->
+                    </div>
+                </div>
+
+
+            </div>
+        </section>
+
+        <!-- STOPWATCH VIEW -->
+        <section id="view-stopwatch" class="view hidden max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter">
+            <div class="md:col-span-8 flex flex-col items-center justify-center relative min-h-[300px]">
+                <div class="absolute top-0 flex gap-2 z-10">
+                    <div id="sw-state" class="glass-panel text-tertiary-fixed-dim font-mono-label text-mono-label px-4 py-1.5 rounded-full flex items-center gap-2">
+                        READY
+                    </div>
+                </div>
+
+                <div class="relative w-full max-w-[280px] aspect-square flex items-center justify-center mt-4">
+                    <div class="absolute inset-0 rounded-full bg-primary-fixed/5 blur-2xl"></div>
+                    <div id="sw-ring-container" class="absolute w-full h-full"></div>
+                    <div class="z-10 text-center flex flex-col items-center p-6 rounded-full">
+                        <div id="sw-time" class="font-display-time-mobile md:font-display-time text-display-time-mobile md:text-display-time text-primary-fixed glow-text tracking-tighter">00:00.00</div>
+                        <div class="font-mono-label text-mono-label text-on-surface-variant mt-2 uppercase tracking-widest bg-surface-variant/30 px-3 py-1 rounded-full border border-outline-variant/30">
+                            MM:SS.ms
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stopwatch Controls -->
+                <div class="flex gap-6 mt-10 w-full max-w-sm justify-center items-center">
+                    <button id="btn-sw-pause" class="btn-ghost rounded-2xl w-14 h-14 flex items-center justify-center">
+                        <span class="material-symbols-outlined">pause</span>
+                    </button>
+                    <button id="btn-sw-start" class="btn-primary rounded-2xl w-20 h-20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-4xl">play_arrow</span>
+                    </button>
+                    <button id="btn-sw-lap" class="btn-ghost rounded-2xl w-14 h-14 flex items-center justify-center">
+                        <span class="material-symbols-outlined">flag</span>
+                    </button>
+                    <button id="btn-sw-reset" class="btn-ghost rounded-2xl w-14 h-14 flex items-center justify-center text-error">
+                        <span class="material-symbols-outlined">restart_alt</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Laps Sidebar -->
+            <div class="md:col-span-4 flex flex-col gap-6" id="sw-laps-container">
+                <details class="glass-card rounded-2xl p-5 flex flex-col gap-4 group" open>
+                    <summary class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center justify-between cursor-pointer list-none">
+                        <span class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">flag</span>
+                            LAPS
+                        </span>
+                        <span class="material-symbols-outlined text-[16px] group-open:rotate-180 transition-transform">expand_more</span>
+                    </summary>
+                    <div id="sw-laps" class="font-mono-label text-body-sm flex flex-col gap-2 mt-3 text-on-surface max-h-[250px] overflow-y-auto pr-1">
+                        <!-- Injected by ui.js -->
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <!-- ALARM VIEW -->
+        <section id="view-alarm" class="view hidden max-w-4xl mx-auto mt-6 flex flex-col gap-6">
+            <!-- Ringing Banner -->
+            <div id="alarm-ringing-banner" class="glass-panel rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 border-error/40 shadow-[0_0_20px_rgba(255,180,171,0.2)] hidden">
+                <div class="flex items-center gap-3 text-error">
+                    <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
+                    <div>
+                        <h3 class="font-headline-md text-headline-md font-bold text-on-surface">ALARM RINGING!</h3>
+                        <p class="font-body-sm text-outline text-xs">Wake up and shine!</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <button id="btn-alarm-snooze" class="btn-primary rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold">Snooze (9m)</button>
+                    <button id="btn-alarm-dismiss" class="glass-button rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold text-error">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Alarms List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter" id="alarm-cards-container">
+                <!-- Injected by ui.js -->
+            </div>
+
+            <!-- Alarm Editor -->
+            <div id="alarm-editor" class="glass-card rounded-2xl p-6 max-w-md mx-auto w-full flex flex-col gap-4 hidden">
+                <div class="flex justify-between items-center border-b border-outline-variant/50 pb-3">
+                    <h4 class="font-mono-label text-mono-label text-on-surface-variant flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                        EDIT ALARM <span id="alarm-edit-slot-label"></span>
+                    </h4>
+                    <button id="alarm-enabled-toggle" class="glass-button rounded-xl px-3 py-1 font-mono-label text-[10px] text-on-surface">ON</button>
+                </div>
+
+                <!-- Custom time scroll picker -->
+                <div class="flex justify-center items-center gap-2 h-32 relative scroll-mask before:content-[''] before:absolute before:top-1/2 before:-translate-y-1/2 before:w-full before:h-10 before:border-y before:border-primary-fixed/20 before:bg-primary-fixed/5 before:pointer-events-none before:rounded-lg z-0">
+                    <div class="scroll-picker h-full overflow-y-auto w-16 flex flex-col items-center text-center font-display-time-mobile text-body-lg text-on-surface-variant/70" id="alarm-picker-hour" data-min="0" data-max="23">
+                        <!-- Hours -->
+                    </div>
+                    <span class="font-bold text-headline-md text-primary-fixed/80 z-10 pb-1">:</span>
+                    <div class="scroll-picker h-full overflow-y-auto w-16 flex flex-col items-center text-center font-display-time-mobile text-body-lg text-on-surface-variant/70" id="alarm-picker-min" data-min="0" data-max="59">
+                        <!-- Minutes -->
+                    </div>
+                </div>
+                <div class="flex justify-center gap-12 font-mono-label text-[10px] text-outline uppercase tracking-wider -mt-2">
+                    <span>Hour</span>
+                    <span>Min</span>
+                </div>
+
+                <!-- Weekdays selection -->
+                <div class="flex justify-between gap-1 mt-2 repeat-days-container" id="alarm-repeat-days">
+                    <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="0">Su</button>
+                    <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="1">Mo</button>
+                    <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="2">Tu</button>
+                    <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="3">We</button>
+                    <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="4">Th</button>
+                    <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="5">Fr</button>
+                    <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="6">Sa</button>
+                </div>
+
+                <!-- Alarm Sound Selector -->
+                <div class="mt-2 border-t border-outline-variant/30 pt-3">
+                    <h4 class="font-mono-label text-[10px] text-outline uppercase tracking-wider mb-2">Alarm Sound</h4>
+                    <div class="flex gap-2 items-center">
+                        <select id="alarm-sound-select" aria-label="Select Alarm Sound" title="Select Alarm Sound" class="flex-1 bg-surface-variant/50 text-on-surface font-mono-label text-xs rounded-xl p-2.5 border border-outline-variant/30 outline-none focus:border-primary-fixed appearance-none">
+                            <option value="digital">Classic Digital</option>
+                            <option value="wake">Gentle Wake</option>
+                            <option value="synth">Two-Tone Synth</option>
+                            <option value="custom">Custom MP3...</option>
+                        </select>
+                        <button id="btn-preview-sound" class="glass-button w-10 h-10 rounded-xl text-primary-fixed hover:text-primary transition-colors flex items-center justify-center" title="Preview Sound">
+                            <span class="material-symbols-outlined text-[18px]" id="preview-sound-icon">play_arrow</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-2">
+                    <button id="btn-alarm-cancel" class="glass-button rounded-xl flex-1 py-3 font-mono-label text-mono-label font-bold text-on-surface-variant">Cancel</button>
+                    <button id="btn-alarm-set" class="btn-primary rounded-xl flex-1 py-3 font-mono-label text-mono-label font-bold">Save</button>
+                </div>
+                <input type="file" id="custom-alarm-file" accept="audio/mp3,audio/wav" class="hidden" title="Upload Custom MP3 File" aria-label="Upload Custom MP3 File">
+            </div>
+        </section>
+
+        <!-- TIMER VIEW -->
+        <section id="view-timer" class="view hidden max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter">
+            <!-- Ringing Banner -->
+            <div id="timer-ringing-banner" class="col-span-full glass-panel rounded-2xl p-5 flex justify-between items-center border-error/40 shadow-[0_0_20px_rgba(255,180,171,0.2)] hidden mb-4">
+                <div class="flex items-center gap-3 text-error">
+                    <span class="material-symbols-outlined text-4xl animate-bounce">hourglass_disabled</span>
+                    <div>
+                        <h3 class="font-headline-md text-headline-md font-bold text-on-surface">TIMER DONE!</h3>
+                        <p class="font-body-sm text-outline text-xs">Countdown complete.</p>
+                    </div>
+                </div>
+                <button id="btn-timer-stop" class="btn-primary rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold text-error">Stop</button>
+            </div>
+
+            <!-- Timer Display & Ring -->
+            <div class="md:col-span-8 flex flex-col items-center justify-center relative min-h-[300px]">
+                <div class="absolute top-0 flex gap-2 z-10">
+                    <div id="timer-state" class="glass-panel text-tertiary-fixed-dim font-mono-label text-mono-label px-4 py-1.5 rounded-full flex items-center gap-2">
+                        READY
+                    </div>
+                </div>
+
+                <div class="relative w-full max-w-[280px] aspect-square flex items-center justify-center mt-4">
+                    <div class="absolute inset-0 rounded-full bg-primary-fixed/5 blur-2xl"></div>
+                    <div id="timer-ring-container" class="absolute w-full h-full"></div>
+                    <div class="z-10 text-center flex flex-col items-center p-6 rounded-full">
+                        <div class="font-display-time-mobile md:font-display-time text-display-time-mobile md:text-display-time text-primary-fixed glow-text tracking-tighter">
+                            <span id="timer-min-display" class="picker-editable">00</span>:<span id="timer-sec-display" class="picker-editable">00</span><span id="timer-ms-display" class="text-xl md:text-2xl text-primary-fixed-dim/70 align-top">.00</span>
+                        </div>
+                        <input type="number" id="timer-input-min" class="picker-input hidden input-dark w-12 text-center rounded-xl p-1 font-mono-label" min="0" max="99" title="Timer Minutes" placeholder="00">
+                        <input type="number" id="timer-input-sec" class="picker-input hidden input-dark w-12 text-center rounded-xl p-1 font-mono-label" min="0" max="59" title="Timer Seconds" placeholder="00">
+                        <div class="font-mono-label text-mono-label text-on-surface-variant mt-2 uppercase tracking-widest bg-surface-variant/30 px-3 py-1 rounded-full border border-outline-variant/30">
+                            MM:SS.ms
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Primary Controls -->
+                <div class="flex gap-6 mt-10 w-full max-w-sm justify-center items-center">
+                    <button id="btn-timer-stop-cmd" class="btn-ghost rounded-2xl w-14 h-14 flex items-center justify-center">
+                        <span class="material-symbols-outlined">stop</span>
+                    </button>
+                    <button id="btn-timer-set" class="btn-primary rounded-2xl w-20 h-20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-4xl">play_arrow</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Configuration Sidebar -->
+            <div class="md:col-span-4 flex flex-col gap-6">
+                <!-- Duration Picker -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
+                    <h2 class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">tune</span>
+                        SET DURATION
+                    </h2>
+                    <div class="flex justify-center items-center gap-2 h-32 relative scroll-mask before:content-[''] before:absolute before:top-1/2 before:-translate-y-1/2 before:w-full before:h-10 before:border-y before:border-primary-fixed/20 before:bg-primary-fixed/5 before:pointer-events-none before:rounded-lg z-0">
+                        <!-- Minutes Picker -->
+                        <div class="scroll-picker h-full overflow-y-auto w-16 flex flex-col items-center text-center font-display-time-mobile text-body-lg text-on-surface-variant/70" id="timer-picker-min" data-min="0" data-max="99">
+                            <!-- Minutes list -->
+                        </div>
+                        <span class="font-bold text-headline-md text-primary-fixed/80 z-10 pb-1">:</span>
+                        <!-- Seconds Picker -->
+                        <div class="scroll-picker h-full overflow-y-auto w-16 flex flex-col items-center text-center font-display-time-mobile text-body-lg text-on-surface-variant/70" id="timer-picker-sec" data-min="0" data-max="59">
+                            <!-- Seconds list -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Presets -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
+                    <h2 class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">bookmarks</span>
+                        PRESETS
+                    </h2>
+                    <div class="grid grid-cols-4 gap-3">
+                        <button class="glass-button rounded-xl p-3 font-mono-label text-mono-label text-on-surface preset-btn" data-preset="1">1M</button>
+                        <button class="glass-button rounded-xl p-3 font-mono-label text-mono-label text-on-surface preset-btn" data-preset="3">3M</button>
+                        <button class="glass-button rounded-xl p-3 font-mono-label text-mono-label text-on-surface preset-btn" data-preset="5">5M</button>
+                        <button class="glass-button rounded-xl p-3 font-mono-label text-mono-label text-on-surface preset-btn" data-preset="10">10M</button>
+                    </div>
+                </div>
+
+                <!-- Hardware Sync Adjustment -->
+                <details class="glass-card rounded-2xl p-5 flex flex-col gap-4 group">
+                    <summary class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center justify-between cursor-pointer list-none">
+                        <span class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">memory</span>
+                            MANUAL ADJUST
+                        </span>
+                        <span class="material-symbols-outlined text-[16px] group-open:rotate-180 transition-transform">expand_more</span>
+                    </summary>
+                    <div class="flex flex-col gap-3 mt-3">
+                        <div class="flex gap-2">
+                            <button id="btn-timer-cycle" class="glass-button rounded-xl flex-1 p-3 font-mono-label text-xs text-on-surface flex flex-col items-center justify-center gap-1">
+                                <span class="material-symbols-outlined text-[18px]">cached</span>
+                                Field
+                            </button>
+                            <button id="btn-timer-up" class="glass-button rounded-xl flex-1 p-3 font-mono-label text-xs text-on-surface flex flex-col items-center justify-center gap-1">
+                                <span class="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
+                                Up
+                            </button>
+                            <button id="btn-timer-down" class="glass-button rounded-xl flex-1 p-3 font-mono-label text-xs text-on-surface flex flex-col items-center justify-center gap-1">
+                                <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                                Down
+                            </button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </section>
+    </main>
+
+    <!-- BottomNavBar (Visible only on mobile) -->
+    <nav class="md:hidden glass-panel fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bottom-nav select-none">
+        <div class="clay-tab flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-[64px] h-[56px] active" data-mode="0">
+            <span class="material-symbols-outlined">schedule</span>
+            <span class="font-mono-label text-mono-label mt-1 text-[10px]">Clock</span>
+        </div>
+        <div class="clay-tab flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-[64px] h-[56px]" data-mode="1">
+            <span class="material-symbols-outlined">timer</span>
+            <span class="font-mono-label text-mono-label mt-1 text-[10px]">Stopwatch</span>
+        </div>
+        <div class="clay-tab flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-[64px] h-[56px]" data-mode="2">
+            <span class="material-symbols-outlined">alarm</span>
+            <span class="font-mono-label text-mono-label mt-1 text-[10px]">Alarm</span>
+        </div>
+        <div class="clay-tab flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-[64px] h-[56px]" data-mode="3">
+            <span class="material-symbols-outlined">hourglass_empty</span>
+            <span class="font-mono-label text-mono-label mt-1 text-[10px]">Timer</span>
+        </div>
+    </nav>
+
+    <!-- ── ACTIVITY LOG — collapsible drawer ────────────── -->
+    <details class="activity-log-drawer fixed bottom-16 md:bottom-2 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-50 rounded-2xl overflow-hidden shadow-2xl" id="log-drawer">
+        <summary class="log-drawer-summary glass-panel text-on-surface-variant flex items-center justify-between px-4 py-2.5 font-mono-label text-xs cursor-pointer select-none">
+            <span class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px]">list_alt</span>
+                ACTIVITY LOG
+            </span>
+            <span class="material-symbols-outlined text-[16px] transition-transform">expand_less</span>
+        </summary>
+        <div id="log-content" class="log-content glass-card font-mono-label text-[10px] text-on-surface p-3 max-h-[120px] overflow-y-auto border-t-0 rounded-t-none">
+            <!-- Injected by app.js -->
+        </div>
+    </details>
+
+    <script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>

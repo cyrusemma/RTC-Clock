@@ -115,15 +115,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!btn || !menu) return;
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            menu.classList.toggle('open');
+            menu.classList.toggle('hidden');
+            menu.classList.toggle('flex');
         });
         document.addEventListener('click', (e) => {
             const wrap = document.getElementById(wrapId);
-            if (wrap && !wrap.contains(e.target)) menu.classList.remove('open');
+            if (wrap && !wrap.contains(e.target)) {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+            }
         });
     }
-    setupDropdown('connect-menu-btn', 'connect-menu', 'connect-dropdown-wrap');
-    setupDropdown('clock-settings-btn', 'clock-settings-menu', 'clock-settings-wrap');
+    setupDropdown('main-menu-btn', 'main-menu', 'main-menu-wrap');
 
     // Analogue / Digital Clock Toggle
     let analogueMode = false;
@@ -176,7 +179,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // BLE Connection (via dropdown)
     els.connectBtn.addEventListener('click', () => {
-        document.getElementById('connect-menu').classList.remove('open');
+        const menu = document.getElementById('main-menu');
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
         if (!navigator.bluetooth && !bleState.connected && !wsState.connected) {
             return;
         }
@@ -191,7 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const wifiConnectBtn = document.getElementById('wifi-connect-btn');
     if (wifiConnectBtn) {
         wifiConnectBtn.addEventListener('click', () => {
-            document.getElementById('connect-menu').classList.remove('open');
+            const menu = document.getElementById('main-menu');
+            menu.classList.add('hidden');
+            menu.classList.remove('flex');
             if (wsState.connected) {
                 disconnectWS(updateConnectionState, appendLog);
             } else {
@@ -205,10 +212,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnModeLong  = document.getElementById('btn-mode-long');
     const btnTzUp      = document.getElementById('btn-tz-up');
     const btnTzDown    = document.getElementById('btn-tz-down');
-    if (btnModeShort) btnModeShort.addEventListener('click', () => { sendCmd('BTN:MODE_SHORT'); document.getElementById('clock-settings-menu').classList.remove('open'); });
-    if (btnModeLong)  btnModeLong.addEventListener('click',  () => { sendCmd('BTN:MODE_LONG');  document.getElementById('clock-settings-menu').classList.remove('open'); });
-    if (btnTzUp)      btnTzUp.addEventListener('click',      () => { sendCmd('BTN:UP');          document.getElementById('clock-settings-menu').classList.remove('open'); });
-    if (btnTzDown)    btnTzDown.addEventListener('click',    () => { sendCmd('BTN:DOWN');        document.getElementById('clock-settings-menu').classList.remove('open'); });
+    const closeSettings = () => {
+        const menu = document.getElementById('main-menu');
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
+    };
+    if (btnModeShort) btnModeShort.addEventListener('click', () => { sendCmd('BTN:MODE_SHORT'); closeSettings(); });
+    if (btnModeLong)  btnModeLong.addEventListener('click',  () => { sendCmd('BTN:MODE_LONG');  closeSettings(); });
+    if (btnTzUp)      btnTzUp.addEventListener('click',      () => { sendCmd('BTN:UP');          closeSettings(); });
+    if (btnTzDown)    btnTzDown.addEventListener('click',    () => { sendCmd('BTN:DOWN');        closeSettings(); });
 
     // Clock
     document.getElementById('btn-sync').addEventListener('click', () => {
@@ -221,57 +233,63 @@ document.addEventListener('DOMContentLoaded', () => {
     function initScrollPicker(el, initialValue, onCommit) {
         const min = parseInt(el.dataset.min);
         const max = parseInt(el.dataset.max);
+        
+        let html = '<div style="height: 44px; flex-shrink: 0;"></div>';
+        for (let i = min; i <= max; i++) {
+            html += `<div class="scroll-item flex items-center justify-center h-10 w-full snap-center cursor-pointer flex-shrink-0">${String(i).padStart(2, '0')}</div>`;
+        }
+        html += '<div style="height: 44px; flex-shrink: 0;"></div>';
+        el.innerHTML = html;
+        
+        el.style.scrollSnapType = 'y mandatory';
+        
         let currentValue = initialValue;
-        let startY = 0;
-        let startValue = initialValue;
-        let dragging = false;
         let commitTimer = null;
-        const displayEl = el.nextElementSibling; // .picker-value
-
-        // Visual center-line
-        const line = document.createElement('div');
-        line.className = 'picker-center-line';
-        el.appendChild(line);
-
+        
         const update = (val) => {
             currentValue = Math.max(min, Math.min(max, val));
-            if (displayEl) displayEl.textContent = String(currentValue).padStart(2, '0');
-        };
-
-        const scheduleCommit = () => {
-            clearTimeout(commitTimer);
-            commitTimer = setTimeout(() => onCommit(currentValue), 800);
-        };
-
-        const pointerDown = (y) => {
-            dragging = true;
-            startY = y;
-            startValue = currentValue;
-            clearTimeout(commitTimer);
-        };
-
-        const pointerMove = (y) => {
-            if (!dragging) return;
-            const steps = Math.round((startY - y) / 30);
-            const newVal = Math.max(min, Math.min(max, startValue + steps));
-            if (newVal !== currentValue) {
-                update(newVal);
-                if (navigator.vibrate) navigator.vibrate(8);
+            const items = el.querySelectorAll('.scroll-item');
+            const target = items[currentValue - min];
+            if (target) {
+                el.scrollTo({ top: target.offsetTop - el.offsetTop - 44, behavior: 'auto' });
             }
         };
-
-        const pointerUp = () => {
-            if (dragging) { dragging = false; scheduleCommit(); }
-        };
-
-        el.addEventListener('touchstart', e => pointerDown(e.touches[0].clientY), { passive: true });
-        el.addEventListener('touchmove', e => pointerMove(e.touches[0].clientY), { passive: true });
-        el.addEventListener('touchend', pointerUp);
-        el.addEventListener('mousedown', e => { pointerDown(e.clientY); e.preventDefault(); });
-        window.addEventListener('mousemove', e => pointerMove(e.clientY));
-        window.addEventListener('mouseup', pointerUp);
-
-        update(initialValue);
+        
+        el.addEventListener('scroll', () => {
+            clearTimeout(commitTimer);
+            commitTimer = setTimeout(() => {
+                const items = el.querySelectorAll('.scroll-item');
+                let closest = null;
+                let minDiff = Infinity;
+                const center = el.scrollTop + 64;
+                items.forEach((item, i) => {
+                    const itemCenter = (item.offsetTop - el.offsetTop) + 20;
+                    const diff = Math.abs(center - itemCenter);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closest = i + min;
+                    }
+                });
+                if (closest !== null && closest !== currentValue) {
+                    currentValue = closest;
+                    onCommit(currentValue);
+                    if (navigator.vibrate) navigator.vibrate(8);
+                }
+            }, 100);
+        }, { passive: true });
+        
+        el.addEventListener('click', (e) => {
+            const item = e.target.closest('.scroll-item');
+            if (item) {
+                const idx = Array.from(el.querySelectorAll('.scroll-item')).indexOf(item);
+                if (idx !== -1) {
+                    update(idx + min);
+                }
+            }
+        });
+        
+        setTimeout(() => update(initialValue), 0);
+        
         return { getValue: () => currentValue, setValue: update };
     }
 
@@ -427,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let alarmInterval = null;
     let lastAlarmState = false;
     let customAudio = null;
+    let selectedAlarmSound = localStorage.getItem('alarmSoundType') || 'synth';
 
     // Load custom audio on startup
     const customAudioData = localStorage.getItem('customAlarmSound');
@@ -438,39 +457,146 @@ document.addEventListener('DOMContentLoaded', () => {
         if (statusEl) statusEl.textContent = 'Using Custom Sound';
         if (clearBtn) clearBtn.classList.remove('hidden');
     }
+    
+    const customAlarmFile = document.getElementById('custom-alarm-file');
+    if (customAlarmFile) {
+        customAlarmFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const data = evt.target.result;
+                    localStorage.setItem('customAlarmSound', data);
+                    customAudio = new Audio(data);
+                    customAudio.loop = true;
+                    if (isPreviewing) { stopAlarmPreview(); startAlarmPreview(); }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    const soundSelect = document.getElementById('alarm-sound-select');
+    if (soundSelect) {
+        soundSelect.value = selectedAlarmSound;
+        soundSelect.addEventListener('change', (e) => {
+            selectedAlarmSound = e.target.value;
+            localStorage.setItem('alarmSoundType', selectedAlarmSound);
+            if (selectedAlarmSound === 'custom' && !customAudio) {
+                if (customAlarmFile) customAlarmFile.click();
+            }
+        });
+    }
 
     function getAudioCtx() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         return audioCtx;
     }
 
-    function playAlarmSound() {
+    function playAlarmSoundType(type) {
+        if (type === 'custom') return;
+        
         const ctx = getAudioCtx();
         const now = ctx.currentTime;
-        [880, 660].forEach((freq, i) => {
+        
+        if (type === 'digital') {
+            [0, 0.12, 0.24].forEach((offset) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.value = 1500;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                gain.gain.setValueAtTime(0, now + offset);
+                gain.gain.linearRampToValueAtTime(0.1, now + offset + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.1);
+                osc.start(now + offset);
+                osc.stop(now + offset + 0.12);
+            });
+        } else if (type === 'wake') {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            osc.frequency.value = freq;
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.6);
             osc.connect(gain);
             gain.connect(ctx.destination);
-            gain.gain.setValueAtTime(0, now + i * 0.3);
-            gain.gain.linearRampToValueAtTime(0.18, now + i * 0.3 + 0.05);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.3 + 0.28);
-            osc.start(now + i * 0.3);
-            osc.stop(now + i * 0.3 + 0.3);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc.start(now);
+            osc.stop(now + 0.8);
+        } else { // 'synth'
+            [880, 660].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                gain.gain.setValueAtTime(0, now + i * 0.3);
+                gain.gain.linearRampToValueAtTime(0.18, now + i * 0.3 + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.3 + 0.28);
+                osc.start(now + i * 0.3);
+                osc.stop(now + i * 0.3 + 0.3);
+            });
+        }
+    }
+    
+    let isPreviewing = false;
+    let previewInterval = null;
+    const btnPreviewSound = document.getElementById('btn-preview-sound');
+    
+    if (btnPreviewSound) {
+        const previewIcon = document.getElementById('preview-sound-icon');
+        
+        const stopAlarmPreview = () => {
+            isPreviewing = false;
+            if (previewIcon) previewIcon.textContent = 'play_arrow';
+            btnPreviewSound.classList.remove('text-error');
+            btnPreviewSound.classList.add('text-primary-fixed');
+            if (customAudio) {
+                customAudio.pause();
+                customAudio.currentTime = 0;
+            }
+            if (previewInterval) {
+                clearInterval(previewInterval);
+                previewInterval = null;
+            }
+        };
+
+        btnPreviewSound.addEventListener('click', () => {
+            if (isPreviewing) {
+                stopAlarmPreview();
+            } else {
+                isPreviewing = true;
+                if (previewIcon) previewIcon.textContent = 'stop';
+                btnPreviewSound.classList.add('text-error');
+                btnPreviewSound.classList.remove('text-primary-fixed');
+                
+                if (selectedAlarmSound === 'custom' && customAudio) {
+                    customAudio.currentTime = 0;
+                    customAudio.play().catch(e => console.error("Audio play failed:", e));
+                } else {
+                    playAlarmSoundType(selectedAlarmSound);
+                    const interval = selectedAlarmSound === 'digital' ? 450 : (selectedAlarmSound === 'wake' ? 1000 : 700);
+                    previewInterval = setInterval(() => playAlarmSoundType(selectedAlarmSound), interval);
+                }
+            }
         });
     }
 
     function startAlarm() {
-        if (customAudio) {
+        if (selectedAlarmSound === 'custom' && customAudio) {
             customAudio.currentTime = 0;
             customAudio.play().catch(e => console.error("Audio play failed:", e));
             return;
         }
         
         if (alarmInterval) return;
-        playAlarmSound();
-        alarmInterval = setInterval(playAlarmSound, 700);
+        playAlarmSoundType(selectedAlarmSound);
+        const interval = selectedAlarmSound === 'digital' ? 450 : (selectedAlarmSound === 'wake' ? 1000 : 700);
+        alarmInterval = setInterval(() => playAlarmSoundType(selectedAlarmSound), interval);
     }
 
     function stopAlarm() {
@@ -492,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const wrappedUpdateState = async (state) => {
         lastBleState = state;
+        lastBleState._localTs = Date.now();
         
         // Inject BLE alarms/laps if missing
         if (bleState.connected) {
@@ -531,6 +658,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state) {
                 wrappedUpdateState(state);
             }
+        } else if (lastBleState) {
+            const state = { ...lastBleState };
+            const delta = Date.now() - (state._localTs || Date.now());
+            if (state.swState === 1) {
+                state.swElapsedMs += delta;
+            }
+            if (state.tmrState === 1) {
+                state.tmrRemainingMs = Math.max(0, state.tmrRemainingMs - delta);
+            }
+            _origUpdateState(state);
         }
         requestAnimationFrame(renderLoop);
     }
@@ -592,63 +729,5 @@ document.addEventListener('DOMContentLoaded', () => {
     setupHoldToRepeat(document.getElementById('btn-timer-down'), 'BTN:DOWN');
     document.getElementById('btn-timer-cycle').addEventListener('click', () => sendCmd('BTN:ALARM'));
     document.getElementById('btn-timer-stop').addEventListener('click', () => sendCmd('BTN:ALARM'));
-    
-    // ─── Diagnostics & Settings ───────────────────────────────────────────────
-    
-    // Buzzer Frequency Test
-    document.querySelectorAll('.freq-test-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const freq = btn.dataset.freq;
-            sendCmd(`FREQ_TEST:${freq}`);
-        });
-    });
-    
-    const btnFreqStop = document.getElementById('btn-freq-stop');
-    if (btnFreqStop) {
-        btnFreqStop.addEventListener('click', () => {
-            sendCmd('FREQ_STOP');
-        });
-    }
-    
-    // Custom Alarm Audio
-    const btnUploadAlarm = document.getElementById('btn-upload-alarm');
-    const customAlarmFile = document.getElementById('custom-alarm-file');
-    const btnClearAlarm = document.getElementById('btn-clear-alarm');
-    const customAlarmStatus = document.getElementById('custom-alarm-status');
-    
-    if (btnUploadAlarm && customAlarmFile) {
-        btnUploadAlarm.addEventListener('click', () => {
-            customAlarmFile.click();
-        });
-        
-        customAlarmFile.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const dataUrl = event.target.result;
-                try {
-                    localStorage.setItem('customAlarmSound', dataUrl);
-                    customAudio = new Audio(dataUrl);
-                    customAudio.loop = true;
-                    if (customAlarmStatus) customAlarmStatus.textContent = 'Using Custom Sound';
-                    if (btnClearAlarm) btnClearAlarm.classList.remove('hidden');
-                    alert('Custom alarm sound loaded!');
-                } catch (err) {
-                    alert('Failed to save audio file. It might be too large for local storage.');
-                }
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-    
-    if (btnClearAlarm) {
-        btnClearAlarm.addEventListener('click', () => {
-            localStorage.removeItem('customAlarmSound');
-            customAudio = null;
-            if (customAlarmStatus) customAlarmStatus.textContent = 'Using Default Synth Beep';
-            btnClearAlarm.classList.add('hidden');
-        });
-    }
+
 });

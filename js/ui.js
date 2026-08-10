@@ -44,6 +44,7 @@ export const els = {
     timerInputSec: document.getElementById('timer-input-sec'),
     timerMinDisplay: document.getElementById('timer-min-display'),
     timerSecDisplay: document.getElementById('timer-sec-display'),
+    timerMsDisplay: document.getElementById('timer-ms-display'),
     
     swRingContainer: document.getElementById('sw-ring-container'),
 
@@ -70,8 +71,9 @@ export function initUI() {
 }
 
 export function updateConnectionState(state, deviceName) {
-    els.indicator.className = `indicator ${state}`;
+    els.indicator.className = 'w-3.5 h-3.5 rounded-full shadow-inner';
     if (state === 'connected') {
+        els.indicator.classList.add('bg-tertiary-fixed-dim');
         els.statusText.textContent = 'Connected';
         if (deviceName) {
             els.deviceName.textContent = deviceName;
@@ -79,10 +81,12 @@ export function updateConnectionState(state, deviceName) {
         }
         els.connectBtn.textContent = 'Disconnect';
     } else if (state === 'connecting') {
+        els.indicator.classList.add('bg-secondary-fixed-dim', 'animate-pulse');
         els.statusText.textContent = 'Connecting...';
         els.deviceName.classList.add('hidden');
         els.connectBtn.textContent = 'Connecting';
     } else {
+        els.indicator.classList.add('bg-error');
         els.statusText.textContent = 'Disconnected';
         els.deviceName.classList.add('hidden');
         els.connectBtn.textContent = 'Connect';
@@ -91,7 +95,8 @@ export function updateConnectionState(state, deviceName) {
 
 export function appendLog(msg, type = 'sys') {
     const div = document.createElement('div');
-    div.className = `log-entry ${type}`;
+    const colorClass = type === 'tx' ? 'text-primary-fixed' : (type === 'rx' ? 'text-tertiary-fixed-dim' : 'text-on-surface-variant');
+    div.className = `py-0.5 border-b border-outline-variant/20 last:border-0 opacity-90 ${colorClass}`;
     const time = new Date().toLocaleTimeString([], { hour12: false });
     div.textContent = `[${time}] ${msg}`;
     els.logContent.appendChild(div);
@@ -107,8 +112,8 @@ function pad(num, size = 2) {
 }
 
 function padMs(num) {
-    let s = "000" + num;
-    return s.substring(s.length - 3);
+    let s = "00" + Math.floor(num / 10);
+    return s.substring(s.length - 2);
 }
 
 const WORLD_CLOCK_ZONES = [
@@ -125,7 +130,7 @@ export function renderWorldClock(epochSeconds) {
             const formatted = new Intl.DateTimeFormat('en-GB', {
                 timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false
             }).format(base);
-            return `<div class="world-clock-row"><span>${z.label}</span><span>${formatted}</span></div>`;
+            return `<div class="flex justify-between py-1.5 text-xs text-on-surface border-b border-outline-variant/30 last:border-0 opacity-90"><span>${z.label}</span><span class="font-bold">${formatted}</span></div>`;
         } catch(e) {
             return '';
         }
@@ -159,59 +164,74 @@ export function renderAnalogueClock(epochSeconds, tzOffsetHours) {
         const y1 = 100 - 82 * Math.cos(angle * Math.PI / 180);
         const x2 = 100 + 95 * Math.sin(angle * Math.PI / 180);
         const y2 = 100 - 95 * Math.cos(angle * Math.PI / 180);
-        return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" class="clock-tick" />`;
+        return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" class="stroke-on-surface/50 stroke-2" />`;
     }).join('');
 
     els.analogueContainer.innerHTML = `
-    <svg viewBox="0 0 200 200" class="analogue-clock">
-        <circle cx="100" cy="100" r="97" class="clock-face" />
+    <svg viewBox="0 0 200 200" class="w-[180px] h-[180px] mx-auto drop-shadow-lg">
+        <circle cx="100" cy="100" r="97" class="fill-transparent stroke-outline-variant/30 stroke-2" />
         ${ticks}
-        <line x1="100" y1="100" x2="${h2.x.toFixed(2)}" y2="${h2.y.toFixed(2)}" class="clock-hand-hour" />
-        <line x1="100" y1="100" x2="${m2.x.toFixed(2)}" y2="${m2.y.toFixed(2)}" class="clock-hand-min" />
-        <line x1="100" y1="100" x2="${s2.x.toFixed(2)}" y2="${s2.y.toFixed(2)}" class="clock-hand-sec" />
-        <circle cx="100" cy="100" r="4" class="clock-center" />
+        <line x1="100" y1="100" x2="${h2.x.toFixed(2)}" y2="${h2.y.toFixed(2)}" class="stroke-on-surface stroke-[5]" stroke-linecap="round" />
+        <line x1="100" y1="100" x2="${m2.x.toFixed(2)}" y2="${m2.y.toFixed(2)}" class="stroke-primary-fixed stroke-[3]" stroke-linecap="round" />
+        <line x1="100" y1="100" x2="${s2.x.toFixed(2)}" y2="${s2.y.toFixed(2)}" class="stroke-error stroke-[1.5]" stroke-linecap="round" />
+        <circle cx="100" cy="100" r="4" class="fill-error" />
     </svg>`;
 }
 
 export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ringClassBase = 'timer-ring-progress', stateClass = '') {
-    const radius = 90;
+    const radius = 45;
     const circumference = 2 * Math.PI * radius;
     const fraction = totalMs > 0 ? Math.max(0, remainingMs / totalMs) : 0;
     const offset = circumference * (1 - fraction);
     
-    let ringClass = ringClassBase;
-    if (isRinging) ringClass += ' ringing';
-    if (stateClass) ringClass += ' ' + stateClass;
+    let ringClass = "progress-ring-circle";
+    if (isRinging) ringClass += ' animate-pulse';
+    
+    let strokeColor = "#00dbe9";
+    if (stateClass === 'state-running') strokeColor = '#00e383';
+    else if (stateClass === 'state-paused') strokeColor = '#ffba20';
 
     if (!containerEl) return;
     containerEl.innerHTML = `
-    <svg viewBox="0 0 200 200" class="timer-ring">
-        <circle cx="100" cy="100" r="${radius}" class="timer-ring-bg" />
-        <circle cx="100" cy="100" r="${radius}" class="${ringClass}"
+    <svg class="absolute w-full h-full" viewBox="0 0 100 100">
+        <circle class="glass-ring-bg" cx="50" cy="50" fill="none" r="${radius}" stroke-width="4"></circle>
+        <circle class="${ringClass}" cx="50" cy="50" fill="none" r="${radius}" stroke="${strokeColor}"
             stroke-dasharray="${circumference.toFixed(2)}"
             stroke-dashoffset="${offset.toFixed(2)}"
-            transform="rotate(-90 100 100)" />
+            stroke-linecap="round"
+            stroke-width="4" />
+        <g opacity="0.3" stroke="#849495" stroke-width="0.5">
+            <line x1="50" x2="50" y1="2" y2="6"></line>
+            <line x1="50" x2="50" y1="94" y2="98"></line>
+            <line x1="2" x2="6" y1="50" y2="50"></line>
+            <line x1="94" x2="98" y1="50" y2="50"></line>
+        </g>
     </svg>`;
 }
 
 export function renderAlarmCards(alarms, activeSlot) {
     if (!alarms || alarms.length === 0) return;
     
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     const html = alarms.map((alarm, i) => {
         const timeStr = `${pad(alarm.h)}:${pad(alarm.m)}`;
-        const disabledClass = (alarm.en || alarm.sn) ? '' : 'disabled';
+        const disabledClass = (alarm.en || alarm.sn) ? '' : 'opacity-50';
         const dayStr = days.map((d, di) => {
-            const active = (alarm.rep & (1 << di)) ? 'style="color: var(--primary-color);"' : '';
+            const active = (alarm.rep & (1 << di)) ? 'class="text-primary font-bold"' : 'class="text-on-surface-variant/40"';
             return `<span ${active}>${d}</span>`;
         }).join(' ');
 
         return `
-        <div class="alarm-card ${disabledClass}" data-slot="${i}">
-            <div class="alarm-card-time">${timeStr}</div>
-            <div class="alarm-card-details" style="text-align: right;">
-                <div style="font-weight: 700;">${alarm.sn ? 'SNZ' : (alarm.en ? 'ON' : 'OFF')}</div>
-                <div class="alarm-card-days" style="display:flex;gap:6px;">${dayStr}</div>
+        <div class="glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all ${disabledClass}" data-slot="${i}">
+            <div>
+                <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text">${timeStr}</div>
+                <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
+                    ${dayStr}
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+                <span class="font-mono-label text-xs font-bold ${alarm.en ? 'text-primary' : 'text-on-surface-variant'}">${alarm.sn ? 'SNZ' : (alarm.en ? 'ON' : 'OFF')}</span>
+                <span class="material-symbols-outlined text-outline-variant text-[20px]">${alarm.en ? 'alarm_on' : 'alarm_off'}</span>
             </div>
         </div>`;
     }).join('');
@@ -318,16 +338,16 @@ export function updateState(state) {
                     if (i > 0) {
                         const diff = deltaMs - (state.laps[i-1] - (i > 1 ? state.laps[i-2] : 0));
                         if (diff < 0) {
-                            deltaStr = `<span class="lap-delta faster">-${padMs(Math.abs(diff))}</span>`;
+                            deltaStr = `<span class="text-tertiary-fixed font-bold float-right">-${padMs(Math.abs(diff))}</span>`;
                         } else {
-                            deltaStr = `<span class="lap-delta slower">+${padMs(diff)}</span>`;
+                            deltaStr = `<span class="text-error font-bold float-right">+${padMs(diff)}</span>`;
                         }
                     }
                     
-                    return `<div>Lap ${i + 1}: ${pad(lm)}:${pad(ls)}.${padMs(lcm)} ${deltaStr}</div>`;
+                    return `<div class="py-1 border-b border-outline-variant/30 last:border-0 text-sm">Lap ${i + 1}: ${pad(lm)}:${pad(ls)}.${padMs(lcm)} ${deltaStr}</div>`;
                 }).join('');
             } else {
-                els.swLaps.innerHTML = `<div>${state.lapCount} laps recorded... (Syncing)</div>`;
+                els.swLaps.innerHTML = `<div class="py-2 text-on-surface-variant text-sm italic">${state.lapCount} laps recorded... (Syncing)</div>`;
             }
         } else {
             els.swLapsContainer.classList.add('hidden');
@@ -352,15 +372,25 @@ export function updateState(state) {
         if (state.tmrSetField !== 0) {
             let m = pad(state.tmrInitMin);
             let s = pad(state.tmrInitSec);
-            if (state.tmrSetField === 1) m = `<span class="editing">${m}</span>`;
-            if (state.tmrSetField === 2) s = `<span class="editing">${s}</span>`;
-            els.timerTime.innerHTML = `${m}:${s}.000`;
+            if (state.tmrSetField === 1) {
+                els.timerMinDisplay.innerHTML = `<span class="editing">${m}</span>`;
+            } else {
+                els.timerMinDisplay.textContent = m;
+            }
+            if (state.tmrSetField === 2) {
+                els.timerSecDisplay.innerHTML = `<span class="editing">${s}</span>`;
+            } else {
+                els.timerSecDisplay.textContent = s;
+            }
+            els.timerMsDisplay.textContent = `.00`;
         } else {
             const ms = state.tmrRemainingMs;
             const millis = ms % 1000;
             const s = Math.floor(ms / 1000) % 60;
             const m = Math.floor(ms / 60000);
-            els.timerTime.textContent = `${pad(m)}:${pad(s)}.${padMs(millis)}`;
+            els.timerMinDisplay.textContent = pad(m);
+            els.timerSecDisplay.textContent = pad(s);
+            els.timerMsDisplay.textContent = `.${padMs(millis)}`;
         }
         
         const tmrStates = ['Ready', 'Running', 'Paused', 'Ringing'];
