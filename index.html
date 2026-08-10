@@ -535,6 +535,24 @@
             </div>
             <p class="font-mono-label text-xs text-outline-variant text-center mt-4">These custom tones play from your device's browser when the timer finishes.</p>
         </section>
+        
+        <!-- Header toggle for Activity Log -->
+        <button id="log-toggle-btn" class="glass-button p-2 rounded-xl flex items-center justify-center text-on-surface hover:text-primary transition-colors" title="Activity Log">
+            <span class="material-symbols-outlined">list_alt</span>
+        </button>
+        
+        <!-- ── ACTIVITY LOG — sliding drawer ────────────── -->
+        <aside class="activity-log-drawer fixed top-0 left-0 h-full w-[90%] max-w-sm z-50 bg-surface-container shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out" id="log-drawer">
+            <div class="flex items-center justify-between px-4 py-3 bg-surface-container-low border-b border-outline-variant/30">
+                <span class="font-mono-label text-sm text-on-surface">ACTIVITY LOG</span>
+                <button id="log-close-btn" class="text-on-surface hover:text-primary">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="log-content" class="log-content font-mono-label text-[11px] text-on-surface p-4 overflow-y-auto" style="max-height: calc(100vh - 56px);">
+                <!-- Injected by app.js -->
+            </div>
+        </aside>
     </main>
 
     <!-- BottomNavBar (Visible only on mobile) -->
@@ -556,20 +574,6 @@
             <span class="font-mono-label text-mono-label mt-1 text-[10px]">Timer</span>
         </div>
     </nav>
-
-    <!-- ── ACTIVITY LOG — collapsible drawer ────────────── -->
-    <details class="activity-log-drawer fixed bottom-24 md:bottom-2 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-50 rounded-2xl overflow-hidden shadow-2xl" id="log-drawer">
-        <summary class="log-drawer-summary glass-panel text-on-surface flex items-center justify-between px-4 py-3 font-mono-label text-sm cursor-pointer select-none">
-            <span class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[18px]">list_alt</span>
-                ACTIVITY LOG
-            </span>
-            <span class="material-symbols-outlined text-[18px] transition-transform">expand_less</span>
-        </summary>
-        <div id="log-content" class="log-content glass-card font-mono-label text-[11px] text-on-surface p-4 max-h-[240px] overflow-y-auto border-t-0 rounded-t-none">
-            <!-- Injected by app.js -->
-        </div>
-    </details>
 
     <script type="module" src="js/app.js?v=6"></script>
 </body>
