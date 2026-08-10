@@ -17,7 +17,12 @@ export class VirtualRTC {
             laps: [],
             
             // Alarms
-            alarms: Array(4).fill({ h: 0, m: 0, en: 0, rep: 0, sn: 0 }),
+            alarms: [
+                { h: 7, m: 0, en: 1, rep: 0, sn: 0 },
+                { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
+                { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
+                { h: 0, m: 0, en: 0, rep: 0, sn: 0 }
+            ],
             alarmViewSlot: 0,
             alarmRinging: false,
             ringingSlot: 0xFF,

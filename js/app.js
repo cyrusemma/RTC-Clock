@@ -145,6 +145,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Double tap/click to exit fullscreen mode
+    document.addEventListener('dblclick', () => {
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    });
+
     // Analogue / Digital Clock Toggle
     let analogueMode = false;
     const btnClockToggle = document.getElementById('btn-clock-toggle');
