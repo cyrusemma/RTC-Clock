@@ -127,11 +127,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Analogue / Digital Clock Toggle
     let analogueMode = false;
-    document.getElementById('btn-clock-toggle').addEventListener('click', () => {
+    const btnClockToggle = document.getElementById('btn-clock-toggle');
+    
+    // Set initial text
+    if (btnClockToggle) {
+        btnClockToggle.innerHTML = `<span>🕐</span> Toggle Analogue Mode`;
+    }
+
+    btnClockToggle.addEventListener('click', () => {
         analogueMode = !analogueMode;
         if (analogueMode) {
             els.clockDigital.classList.add('hidden');
             els.clockAnalogue.classList.remove('hidden');
+            
+            // Highlight the button and change text
+            btnClockToggle.classList.add('bg-primary/20', 'text-primary', 'border-primary/50');
+            btnClockToggle.classList.remove('text-on-surface');
+            btnClockToggle.innerHTML = `<span>🔢</span> Toggle Digital Mode`;
+            
             // Render immediately if not waiting for BLE tick
             if (!bleState || !bleState.connected) {
                 renderAnalogueClock(Math.floor(Date.now() / 1000), -(new Date().getTimezoneOffset() / 60));
@@ -139,6 +152,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             els.clockDigital.classList.remove('hidden');
             els.clockAnalogue.classList.add('hidden');
+            
+            // Revert button highlight and text
+            btnClockToggle.classList.remove('bg-primary/20', 'text-primary', 'border-primary/50');
+            btnClockToggle.classList.add('text-on-surface');
+            btnClockToggle.innerHTML = `<span>🕐</span> Toggle Analogue Mode`;
         }
     });
 
