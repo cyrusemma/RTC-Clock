@@ -1186,30 +1186,41 @@ void loop() {
   bool shouldBuzz = (ringAlarmIdx >= 0) || (tmr_state == TMR_RINGING);
   buzzer(shouldBuzz && ((millis() / 300) % 2 == 0));
 
-  // OLED
-  u8g2.clearBuffer();
-  switch (currentAppMode) {
-    case MODE_CLOCK:
-      drawClock(setting_mode ? &setting_time : now);
-      break;
-    case MODE_STOPWATCH:
-      drawStopwatch();
-      break;
-    case MODE_ALARM_SET:
-      drawAlarmSet();
-      break;
-    case MODE_TIMER:
-      drawTimer();
-      break;
+  // OLED Refresh Rate Limiter
+  static unsigned long lastOledUpdate = 0;
+  unsigned int oledInterval = 200; // default 5 FPS
+  if (currentAppMode == MODE_STOPWATCH && sw_state == SW_RUNNING) {
+    oledInterval = 33; // 30 FPS for smooth stopwatch count
+  } else if (tmr_state == TMR_RINGING || ringAlarmIdx >= 0) {
+    oledInterval = 100; // 10 FPS for alarm notifications
   }
-  // Ringing overlay
-  if ((ringAlarmIdx >= 0 || tmr_state == TMR_RINGING) && (millis() / 500) % 2 == 0) {
-    u8g2.setFont(u8g2_font_6x10_tf);
-    u8g2.setDrawColor(1);
-    const char* msg = (ringAlarmIdx >= 0) ? "!!! ALARM !!!" : "!!! TIMER !!!";
-    u8g2.drawStr(24, 64, msg);
+  
+  if (millis() - lastOledUpdate >= oledInterval) {
+    lastOledUpdate = millis();
+    u8g2.clearBuffer();
+    switch (currentAppMode) {
+      case MODE_CLOCK:
+        drawClock(setting_mode ? &setting_time : now);
+        break;
+      case MODE_STOPWATCH:
+        drawStopwatch();
+        break;
+      case MODE_ALARM_SET:
+        drawAlarmSet();
+        break;
+      case MODE_TIMER:
+        drawTimer();
+        break;
+    }
+    // Ringing overlay
+    if ((ringAlarmIdx >= 0 || tmr_state == TMR_RINGING) && (millis() / 500) % 2 == 0) {
+      u8g2.setFont(u8g2_font_6x10_tf);
+      u8g2.setDrawColor(1);
+      const char* msg = (ringAlarmIdx >= 0) ? "!!! ALARM !!!" : "!!! TIMER !!!";
+      u8g2.drawStr(24, 64, msg);
+    }
+    u8g2.sendBuffer();
   }
-  u8g2.sendBuffer();
 
   // Telemetry (BLE + WebSocket)
   publishTelemetry(now);
