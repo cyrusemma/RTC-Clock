@@ -562,16 +562,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnAlarmAdd) {
         btnAlarmAdd.addEventListener('click', () => {
             let slot = -1;
-            if (lastBleState && lastBleState.alarms) {
+            const alarmsToSearch = (lastBleState && lastBleState.alarms) ? lastBleState.alarms : (virtualRTC ? virtualRTC.getState().alarms : []);
+            
+            if (alarmsToSearch && alarmsToSearch.length > 0) {
                 // Find first completely unused slot
-                slot = lastBleState.alarms.findIndex(a => !a.en && !a.sn && a.h === 0 && a.m === 0 && a.rep === 0);
+                slot = alarmsToSearch.findIndex(a => !a.en && !a.sn && a.h === 0 && a.m === 0 && a.rep === 0);
                 if (slot === -1) {
                     // Find first disabled slot
-                    slot = lastBleState.alarms.findIndex(a => !a.en);
+                    slot = alarmsToSearch.findIndex(a => !a.en);
                 }
             }
             if (slot === -1) {
-                const maxAlarms = lastBleState?.alarms?.length || 8;
+                const maxAlarms = alarmsToSearch.length || 8;
                 alert(`Maximum ${maxAlarms} alarms reached. Please edit or disable an existing alarm.`);
                 return;
             }
