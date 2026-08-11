@@ -191,43 +191,54 @@
     <main class="flex-1 overflow-y-auto pt-16 pb-24 md:pb-6 px-margin-mobile md:px-margin-desktop bg-surface-container-lowest bg-gradient-to-b from-surface-container-lowest to-background views">
         
         <!-- CLOCK VIEW -->
-        <section id="view-clock" class="view active max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter">
+        <section id="view-clock" class="view active max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter relative">
+            <!-- Ambient Background Effect -->
+            <div class="absolute inset-0 bg-primary-fixed/5 rounded-full blur-[120px] -z-10 pointer-events-none animate-pulse"></div>
+
             <!-- Clock display panel -->
             <div class="md:col-span-8 flex flex-col items-center justify-center min-h-[300px] relative">
-                <div id="clock-digital" class="text-center z-10">
-                    <div id="clock-time" class="font-display-time-mobile md:font-display-time text-display-time-mobile md:text-display-time text-primary-fixed glow-text tracking-tighter">00:00:00</div>
-                    <div id="clock-date" class="font-mono-label text-mono-label text-on-surface-variant mt-2 uppercase tracking-widest bg-surface-variant/30 px-3 py-1 rounded-full border border-outline-variant/30">DATE</div>
+                <div id="clock-digital" class="text-center z-10 flex flex-col items-center relative">
+                    <div class="relative inline-block">
+                        <div id="clock-time" class="font-display-time-mobile md:font-display-time text-display-time-mobile md:text-display-time text-primary-fixed glow-text tracking-tighter transition-all duration-300">00:00:00</div>
+                        <span id="clock-tz" class="absolute -top-4 -right-8 font-mono-label text-[10px] text-primary-fixed uppercase tracking-widest bg-primary-fixed/10 px-2 py-0.5 rounded border border-primary-fixed/30 backdrop-blur-sm shadow-sm transition-all duration-300">UTC+0</span>
+                    </div>
+                    <div id="clock-date" class="font-mono-label text-mono-label text-on-surface mt-4 uppercase tracking-widest bg-surface-variant/40 px-4 py-1.5 rounded-full border border-outline-variant/30 flex items-center gap-2 shadow-lg backdrop-blur-md transition-colors hover:bg-surface-variant/60 cursor-default">
+                        <span class="material-symbols-outlined text-[16px] text-primary">calendar_month</span>
+                        <span id="date-text">DATE</span>
+                    </div>
                 </div>
                 
                 <div id="clock-analogue" class="hidden w-full max-w-[280px] aspect-square flex items-center justify-center mt-4">
-                    <div id="analogue-clock-container" class="w-full h-full"></div>
+                    <div id="analogue-clock-container" class="w-full h-full relative"></div>
                 </div>
 
-                <div class="mt-8 flex flex-wrap gap-4 justify-center">
-                    <button id="btn-sync" class="btn-primary rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold flex items-center gap-2">
-                        <span>🔄</span> Sync Clock
+                <div class="mt-8 flex flex-wrap gap-4 justify-center items-start">
+                    <div class="flex flex-col items-center gap-2">
+                        <button id="btn-sync" class="btn-primary rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all group shadow-[0_0_20px_rgba(var(--md-sys-color-primary-rgb),0.3)]">
+                            <span class="material-symbols-outlined group-hover:rotate-180 transition-transform duration-500">sync</span> Sync Clock
+                        </button>
+                        <span id="last-synced-indicator" class="font-mono-label text-[10px] text-outline-variant opacity-0 transition-opacity duration-300">Not synced</span>
+                    </div>
+                    <button id="btn-clock-toggle" class="glass-button rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold text-on-surface flex items-center gap-2 hover:scale-105 active:scale-95 transition-all group">
+                        <span class="material-symbols-outlined group-hover:-rotate-12 transition-transform duration-300 text-secondary">schedule</span> Toggle Mode
                     </button>
-                    <button id="btn-clock-toggle" class="glass-button rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold text-on-surface flex items-center gap-2">
-                        <span>🕐</span> Toggle Analogue Mode
-                    </button>
-                    <button id="btn-clock-format" class="glass-button rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold text-on-surface flex items-center gap-2">
-                        <span>12h</span> Format
+                    <button id="btn-clock-format" class="glass-button rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold text-on-surface flex items-center gap-2 hover:scale-105 active:scale-95 transition-all group">
+                        <span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300 text-tertiary">123</span> 12h Format
                     </button>
                 </div>
-
-                <span id="clock-tz" class="absolute bottom-0 right-0 font-mono-label text-[10px] text-outline uppercase tracking-widest bg-surface-variant/30 px-2.5 py-1 rounded border border-outline-variant/30">UTC+0</span>
             </div>
 
             <!-- Sidebar -->
             <div class="md:col-span-4 flex flex-col gap-6">
-                <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
-                    <h3 class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center justify-between">
+                <div class="glass-card rounded-2xl p-5 flex flex-col gap-4 shadow-2xl border-t border-white/5 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-primary-fixed/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <h3 class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center justify-between z-10 relative">
                         <span class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[16px]">language</span>
+                            <span class="material-symbols-outlined text-[16px] text-primary">language</span>
                             WORLD CLOCK
                         </span>
                     </h3>
-                    <div id="world-clock" class="font-mono-label text-body-sm flex flex-col gap-2 mt-3 text-on-surface">
+                    <div id="world-clock" class="font-mono-label text-body-sm flex md:flex-col gap-3 mt-1 text-on-surface z-10 relative overflow-x-auto md:overflow-visible pb-2 md:pb-0 hide-scrollbar snap-x snap-mandatory">
                         <!-- Injected by ui.js -->
                     </div>
                 </div>
@@ -237,10 +248,13 @@
         </section>
 
         <!-- STOPWATCH VIEW -->
-        <section id="view-stopwatch" class="view hidden max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter">
+        <section id="view-stopwatch" class="view hidden max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter relative">
+            <!-- Ambient Background Effect -->
+            <div class="absolute inset-0 bg-primary-fixed/5 rounded-full blur-[120px] -z-10 pointer-events-none animate-pulse"></div>
+            
             <div class="md:col-span-8 flex flex-col items-center justify-center relative min-h-[300px]">
                 <div class="absolute top-0 flex gap-2 z-10">
-                    <div id="sw-state" class="glass-panel text-tertiary-fixed-dim font-mono-label text-mono-label px-4 py-1.5 rounded-full flex items-center gap-2">
+                    <div id="sw-state" class="glass-badge text-tertiary-fixed-dim font-mono-label text-mono-label px-6 py-2 rounded-full flex items-center gap-2 transition-colors duration-500 shadow-lg border border-outline-variant/20">
                         READY
                     </div>
                 </div>
@@ -257,44 +271,50 @@
                 </div>
 
                 <!-- Stopwatch Controls -->
-                <div class="flex gap-6 mt-10 w-full max-w-sm justify-center items-center h-24">
+                <div class="flex gap-6 mt-10 w-full max-w-sm justify-center items-center h-32 relative">
                     <!-- Secondary Action (Lap / Reset) -->
-                    <button id="btn-sw-lap" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center hidden text-on-surface-variant hover:text-on-surface">
-                        <span class="material-symbols-outlined text-2xl">flag</span>
+                    <button id="btn-sw-lap" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center hidden text-on-surface hover:text-primary transition-all group z-10 shadow-lg border-outline-variant/40">
+                        <span class="material-symbols-outlined text-2xl group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-300">flag</span>
                         <span class="text-[10px] font-bold uppercase mt-0.5">Lap</span>
                     </button>
-                    <button id="btn-sw-reset" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-error hidden">
-                        <span class="material-symbols-outlined text-2xl">restart_alt</span>
+                    <button id="btn-sw-reset" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-error hidden transition-all group z-10 shadow-lg border-error/30 hover:border-error/60">
+                        <span class="material-symbols-outlined text-2xl group-hover:-rotate-180 transition-transform duration-500">restart_alt</span>
                         <span class="text-[10px] font-bold uppercase mt-0.5">Reset</span>
                     </button>
 
                     <!-- Primary Action (Start / Resume / Stop) -->
-                    <button id="btn-sw-start" class="bg-[#1b71fb] rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-white">
-                        <span class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
-                        <span class="text-xs font-bold uppercase mt-1">Start</span>
-                    </button>
-                    <button id="btn-sw-resume" class="bg-[#1b71fb] rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-white hidden">
-                        <span class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
-                        <span class="text-xs font-bold uppercase mt-1">Resume</span>
-                    </button>
-                    <button id="btn-sw-pause" class="bg-error/20 rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-error hidden border border-error/50">
-                        <span class="material-symbols-outlined text-[40px] leading-none">pause</span>
-                        <span class="text-xs font-bold uppercase mt-1">Stop</span>
-                    </button>
+                    <div class="relative flex items-center justify-center z-10">
+                        <!-- Ripple Effect -->
+                        <div id="sw-ripple" class="absolute inset-0 rounded-full bg-primary-fixed opacity-0 transition-opacity duration-300"></div>
+                        
+                        <button id="btn-sw-start" class="btn-primary rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(var(--md-sys-color-primary-rgb),0.5)] hover:scale-105 active:scale-95 transition-all text-on-primary-fixed z-10 relative">
+                            <span class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
+                            <span class="text-xs font-bold uppercase mt-1">Start</span>
+                        </button>
+                        <button id="btn-sw-resume" class="btn-primary rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(var(--md-sys-color-primary-rgb),0.5)] hover:scale-105 active:scale-95 transition-all text-on-primary-fixed hidden z-10 relative">
+                            <span class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
+                            <span class="text-xs font-bold uppercase mt-1">Resume</span>
+                        </button>
+                        <button id="btn-sw-pause" class="bg-gradient-to-br from-error to-[#b3261e] rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(var(--md-sys-color-error-rgb),0.5)] hover:scale-105 active:scale-95 transition-all text-on-error hidden border border-error/50 z-10 relative">
+                            <span class="material-symbols-outlined text-[40px] leading-none">pause</span>
+                            <span class="text-xs font-bold uppercase mt-1">Stop</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Laps Sidebar -->
             <div class="md:col-span-4 flex flex-col gap-6" id="sw-laps-container">
-                <details class="glass-card rounded-2xl p-5 flex flex-col gap-4 group" open>
-                    <summary class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center justify-between cursor-pointer list-none">
+                <details class="glass-card rounded-2xl p-5 flex flex-col gap-4 group shadow-2xl border-t border-white/5 relative overflow-hidden" open>
+                    <div class="absolute inset-0 bg-gradient-to-br from-primary-fixed/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <summary class="font-mono-label text-mono-label text-on-surface-variant border-b border-outline-variant/50 pb-3 flex items-center justify-between cursor-pointer list-none z-10 relative">
                         <span class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[16px]">flag</span>
+                            <span class="material-symbols-outlined text-[16px] text-primary">flag</span>
                             LAPS
                         </span>
                         <span class="material-symbols-outlined text-[16px] group-open:rotate-180 transition-transform">expand_more</span>
                     </summary>
-                    <div id="sw-laps" class="font-mono-label text-body-sm flex flex-col gap-2 mt-3 text-on-surface max-h-[250px] overflow-y-auto pr-1">
+                    <div id="sw-laps" class="font-mono-label text-body-sm flex flex-col gap-3 mt-4 text-on-surface max-h-[300px] overflow-y-auto pr-1 hide-scrollbar z-10 relative">
                         <!-- Injected by ui.js -->
                     </div>
                 </details>
@@ -302,9 +322,12 @@
         </section>
 
         <!-- ALARM VIEW -->
-        <section id="view-alarm" class="view hidden max-w-4xl mx-auto mt-6 flex flex-col gap-6">
+        <section id="view-alarm" class="view hidden max-w-4xl mx-auto mt-6 flex flex-col gap-6 relative">
+            <!-- Ambient Background Effect for Alarm View (Warm Tint) -->
+            <div class="absolute inset-0 bg-error/5 rounded-full blur-[120px] -z-10 pointer-events-none animate-pulse"></div>
+            
             <!-- Ringing Banner -->
-            <div id="alarm-ringing-banner" class="glass-panel rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 border-error/40 shadow-[0_0_20px_rgba(255,180,171,0.2)] hidden">
+            <div id="alarm-ringing-banner" class="rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.5)] border border-error/50 bg-gradient-to-r from-error/20 via-error/10 to-error/20 animate-pulse hidden z-20">
                 <div class="flex items-center gap-3 text-error">
                     <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
                     <div>
@@ -324,22 +347,25 @@
             </div>
 
             <!-- Add Alarm FAB -->
-            <button id="btn-alarm-add" class="fixed bottom-28 right-6 md:bottom-12 md:right-12 bg-primary rounded-full w-16 h-16 flex items-center justify-center shadow-2xl z-40 hover:scale-110 transition-transform text-on-primary">
-                <span class="material-symbols-outlined text-3xl">add</span>
-            </button>
+            <div class="fixed bottom-28 right-6 md:bottom-12 md:right-12 z-40">
+                <div class="absolute inset-0 bg-primary rounded-full animate-ping opacity-20"></div>
+                <button id="btn-alarm-add" class="bg-primary rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--md-sys-color-primary-rgb),0.6)] hover:scale-110 active:scale-95 transition-all text-on-primary relative z-10">
+                    <span class="material-symbols-outlined text-3xl">add</span>
+                </button>
+            </div>
 
             <!-- Alarm Editor -->
-            <div id="alarm-editor" class="glass-card rounded-2xl p-6 max-w-md mx-auto w-full flex flex-col gap-4 hidden">
+            <div id="alarm-editor" class="glass-card rounded-2xl p-6 max-w-md mx-auto w-full flex flex-col gap-4 shadow-2xl border-t border-white/10 hidden">
                 <div class="flex justify-between items-center border-b border-outline-variant/50 pb-3">
                     <h4 class="font-mono-label text-mono-label text-on-surface-variant flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                        <span class="material-symbols-outlined text-[16px] text-primary">edit</span>
                         EDIT ALARM <span id="alarm-edit-slot-label"></span>
                     </h4>
-                    <button id="alarm-enabled-toggle" class="glass-button rounded-xl px-3 py-1 font-mono-label text-[10px] text-on-surface">ON</button>
+                    <button id="alarm-enabled-toggle" class="glass-button rounded-xl px-4 py-1.5 font-mono-label text-[10px] text-on-surface hover:bg-surface-variant/40 transition-colors shadow-inner">ON</button>
                 </div>
 
                 <!-- Custom time scroll picker -->
-                <div class="flex justify-center items-center gap-2 h-32 relative scroll-mask before:content-[''] before:absolute before:top-1/2 before:-translate-y-1/2 before:w-full before:h-10 before:border-y before:border-primary-fixed/20 before:bg-primary-fixed/5 before:pointer-events-none before:rounded-lg z-0">
+                <div class="flex justify-center items-center gap-2 h-32 relative scroll-mask before:content-[''] before:absolute before:top-1/2 before:-translate-y-1/2 before:w-full before:h-12 before:border-y before:border-primary-fixed/40 before:bg-gradient-to-r before:from-transparent before:via-primary-fixed/10 before:to-transparent before:pointer-events-none before:rounded-lg before:shadow-[0_0_15px_rgba(var(--md-sys-color-primary-fixed-rgb),0.1)] z-0">
                     <div class="scroll-picker h-full overflow-y-auto w-16 flex flex-col items-center text-center font-display-time-mobile text-body-lg text-on-surface-variant/70" id="alarm-picker-hour" data-min="0" data-max="23">
                         <!-- Hours -->
                     </div>
@@ -365,17 +391,17 @@
                 </div>
 
                 <!-- Alarm Sound Selector -->
-                <div class="mt-2 border-t border-outline-variant/30 pt-3">
+                <div class="mt-2 border-t border-outline-variant/30 pt-4">
                     <h4 class="font-mono-label text-[10px] text-outline uppercase tracking-wider mb-2">Alarm Sound</h4>
                     <div class="flex gap-2 items-center">
-                        <select id="alarm-sound-select" aria-label="Select Alarm Sound" title="Select Alarm Sound" class="flex-1 bg-surface-variant/50 text-on-surface font-mono-label text-xs rounded-xl p-2.5 border border-outline-variant/30 outline-none focus:border-primary-fixed appearance-none">
+                        <select id="alarm-sound-select" aria-label="Select Alarm Sound" title="Select Alarm Sound" class="flex-1 bg-surface-variant/40 text-on-surface font-mono-label text-xs rounded-xl p-3 border border-outline-variant/30 outline-none focus:border-primary-fixed appearance-none transition-colors hover:bg-surface-variant/60 shadow-inner">
                             <option value="digital">Classic Digital</option>
                             <option value="wake">Gentle Wake</option>
                             <option value="synth">Two-Tone Synth</option>
                             <option value="custom">Custom MP3...</option>
                         </select>
-                        <button id="btn-preview-sound" class="glass-button w-10 h-10 rounded-xl text-primary-fixed hover:text-primary transition-colors flex items-center justify-center" title="Preview Sound">
-                            <span class="material-symbols-outlined text-[18px]" id="preview-sound-icon">play_arrow</span>
+                        <button id="btn-preview-sound" class="glass-button w-11 h-11 rounded-xl text-primary-fixed hover:text-primary transition-all hover:scale-105 active:scale-95 flex items-center justify-center shadow-md group" title="Preview Sound">
+                            <span class="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform" id="preview-sound-icon">play_arrow</span>
                         </button>
                     </div>
                 </div>
@@ -389,10 +415,12 @@
         </section>
 
         <!-- TIMER VIEW -->
-        <!-- TIMER VIEW -->
-        <section id="view-timer" class="view hidden max-w-xl mx-auto mt-6 flex flex-col gap-8 pb-32">
+        <section id="view-timer" class="view hidden max-w-xl mx-auto mt-6 flex flex-col gap-8 pb-32 relative">
+            <!-- Ambient Background Effect -->
+            <div class="absolute inset-0 bg-primary-fixed/5 rounded-full blur-[120px] -z-10 pointer-events-none animate-pulse"></div>
+
             <!-- Ringing Banner -->
-            <div id="timer-ringing-banner" class="glass-panel rounded-2xl p-5 flex justify-between items-center border-error/40 shadow-[0_0_20px_rgba(255,180,171,0.2)] hidden">
+            <div id="timer-ringing-banner" class="rounded-2xl p-6 flex justify-between items-center shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.5)] border border-error/50 bg-gradient-to-r from-error/20 via-error/10 to-error/20 animate-pulse hidden z-20">
                 <div class="flex items-center gap-3 text-error">
                     <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
                     <div>
@@ -400,7 +428,7 @@
                         <p class="font-body-sm text-outline text-xs">Countdown complete.</p>
                     </div>
                 </div>
-                <button id="btn-timer-stop" class="btn-primary rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold text-error">Stop</button>
+                <button id="btn-timer-stop" class="btn-primary rounded-xl px-6 py-3 font-mono-label text-mono-label font-bold text-error shadow-lg hover:scale-105 active:scale-95 transition-all">Stop</button>
             </div>
 
             <!-- Timer Setup View (Pickers + Presets) -->
@@ -408,26 +436,26 @@
                 <!-- Pickers -->
                 <div class="flex justify-center items-center relative scroll-mask z-0" style="height: 240px;">
                     <!-- Selection highlight bar -->
-                    <div class="absolute top-1/2 -translate-y-1/2 w-[85%] max-w-sm h-12 border-y border-primary/30 bg-primary/5 pointer-events-none z-0 rounded-lg"></div>
+                    <div class="absolute top-1/2 -translate-y-1/2 w-[85%] max-w-sm h-14 border-y border-primary-fixed/40 bg-gradient-to-r from-transparent via-primary-fixed/10 to-transparent pointer-events-none z-0 rounded-lg shadow-[0_0_15px_rgba(var(--md-sys-color-primary-fixed-rgb),0.1)]"></div>
                     <!-- Hours -->
-                    <div class="flex flex-col items-center">
-                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-hr" data-min="0" data-max="23">
+                    <div class="flex flex-col items-center z-10">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-picker-hr" data-min="0" data-max="23">
                             <!-- Hours list -->
                         </div>
                         <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">hr</span>
                     </div>
-                    <span class="font-bold text-2xl text-primary mx-1 z-10">:</span>
+                    <span class="font-bold text-3xl text-primary mx-1 z-10">:</span>
                     <!-- Minutes -->
-                    <div class="flex flex-col items-center">
-                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-min" data-min="0" data-max="59">
+                    <div class="flex flex-col items-center z-10">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-picker-min" data-min="0" data-max="59">
                             <!-- Minutes list -->
                         </div>
                         <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">min</span>
                     </div>
-                    <span class="font-bold text-2xl text-primary mx-1 z-10">:</span>
+                    <span class="font-bold text-3xl text-primary mx-1 z-10">:</span>
                     <!-- Seconds -->
-                    <div class="flex flex-col items-center">
-                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/40 snap-y snap-mandatory" id="timer-picker-sec" data-min="0" data-max="59">
+                    <div class="flex flex-col items-center z-10">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-picker-sec" data-min="0" data-max="59">
                             <!-- Seconds list -->
                         </div>
                         <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">sec</span>
@@ -435,31 +463,33 @@
                 </div>
 
                 <!-- Presets Grid -->
-                <div class="grid grid-cols-3 gap-4 px-4">
-                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24" data-hr="0" data-min="20" data-sec="0">
-                        <span class="material-symbols-outlined text-[24px] text-on-surface-variant">present_to_all</span>
-                        <span class="font-mono-label text-mono-label text-on-surface">Meeting</span>
-                        <span class="text-[10px] text-outline">00:20:00</span>
+                <div class="grid grid-cols-3 gap-4 px-4 relative z-10">
+                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24 hover:shadow-[0_4px_20px_rgba(var(--md-sys-color-primary-rgb),0.2)] hover:-translate-y-1 transition-all group border-t border-white/5" data-hr="0" data-min="20" data-sec="0">
+                        <span class="material-symbols-outlined text-[24px] text-primary group-hover:scale-110 transition-transform duration-300">present_to_all</span>
+                        <span class="font-mono-label text-mono-label text-on-surface group-hover:text-primary transition-colors">Meeting</span>
+                        <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">00:20:00</span>
                     </button>
-                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24" data-hr="0" data-min="10" data-sec="0">
-                        <span class="material-symbols-outlined text-[24px] text-on-surface-variant">dark_mode</span>
-                        <span class="font-mono-label text-mono-label text-on-surface">Sleep</span>
-                        <span class="text-[10px] text-outline">00:10:00</span>
+                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24 hover:shadow-[0_4px_20px_rgba(var(--md-sys-color-tertiary-rgb),0.2)] hover:-translate-y-1 transition-all group border-t border-white/5" data-hr="0" data-min="10" data-sec="0">
+                        <span class="material-symbols-outlined text-[24px] text-tertiary group-hover:scale-110 transition-transform duration-300">dark_mode</span>
+                        <span class="font-mono-label text-mono-label text-on-surface group-hover:text-tertiary transition-colors">Sleep</span>
+                        <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">00:10:00</span>
                     </button>
-                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24" data-hr="0" data-min="15" data-sec="0">
-                        <span class="material-symbols-outlined text-[24px] text-on-surface-variant">fitness_center</span>
-                        <span class="font-mono-label text-mono-label text-on-surface">Exercise</span>
-                        <span class="text-[10px] text-outline">00:15:00</span>
+                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24 hover:shadow-[0_4px_20px_rgba(var(--md-sys-color-secondary-rgb),0.2)] hover:-translate-y-1 transition-all group border-t border-white/5" data-hr="0" data-min="15" data-sec="0">
+                        <span class="material-symbols-outlined text-[24px] text-secondary group-hover:scale-110 transition-transform duration-300">fitness_center</span>
+                        <span class="font-mono-label text-mono-label text-on-surface group-hover:text-secondary transition-colors">Exercise</span>
+                        <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">00:15:00</span>
                     </button>
-                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center h-24">
-                        <span class="material-symbols-outlined text-3xl text-on-surface">add</span>
+                    <!-- Custom Preset Drop-zone styling -->
+                    <button id="btn-custom-preset" class="rounded-2xl p-4 flex flex-col items-center justify-center h-24 border-2 border-dashed border-outline-variant/40 hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer text-on-surface-variant hover:text-primary">
+                        <span id="custom-preset-icon" class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">add</span>
+                        <span id="custom-preset-label" class="text-[10px] font-mono-label mt-1">Save Current</span>
                     </button>
                 </div>
             </div>
 
             <!-- Timer Run View -->
-            <div id="timer-run-view" class="hidden flex-col items-center justify-center w-full">
-                <div id="timer-state" class="glass-panel text-tertiary-fixed-dim font-mono-label text-mono-label px-4 py-1.5 rounded-full flex items-center gap-2 mb-8">
+            <div id="timer-run-view" class="hidden flex-col items-center justify-center w-full relative">
+                <div id="timer-state" class="glass-badge text-tertiary-fixed-dim font-mono-label text-mono-label px-6 py-2 rounded-full flex items-center gap-2 mb-8 transition-colors duration-500 shadow-lg border border-outline-variant/20 z-10">
                     RUNNING
                 </div>
                 <div class="relative w-full max-w-[320px] aspect-square flex items-center justify-center">
@@ -477,19 +507,24 @@
             </div>
 
             <!-- Primary Controls (Bottom Fixed or relative) -->
-            <div class="flex justify-between items-center w-full px-8 mt-12">
-                <button id="btn-timer-reset-cmd" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
-                    <span class="material-symbols-outlined text-[22px]">replay</span>
+            <div class="flex justify-between items-center w-full px-8 mt-12 relative z-10">
+                <button id="btn-timer-reset-cmd" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-on-surface hover:text-primary transition-all group shadow-lg border-outline-variant/40">
+                    <span class="material-symbols-outlined text-[22px] group-hover:-rotate-45 transition-transform duration-300">replay</span>
                     <span class="text-[9px] font-bold uppercase mt-0.5">Reset</span>
                 </button>
                 
-                <button id="btn-timer-action" class="bg-[#1b71fb] rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform text-white">
-                    <span id="timer-action-icon" class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
-                    <span id="timer-action-label" class="text-xs font-bold uppercase mt-1">Start</span>
-                </button>
+                <div class="relative flex items-center justify-center">
+                    <!-- Ripple Effect -->
+                    <div id="timer-ripple" class="absolute inset-0 rounded-full bg-primary-fixed opacity-0 transition-opacity duration-300"></div>
+                    
+                    <button id="btn-timer-action" class="btn-primary rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(var(--md-sys-color-primary-rgb),0.5)] hover:scale-105 active:scale-95 transition-all text-on-primary-fixed relative z-10">
+                        <span id="timer-action-icon" class="material-symbols-outlined text-[40px] leading-none">play_arrow</span>
+                        <span id="timer-action-label" class="text-xs font-bold uppercase mt-1">Start</span>
+                    </button>
+                </div>
 
-                <button id="btn-timer-bell-cmd" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
-                    <span class="material-symbols-outlined text-[22px]">notifications</span>
+                <button id="btn-timer-bell-cmd" class="glass-button rounded-full w-16 h-16 flex flex-col items-center justify-center text-on-surface hover:text-primary transition-all group shadow-lg border-outline-variant/40">
+                    <span class="material-symbols-outlined text-[22px] group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300">notifications</span>
                     <span class="text-[9px] font-bold uppercase mt-0.5">Tone</span>
                 </button>
             </div>

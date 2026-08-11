@@ -204,8 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (is12hFormat) {
                 btnClockFormat.innerHTML = `<span>24h</span> Format`;
+                sendCmd('SET_TIMEFORMAT:12');
             } else {
                 btnClockFormat.innerHTML = `<span>12h</span> Format`;
+                sendCmd('SET_TIMEFORMAT:24');
             }
             
             // Force re-render
@@ -295,6 +297,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const epoch = Math.floor(Date.now() / 1000);
         const tz = -(new Date().getTimezoneOffset() / 60);
         sendCmd(`SYNC:${epoch},${tz}`);
+
+        const indicator = document.getElementById('last-synced-indicator');
+        if (indicator) {
+            indicator.textContent = `Last synced: Just now`;
+            indicator.style.opacity = '1';
+            
+            if (indicator.timeoutId) clearTimeout(indicator.timeoutId);
+            indicator.timeoutId = setTimeout(() => {
+                indicator.style.opacity = '0.5';
+                indicator.textContent = `Last synced: A few moments ago`;
+            }, 10000);
+        }
     });
 
     // ─── Scroll Picker Factory ────────────────────────────────────────────────
@@ -431,8 +445,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dayBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const day = parseInt(btn.dataset.day);
-            btn.classList.toggle('active');
-            if (btn.classList.contains('active')) {
+            btn.classList.toggle('day-active');
+            if (btn.classList.contains('day-active')) {
                 alarmDraft.rep |= (1 << day);
             } else {
                 alarmDraft.rep &= ~(1 << day);
@@ -491,13 +505,14 @@ document.addEventListener('DOMContentLoaded', () => {
         dayBtns.forEach(btn => {
             const day = parseInt(btn.dataset.day);
             if (alarmDraft.rep & (1 << day)) {
-                btn.classList.add('active');
+                btn.classList.add('day-active');
             } else {
-                btn.classList.remove('active');
+                btn.classList.remove('day-active');
             }
         });
         
         els.alarmEditor.classList.remove('hidden');
+        els.alarmEditor.classList.add('slide-up-active');
     });
 
     const btnAlarmAdd = document.getElementById('btn-alarm-add');
@@ -525,12 +540,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             alarmPickerH.setValue(alarmDraft.h);
             alarmPickerM.setValue(alarmDraft.m);
-            els.alarmEditSlotLabel.textContent = `(New)`;
+            els.alarmEditSlotLabel.textContent = `(New Slot ${slot + 1})`;
             refreshAlarmEnabledToggle();
             
-            dayBtns.forEach(btn => btn.classList.remove('active'));
+            dayBtns.forEach(btn => {
+                btn.classList.remove('day-active');
+            });
             
             els.alarmEditor.classList.remove('hidden');
+            els.alarmEditor.classList.add('slide-up-active');
         });
     }
 
@@ -564,11 +582,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 timerDraft.sec = presetSec;
                 sendCmd(`SET_TIMER:${presetHr},${presetMin},${presetSec}`);
                 if (navigator.vibrate) navigator.vibrate(20);
-            } else {
-                // Future functionality: add custom preset
             }
         });
     });
+
+    // Custom Preset Button Logic
+    const btnCustomPreset = document.getElementById('btn-custom-preset');
+    if (btnCustomPreset) {
+        const customData = JSON.parse(localStorage.getItem('timerCustomPreset') || 'null');
+        if (customData) {
+            btnCustomPreset.dataset.hr = customData.hr;
+            btnCustomPreset.dataset.min = customData.min;
+            btnCustomPreset.dataset.sec = customData.sec;
+            document.getElementById('custom-preset-label').textContent = `${String(customData.hr).padStart(2,'0')}:${String(customData.min).padStart(2,'0')}:${String(customData.sec).padStart(2,'0')}`;
+            document.getElementById('custom-preset-icon').textContent = 'star';
+        }
+
+        btnCustomPreset.addEventListener('click', (e) => {
+            const curHr = timerPickerHr.getValue();
+            const curMin = timerPickerMin.getValue();
+            const curSec = timerPickerSec.getValue();
+            
+            const savedHr = parseInt(btnCustomPreset.dataset.hr || '-1');
+            const savedMin = parseInt(btnCustomPreset.dataset.min || '-1');
+            const savedSec = parseInt(btnCustomPreset.dataset.sec || '-1');
+            
+            if (savedHr === curHr && savedMin === curMin && savedSec === curSec) {
+                // Apply preset
+                sendCmd(`SET_TIMER:${curHr},${curMin},${curSec}`);
+                if (navigator.vibrate) navigator.vibrate(20);
+            } else {
+                // Save custom preset
+                btnCustomPreset.dataset.hr = curHr;
+                btnCustomPreset.dataset.min = curMin;
+                btnCustomPreset.dataset.sec = curSec;
+                localStorage.setItem('timerCustomPreset', JSON.stringify({hr: curHr, min: curMin, sec: curSec}));
+                document.getElementById('custom-preset-label').textContent = `${String(curHr).padStart(2,'0')}:${String(curMin).padStart(2,'0')}:${String(curSec).padStart(2,'0')}`;
+                document.getElementById('custom-preset-icon').textContent = 'star';
+                showNotification("Preset Saved", "Your custom timer has been saved.");
+                if (navigator.vibrate) navigator.vibrate(20);
+            }
+        });
+    }
 
     const btnTimerAction = document.getElementById('btn-timer-action');
     if (btnTimerAction) {
@@ -813,29 +868,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.alarms = await readAlarms();
                 isFetchingAlarms = false;
             }
-            if (state.lapCount > 0 && (!state.laps || state.laps.length !== state.lapCount) && !isFetchingLaps) {
+            // Stop infinite loops if lap read fails
+            if (state.lapCount > 0 && (!state.laps || state.laps.length !== state.lapCount) && !isFetchingLaps && !window._lapsFetchFailed) {
                 isFetchingLaps = true;
-                state.laps = await readLaps(state.lapCount);
+                const fetchedLaps = await readLaps(state.lapCount);
+                if (fetchedLaps && fetchedLaps.length === state.lapCount) {
+                    state.laps = fetchedLaps;
+                    window._lapsFetchFailed = false;
+                } else {
+                    window._lapsFetchFailed = true; // prevent infinite fetch loops
+                    state.laps = [];
+                }
                 isFetchingLaps = false;
+            }
+            if (state.lapCount === 0) {
+                window._lapsFetchFailed = false; // reset when laps clear
             }
             // Sync virtual RTC
             virtualRTC.setState(state);
         } else if (wsState.connected) {
              virtualRTC.setState(state);
         }
-        
-        _origUpdateState(state);
-        const alarmActive = state.alarmRinging || state.tmrState === 3;
-        if (alarmActive && !lastAlarmState) {
-            const isTimer = state.tmrState === 3 && !state.alarmRinging;
-            startAlarm(isTimer);
-            let notifTitle = state.alarmRinging ? 'Alarm Ringing!' : 'Timer Done!';
-            showNotification(notifTitle, 'Open the clock app to dismiss.');
-        }
-        if (!alarmActive && lastAlarmState) {
-            stopAlarm();
-        }
-        lastAlarmState = alarmActive;
+        // Pass to UI layer via requestAnimationFrame to ensure smooth rendering
+        window.requestAnimationFrame(() => {
+            _origUpdateState(state);
+            
+            const alarmActive = state.alarmRinging || state.tmrState === 3;
+            
+            // Debounce the alarm trigger to avoid rapid beeping when state fluctuates
+            if (alarmActive !== lastAlarmState) {
+                if (!window.alarmDebounceTimeout) {
+                    window.alarmDebounceTimeout = setTimeout(() => {
+                        if (alarmActive) {
+                            const isTimer = state.tmrState === 3 && !state.alarmRinging;
+                            startAlarm(isTimer);
+                            let notifTitle = state.alarmRinging ? 'Alarm Ringing!' : 'Timer Done!';
+                            showNotification(notifTitle, 'Open the clock app to dismiss.');
+                        } else {
+                            stopAlarm();
+                        }
+                        lastAlarmState = alarmActive;
+                        window.alarmDebounceTimeout = null;
+                    }, 250);
+                }
+            } else if (window.alarmDebounceTimeout) {
+                clearTimeout(window.alarmDebounceTimeout);
+                window.alarmDebounceTimeout = null;
+            }
+        });
     };
 
     virtualRTC = new VirtualRTC();
@@ -907,11 +987,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lastBleState && lastBleState.ringingSlot !== undefined && lastBleState.ringingSlot !== 0xFF) {
                 sendCmd(`SNOOZE:${lastBleState.ringingSlot}`);
             } else {
-                sendCmd('BTN:SNOOZE');
+                sendCmd('SNOOZE:0');
             }
         });
     }
-    document.getElementById('btn-alarm-dismiss').addEventListener('click', () => sendCmd('BTN:ALARM'));
+    document.getElementById('btn-alarm-dismiss').addEventListener('click', () => {
+        if (lastBleState && lastBleState.ringingSlot !== undefined && lastBleState.ringingSlot !== 0xFF) {
+            sendCmd(`DISMISS_ALARM:${lastBleState.ringingSlot}`);
+        } else {
+            sendCmd('DISMISS_ALARM:0');
+        }
+    });
 
     // Timer (Hardware Sync) - we can keep hold to repeat if we want
     const btnUp = document.getElementById('btn-timer-up');

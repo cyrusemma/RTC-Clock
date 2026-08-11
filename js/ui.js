@@ -123,12 +123,21 @@ const WORLD_CLOCK_ZONES = [
 
 export function renderWorldClock(epochSeconds) {
     const base = new Date(epochSeconds * 1000);
+    const icons = { 'New York': 'location_city', 'London': 'account_balance', 'Accra': 'wb_sunny', 'Tokyo': 'landscape' };
     const html = WORLD_CLOCK_ZONES.map(z => {
         try {
             const formatted = new Intl.DateTimeFormat('en-GB', {
                 timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false
             }).format(base);
-            return `<div class="flex justify-between py-1.5 text-xs text-on-surface border-b border-outline-variant/30 last:border-0 opacity-90"><span>${z.label}</span><span class="font-bold">${formatted}</span></div>`;
+            const icon = icons[z.label] || 'public';
+            return `
+            <div class="flex flex-col justify-center min-w-[120px] md:min-w-0 md:w-full bg-surface-variant/20 p-3 rounded-xl border border-outline-variant/20 backdrop-blur-sm snap-center shrink-0 shadow-sm hover:bg-surface-variant/40 transition-colors">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="material-symbols-outlined text-[14px] text-primary/70">${icon}</span>
+                    <span class="text-xs text-on-surface/80 uppercase tracking-widest">${z.label}</span>
+                </div>
+                <div class="text-xl font-display-time-mobile text-on-surface drop-shadow-md">${formatted}</div>
+            </div>`;
         } catch(e) {
             return '';
         }
@@ -137,6 +146,32 @@ export function renderWorldClock(epochSeconds) {
 }
 
 export function renderAnalogueClock(epochSeconds, tzOffsetHours) {
+    if (!els.analogueContainer.querySelector('svg')) {
+        const ticks = [...Array(12)].map((_, i) => {
+            const angle = i * 30;
+            const x1 = 100 + 82 * Math.sin(angle * Math.PI / 180);
+            const y1 = 100 - 82 * Math.cos(angle * Math.PI / 180);
+            const x2 = 100 + 95 * Math.sin(angle * Math.PI / 180);
+            const y2 = 100 - 95 * Math.cos(angle * Math.PI / 180);
+            const isQuarter = (i % 3 === 0);
+            const strokeWidth = isQuarter ? 'stroke-[3]' : 'stroke-2';
+            const strokeColor = isQuarter ? 'stroke-on-surface' : 'stroke-on-surface/50';
+            return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" class="${strokeColor} ${strokeWidth}" />`;
+        }).join('');
+
+        els.analogueContainer.innerHTML = `
+        <svg viewBox="0 0 200 200" class="w-[220px] h-[220px] mx-auto drop-shadow-2xl">
+            <circle cx="100" cy="100" r="97" class="fill-surface-variant/20 stroke-outline-variant/40 stroke-[1.5]" />
+            <circle cx="100" cy="100" r="90" class="fill-transparent stroke-outline-variant/10 stroke-[0.5]" />
+            ${ticks}
+            <line id="analog-hour" x1="100" y1="100" x2="100" y2="50" class="stroke-on-surface stroke-[5] clock-hand-sweep" stroke-linecap="round" />
+            <line id="analog-min" x1="100" y1="100" x2="100" y2="30" class="stroke-primary-fixed stroke-[3] clock-hand-sweep" stroke-linecap="round" />
+            <line id="analog-sec" x1="100" y1="100" x2="100" y2="20" class="stroke-error stroke-[1.5] clock-hand-sweep" stroke-linecap="round" />
+            <circle cx="100" cy="100" r="4" class="fill-error" />
+            <circle cx="100" cy="100" r="2" class="fill-on-surface" />
+        </svg>`;
+    }
+
     const d = new Date((epochSeconds + tzOffsetHours * 3600) * 1000);
     const h = d.getUTCHours() % 12;
     const m = d.getUTCMinutes();
@@ -146,34 +181,13 @@ export function renderAnalogueClock(epochSeconds, tzOffsetHours) {
     const minAngle  = (m + s / 60) * 6;
     const secAngle  = s * 6;
 
-    const hand = (angle, len) => {
-        const x = 100 + len * Math.sin(angle * Math.PI / 180);
-        const y = 100 - len * Math.cos(angle * Math.PI / 180);
-        return { x, y };
-    };
+    const hourHand = document.getElementById('analog-hour');
+    const minHand = document.getElementById('analog-min');
+    const secHand = document.getElementById('analog-sec');
 
-    const h2 = hand(hourAngle, 50);
-    const m2 = hand(minAngle, 70);
-    const s2 = hand(secAngle, 80);
-
-    const ticks = [...Array(12)].map((_, i) => {
-        const angle = i * 30;
-        const x1 = 100 + 82 * Math.sin(angle * Math.PI / 180);
-        const y1 = 100 - 82 * Math.cos(angle * Math.PI / 180);
-        const x2 = 100 + 95 * Math.sin(angle * Math.PI / 180);
-        const y2 = 100 - 95 * Math.cos(angle * Math.PI / 180);
-        return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" class="stroke-on-surface/50 stroke-2" />`;
-    }).join('');
-
-    els.analogueContainer.innerHTML = `
-    <svg viewBox="0 0 200 200" class="w-[180px] h-[180px] mx-auto drop-shadow-lg">
-        <circle cx="100" cy="100" r="97" class="fill-transparent stroke-outline-variant/30 stroke-2" />
-        ${ticks}
-        <line x1="100" y1="100" x2="${h2.x.toFixed(2)}" y2="${h2.y.toFixed(2)}" class="stroke-on-surface stroke-[5]" stroke-linecap="round" />
-        <line x1="100" y1="100" x2="${m2.x.toFixed(2)}" y2="${m2.y.toFixed(2)}" class="stroke-primary-fixed stroke-[3]" stroke-linecap="round" />
-        <line x1="100" y1="100" x2="${s2.x.toFixed(2)}" y2="${s2.y.toFixed(2)}" class="stroke-error stroke-[1.5]" stroke-linecap="round" />
-        <circle cx="100" cy="100" r="4" class="fill-error" />
-    </svg>`;
+    if (hourHand) hourHand.style.transform = `rotate(${hourAngle}deg)`;
+    if (minHand) minHand.style.transform = `rotate(${minAngle}deg)`;
+    if (secHand) secHand.style.transform = `rotate(${secAngle}deg)`;
 }
 
 export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ringClassBase = 'timer-ring-progress', stateClass = '') {
@@ -191,14 +205,14 @@ export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ri
 
     if (!containerEl) return;
     containerEl.innerHTML = `
-    <svg class="absolute w-full h-full" viewBox="0 0 100 100">
-        <circle class="glass-ring-bg" cx="50" cy="50" fill="none" r="${radius}" stroke-width="4"></circle>
+    <svg class="absolute w-full h-full drop-shadow-lg" viewBox="0 0 100 100">
+        <circle class="glass-ring-bg" cx="50" cy="50" fill="none" r="${radius}" stroke-width="6"></circle>
         <circle class="${ringClass}" cx="50" cy="50" fill="none" r="${radius}" stroke="${strokeColor}"
             stroke-dasharray="${circumference.toFixed(2)}"
             stroke-dashoffset="${offset.toFixed(2)}"
             stroke-linecap="round"
-            stroke-width="4" />
-        <g opacity="0.3" stroke="#849495" stroke-width="0.5">
+            stroke-width="6" />
+        <g opacity="0.4" stroke="#849495" stroke-width="1">
             <line x1="50" x2="50" y1="2" y2="6"></line>
             <line x1="50" x2="50" y1="94" y2="98"></line>
             <line x1="2" x2="6" y1="50" y2="50"></line>
@@ -229,23 +243,33 @@ export function renderAlarmCards(alarms, activeSlot) {
         }
 
         const timeStr = `${pad(h)}:${pad(alarm.m)}${amPm}`;
-        const disabledClass = (alarm.en || alarm.sn) ? '' : 'opacity-50';
+        const disabledClass = (alarm.en || alarm.sn) ? '' : 'opacity-50 grayscale-[0.5]';
         const dayStr = days.map((d, di) => {
             const active = (alarm.rep & (1 << di)) ? 'class="text-primary font-bold"' : 'class="text-on-surface-variant/40"';
             return `<span ${active}>${d}</span>`;
         }).join(' ');
+        
+        // CSS Toggle Switch HTML
+        const toggleSwitch = `
+            <label class="relative inline-flex items-center cursor-pointer mt-2" onclick="event.stopPropagation(); window.toggleAlarm(${i}, ${!alarm.en});">
+                <input type="checkbox" class="sr-only peer" ${alarm.en ? 'checked' : ''} readonly>
+                <div class="w-11 h-6 bg-surface-variant/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-outline-variant/30 shadow-inner"></div>
+            </label>
+        `;
+
+        // Calculate a staggered delay based on the index for the animation
+        const staggerDelay = i * 100;
 
         return `
-        <div class="glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all ${disabledClass}" data-slot="${i}">
+        <div class="glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] animate-fade-in-up" style="animation-delay: ${staggerDelay}ms; animation-fill-mode: both;" data-slot="${i}">
             <div>
-                <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text">${timeStr}</div>
+                <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
                 <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
                     ${dayStr}
                 </div>
             </div>
             <div class="flex flex-col items-end gap-1">
-                <span class="font-mono-label text-xs font-bold ${alarm.en ? 'text-primary' : 'text-on-surface-variant'}">${alarm.sn ? 'SNZ' : (alarm.en ? 'ON' : 'OFF')}</span>
-                <span class="material-symbols-outlined text-outline-variant text-[20px]">${alarm.en ? 'alarm_on' : 'alarm_off'}</span>
+                ${toggleSwitch}
             </div>
         </div>`;
     }).join('');
@@ -259,7 +283,6 @@ export function renderAlarmCards(alarms, activeSlot) {
 
 export function setActiveModeView(mode) {
     const viewIds = ['view-clock', 'view-stopwatch', 'view-alarm', 'view-timer'];
-
     els.tabs.forEach(tab => {
         tab.classList.toggle('active', parseInt(tab.dataset.mode) === mode);
     });
@@ -276,6 +299,18 @@ export function setActiveModeView(mode) {
             activeView.classList.add('active');
         }
     }
+
+    // Bottom Nav
+    const navBtns = document.querySelectorAll('.bottom-nav .clay-tab');
+    navBtns.forEach((btn, idx) => {
+        if (idx === mode) {
+            btn.classList.add('text-primary', 'nav-active');
+            btn.classList.remove('text-on-surface-variant');
+        } else {
+            btn.classList.remove('text-primary', 'nav-active');
+            btn.classList.add('text-on-surface-variant');
+        }
+    });
 }
 
 export function updateState(state) {
@@ -306,11 +341,16 @@ export function updateState(state) {
         }
         
         const amPm = state.is12hFormat ? `<span class="text-3xl md:text-5xl ml-2 text-on-surface-variant">${d.getUTCHours() >= 12 ? 'PM' : 'AM'}</span>` : '';
-        els.clockTime.innerHTML = `${hhStr}:${mmStr}:${ssStr}${amPm}`;
+        els.clockTime.innerHTML = `${hhStr}<span class="colon-pulse">:</span>${mmStr}<span class="colon-pulse">:</span>${ssStr}${amPm}`;
         els.clockTz.textContent = `UTC${state.timezoneOffset >= 0 ? '+' : ''}${state.timezoneOffset}`;
         
         const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
-        els.clockDate.textContent = d.toLocaleDateString(undefined, dateOptions);
+        const dateTextEl = document.getElementById('date-text');
+        if (dateTextEl) {
+            dateTextEl.textContent = d.toLocaleDateString(undefined, dateOptions);
+        } else {
+            els.clockDate.textContent = d.toLocaleDateString(undefined, dateOptions);
+        }
         
         renderWorldClock(state.epoch);
         // Always re-render analogue if visible
@@ -323,14 +363,28 @@ export function updateState(state) {
         const millis = ms % 1000;
         const s = Math.floor(ms / 1000) % 60;
         const m = Math.floor(ms / 60000);
-        els.swTime.textContent = `${pad(m)}:${pad(s)}.${padMs(millis)}`;
+        els.swTime.innerHTML = `${pad(m)}:${pad(s)}<span class="text-3xl md:text-5xl opacity-60 ml-1">.${padMs(millis)}</span>`;
         
-        const swStates = ['Ready', 'Running', 'Paused'];
-        els.swState.textContent = swStates[state.swState] || 'Unknown';
+        const swStates = ['READY', 'RUNNING', 'PAUSED'];
+        els.swState.textContent = swStates[state.swState] || 'UNKNOWN';
+        
+        // Remove previous state classes
+        els.swState.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10');
         
         let stateClass = '';
-        if (state.swState === 1) stateClass = 'state-running';
-        else if (state.swState === 2) stateClass = 'state-paused';
+        const rippleEl = document.getElementById('sw-ripple');
+        if (state.swState === 1) {
+            stateClass = 'state-running';
+            els.swState.classList.add('text-tertiary-fixed-dim', 'bg-tertiary-fixed/10');
+            if (rippleEl) rippleEl.classList.add('ripple-active');
+        } else if (state.swState === 2) {
+            stateClass = 'state-paused';
+            els.swState.classList.add('text-secondary-fixed-dim', 'bg-secondary-fixed/10');
+            if (rippleEl) rippleEl.classList.remove('ripple-active');
+        } else {
+            els.swState.classList.add('text-primary-fixed', 'bg-primary-fixed/10');
+            if (rippleEl) rippleEl.classList.remove('ripple-active');
+        }
         
         // Stopwatch ring resets every 60 seconds (60000 ms)
         renderTimerRing(ms % 60000, 60000, false, els.swRingContainer, 'timer-ring-progress', stateClass);
@@ -381,16 +435,27 @@ export function updateState(state) {
                     const lm = Math.floor(lapMs / 60000);
                     
                     let deltaStr = '';
+                    let borderClass = 'border-l-4 border-outline-variant/30';
                     if (i > 0) {
                         const diff = deltaMs - (state.laps[i-1] - (i > 1 ? state.laps[i-2] : 0));
                         if (diff < 0) {
                             deltaStr = `<span class="text-tertiary-fixed font-bold float-right">-${padMs(Math.abs(diff))}</span>`;
+                            borderClass = 'border-l-4 border-tertiary-fixed';
                         } else {
                             deltaStr = `<span class="text-error font-bold float-right">+${padMs(diff)}</span>`;
+                            borderClass = 'border-l-4 border-error';
                         }
                     }
                     
-                    return `<div class="py-1 border-b border-outline-variant/30 last:border-0 text-sm">Lap ${i + 1}: ${pad(lm)}:${pad(ls)}.${padMs(lcm)} ${deltaStr}</div>`;
+                    const animationClass = (i === state.laps.length - 1 && state.swState === 1) ? 'slide-in-top' : '';
+                    return `
+                    <div class="p-3 bg-surface-variant/20 rounded-lg ${borderClass} text-sm mb-1 shadow-sm flex justify-between items-center ${animationClass}">
+                        <span class="text-outline-variant font-bold">Lap ${i + 1}</span>
+                        <div class="flex flex-col items-end">
+                            <span class="text-on-surface text-lg font-display-time-mobile">${pad(lm)}:${pad(ls)}.<span class="opacity-60 text-xs">${padMs(lcm)}</span></span>
+                            ${deltaStr}
+                        </div>
+                    </div>`;
                 }).join('');
             } else {
                 els.swLaps.innerHTML = `<div class="py-2 text-on-surface-variant text-sm italic text-center">Loading laps...</div>`;
@@ -446,11 +511,33 @@ export function updateState(state) {
         if (els.timerMinDisplay) els.timerMinDisplay.textContent = pad(displayMin);
         if (els.timerSecDisplay) els.timerSecDisplay.textContent = pad(displaySec);
         
-        const tmrStates = ['Ready', 'Running', 'Paused', 'Ringing'];
-        const stateStr = tmrStates[state.tmrState] || 'Unknown';
+        const tmrStates = ['READY', 'RUNNING', 'PAUSED', 'RINGING'];
+        const stateStr = tmrStates[state.tmrState] || 'UNKNOWN';
         
         const timerStateEl = document.getElementById('timer-state');
-        if (timerStateEl) timerStateEl.textContent = stateStr.toUpperCase();
+        const timerRipple = document.getElementById('timer-ripple');
+        
+        let stateClass = '';
+        if (timerStateEl) {
+            timerStateEl.textContent = stateStr;
+            timerStateEl.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'text-error', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10', 'bg-error/10');
+            
+            if (state.tmrState === 1) { // RUNNING
+                stateClass = 'state-running';
+                timerStateEl.classList.add('text-tertiary-fixed-dim', 'bg-tertiary-fixed/10');
+                if (timerRipple) timerRipple.classList.add('ripple-active');
+            } else if (state.tmrState === 2) { // PAUSED
+                stateClass = 'state-paused';
+                timerStateEl.classList.add('text-secondary-fixed-dim', 'bg-secondary-fixed/10');
+                if (timerRipple) timerRipple.classList.remove('ripple-active');
+            } else if (state.tmrState === 3) { // RINGING
+                timerStateEl.classList.add('text-error', 'bg-error/10');
+                if (timerRipple) timerRipple.classList.remove('ripple-active');
+            } else { // READY
+                timerStateEl.classList.add('text-primary-fixed', 'bg-primary-fixed/10');
+                if (timerRipple) timerRipple.classList.remove('ripple-active');
+            }
+        }
         
         if (els.timerActionIcon) {
             const label = document.getElementById('timer-action-label');
@@ -469,18 +556,14 @@ export function updateState(state) {
             }
         }
 
-        let stateClass = '';
-        if (state.tmrState === 1) stateClass = 'state-running';
-        else if (state.tmrState === 2) stateClass = 'state-paused';
-        
-        const isRinging = state.tmrState === 3;
-        const ringContainer = document.getElementById('timer-ring-container');
-        if (ringContainer) renderTimerRing(state.tmrRemainingMs, totalMs, isRinging, ringContainer, 'timer-ring-progress', stateClass);
-
         if (state.tmrState === 3) {
             els.timerRingingBanner.classList.remove('hidden');
         } else {
             els.timerRingingBanner.classList.add('hidden');
         }
+
+        const isRinging = state.tmrState === 3;
+        const ringContainer = document.getElementById('timer-ring-container');
+        if (ringContainer) renderTimerRing(state.tmrRemainingMs, totalMs, isRinging, ringContainer, 'timer-ring-progress', stateClass);
     }
 }
