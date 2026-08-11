@@ -10,8 +10,10 @@
      • Warm neutral undertones create visual harmony
      • Surface hierarchy uses subtle warm gray steps
      ───────────────────────────────────────────────────── */
-  --md-sys-color-background: #FAF8F5;
+  --md-sys-color-background: #FFF9EB; /* Soft cream */
   --md-sys-color-on-background: #1C1B18;
+  --clock-time-color: #1C1B18; /* Black text for light mode */
+  --glow-color: transparent; /* No glow in light mode */
   --md-sys-color-surface: #F5F0E8;
   --md-sys-color-surface-dim: #D7D2CA;
   --md-sys-color-surface-bright: #F5F0E8;
@@ -64,6 +66,8 @@
 .dark {
   --md-sys-color-background: #131313;
   --md-sys-color-on-background: #e5e2e1;
+  --clock-time-color: #00dbe9; /* Cyan for dark mode */
+  --glow-color: rgba(0, 219, 233, 0.6);
   --md-sys-color-surface: #131313;
   --md-sys-color-surface-dim: #131313;
   --md-sys-color-surface-bright: #393939;
@@ -238,7 +242,11 @@ body {
 .timer-ring-progress.state-paused { stroke: #ffba20; }  /* secondary-fixed-dim */
 
 .glow-text {
-    text-shadow: 0 0 16px rgba(0, 219, 233, 0.6), 0 0 32px rgba(0, 219, 233, 0.3);
+    text-shadow: 0 0 16px var(--glow-color), 0 0 32px var(--glow-color);
+}
+
+.clock-text-color {
+    color: var(--clock-time-color);
 }
 
 .colon-pulse {

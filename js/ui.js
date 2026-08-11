@@ -338,6 +338,17 @@ export function updateState(state) {
     setActiveModeView(state.mode);
 
     // 1. Clock
+    if (state.is12hFormat !== undefined) {
+        const btnClockFormat = document.getElementById('btn-clock-format');
+        if (btnClockFormat) {
+            if (state.is12hFormat) {
+                setHTML(btnClockFormat, `<span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300 text-tertiary">123</span> 24h Format`);
+            } else {
+                setHTML(btnClockFormat, `<span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300 text-tertiary">123</span> 12h Format`);
+            }
+        }
+    }
+
     if (state.mode === 0) {
         // format epoch
         const d = new Date((state.epoch + state.timezoneOffset * 3600) * 1000);

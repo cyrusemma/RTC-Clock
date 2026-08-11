@@ -238,23 +238,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 12/24hr Format Toggle
     const btnClockFormat = document.getElementById('btn-clock-format');
     if (btnClockFormat) {
-        // Initial state
-        if (localStorage.getItem('is12hFormat') === 'true') {
-            btnClockFormat.innerHTML = `<span>24h</span> Format`;
-        } else {
-            btnClockFormat.innerHTML = `<span>12h</span> Format`;
-        }
-        
         btnClockFormat.addEventListener('click', () => {
             const current = localStorage.getItem('is12hFormat') === 'true';
-            localStorage.setItem('is12hFormat', !current);
-            is12hFormat = !current;
             
-            if (is12hFormat) {
-                btnClockFormat.innerHTML = `<span>24h</span> Format`;
+            if (!current) {
                 sendCmd('SET_TIMEFORMAT:12');
             } else {
-                btnClockFormat.innerHTML = `<span>12h</span> Format`;
                 sendCmd('SET_TIMEFORMAT:24');
             }
             
@@ -975,6 +964,16 @@ document.addEventListener('DOMContentLoaded', () => {
         state.is12hFormat = is12hFormat;
         
         // Inject BLE alarms/laps if missing
+        if (state.connected !== lastBleState?.connected) {
+            if (state.connected) {
+                // Sync time on connect after a short delay to prevent hardware instability
+                setTimeout(() => {
+                    const now = new Date();
+                    const offset = -(now.getTimezoneOffset() / 60);
+                    sendCmd(`SYNC:${Math.floor(now.getTime() / 1000)},${offset}`);
+                }, 1500);
+            }
+        }
         if (bleState.connected) {
             if (!state.alarms && !isFetchingAlarms) {
                 isFetchingAlarms = true;
