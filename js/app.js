@@ -962,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let holdInterval;
 
         const start = (e) => {
-            if (e.type === 'touchstart') e.preventDefault();
+            // e.preventDefault() removed to fix iOS Safari blocking click events
             sendCmd(cmd);
             holdTimeout = setTimeout(() => {
                 holdInterval = setInterval(() => sendCmd(cmd), 120);
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         btn.addEventListener('mousedown', start);
-        btn.addEventListener('touchstart', start, { passive: false });
+        btn.addEventListener('touchstart', start, { passive: true });
         btn.addEventListener('mouseup', stop);
         btn.addEventListener('mouseleave', stop);
         btn.addEventListener('touchend', stop);
