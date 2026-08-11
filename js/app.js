@@ -145,6 +145,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ── V2.1 Buzzer Controls ───────────────────────────────────────────────
+    if (els.volumeSlider) {
+        els.volumeSlider.addEventListener('input', (e) => {
+            if (els.volumeLabel) {
+                const pct = Math.round((e.target.value / 255) * 100);
+                els.volumeLabel.textContent = `${pct}%`;
+            }
+            sendCmd(`SET_VOLUME:${e.target.value}`);
+        });
+    }
+
     // Double tap/click to exit fullscreen mode
     document.addEventListener('dblclick', () => {
         if (document.fullscreenElement && document.exitFullscreen) {

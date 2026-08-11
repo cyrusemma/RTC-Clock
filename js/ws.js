@@ -39,7 +39,7 @@ export function connectWS(onStateChange, onDataReceived, onLog) {
                 tmrState: data.tmr,
                 swElapsedMs: data.swMs,
                 tmrRemainingMs: data.tmrMs,
-                tmrInitHr: data.tmrHr || 0,
+                buzzerVolume: data.vol !== undefined ? data.vol : 180,
                 tmrInitMin: data.tmrMin,
                 tmrInitSec: data.tmrSec,
                 tmrSetField: data.tmrField,

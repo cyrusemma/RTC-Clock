@@ -54,7 +54,11 @@ export const els = {
     pwaDismissBtns: document.querySelectorAll('.pwa-dismiss'),
     iosInstallTooltip: document.getElementById('ios-install-tooltip'),
     btnIosDismiss: document.getElementById('btn-ios-dismiss'),
-    presetBtns: document.querySelectorAll('.preset-btn')
+    presetBtns: document.querySelectorAll('.preset-btn'),
+    
+    // V2.1 Volume Controls
+    volumeSlider: document.getElementById('volume-slider'),
+    volumeLabel: document.getElementById('volume-label')
 };
 
 export function initUI() {
@@ -588,4 +592,18 @@ export function updateState(state) {
         const ringContainer = document.getElementById('timer-ring-container');
         if (ringContainer) renderTimerRing(state.tmrRemainingMs, totalMs, isRinging, ringContainer, 'timer-ring-progress', stateClass);
     }
+
+    // 5. System Settings
+    if (state.buzzerVolume !== undefined) {
+        if (els.volumeSlider && document.activeElement !== els.volumeSlider) {
+            els.volumeSlider.value = state.buzzerVolume;
+        }
+        if (els.volumeLabel) {
+            const pct = Math.round((state.buzzerVolume / 255) * 100);
+            setText(els.volumeLabel, `${pct}%`);
+        }
+    }
+}
+
+}
 }
