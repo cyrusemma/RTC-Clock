@@ -182,6 +182,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ── V2.1 Buzzer Controls ───────────────────────────────────────────────
+    if (els.volumeSlider) {
+        els.volumeSlider.addEventListener('input', (e) => {
+            if (els.volumeLabel) {
+                const pct = Math.round((e.target.value / 255) * 100);
+                els.volumeLabel.textContent = `${pct}%`;
+            }
+            sendCmd(`SET_VOLUME:${e.target.value}`);
+        });
+    }
+
     // Double tap/click to exit fullscreen mode
     document.addEventListener('dblclick', () => {
         if (document.fullscreenElement && document.exitFullscreen) {
@@ -1064,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let holdInterval;
 
         const start = (e) => {
-            if (e.type === 'touchstart') e.preventDefault();
+            // e.preventDefault() removed to fix iOS Safari blocking click events
             sendCmd(cmd);
             holdTimeout = setTimeout(() => {
                 holdInterval = setInterval(() => sendCmd(cmd), 120);
@@ -1076,7 +1087,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         btn.addEventListener('mousedown', start);
-        btn.addEventListener('touchstart', start, { passive: false });
+        btn.addEventListener('touchstart', start, { passive: true });
         btn.addEventListener('mouseup', stop);
         btn.addEventListener('mouseleave', stop);
         btn.addEventListener('touchend', stop);

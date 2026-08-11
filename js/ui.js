@@ -54,7 +54,11 @@ export const els = {
     pwaDismissBtns: document.querySelectorAll('.pwa-dismiss'),
     iosInstallTooltip: document.getElementById('ios-install-tooltip'),
     btnIosDismiss: document.getElementById('btn-ios-dismiss'),
-    presetBtns: document.querySelectorAll('.preset-btn')
+    presetBtns: document.querySelectorAll('.preset-btn'),
+    
+    // V2.1 Volume Controls
+    volumeSlider: document.getElementById('volume-slider'),
+    volumeLabel: document.getElementById('volume-label')
 };
 
 export function initUI() {
@@ -281,7 +285,24 @@ export function renderAlarmCards(alarms, activeSlot) {
     els.alarmCardsContainer.innerHTML = html;
 }
 
+// DOM Diffing Helpers
+function setText(el, text) {
+    if (el && el.textContent !== text) el.textContent = text;
+}
+function setHTML(el, html) {
+    if (el && el.innerHTML !== html) el.innerHTML = html;
+}
+function setClass(el, className, condition) {
+    if (!el) return;
+    if (condition && !el.classList.contains(className)) el.classList.add(className);
+    else if (!condition && el.classList.contains(className)) el.classList.remove(className);
+}
+
+let lastActiveMode = -1;
 export function setActiveModeView(mode) {
+    if (lastActiveMode === mode) return;
+    lastActiveMode = mode;
+    
     const viewIds = ['view-clock', 'view-stopwatch', 'view-alarm', 'view-timer'];
     els.tabs.forEach(tab => {
         tab.classList.toggle('active', parseInt(tab.dataset.mode) === mode);
@@ -341,15 +362,15 @@ export function updateState(state) {
         }
         
         const amPm = state.is12hFormat ? `<span class="text-3xl md:text-5xl ml-2 text-on-surface-variant">${d.getUTCHours() >= 12 ? 'PM' : 'AM'}</span>` : '';
-        els.clockTime.innerHTML = `${hhStr}<span class="colon-pulse">:</span>${mmStr}<span class="colon-pulse">:</span>${ssStr}${amPm}`;
-        els.clockTz.textContent = `UTC${state.timezoneOffset >= 0 ? '+' : ''}${state.timezoneOffset}`;
+        setHTML(els.clockTime, `${hhStr}<span class="colon-pulse">:</span>${mmStr}<span class="colon-pulse">:</span>${ssStr}${amPm}`);
+        setText(els.clockTz, `UTC${state.timezoneOffset >= 0 ? '+' : ''}${state.timezoneOffset}`);
         
         const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
         const dateTextEl = document.getElementById('date-text');
         if (dateTextEl) {
-            dateTextEl.textContent = d.toLocaleDateString(undefined, dateOptions);
+            setText(dateTextEl, d.toLocaleDateString(undefined, dateOptions));
         } else {
-            els.clockDate.textContent = d.toLocaleDateString(undefined, dateOptions);
+            setText(els.clockDate, d.toLocaleDateString(undefined, dateOptions));
         }
         
         renderWorldClock(state.epoch);
@@ -363,13 +384,15 @@ export function updateState(state) {
         const millis = ms % 1000;
         const s = Math.floor(ms / 1000) % 60;
         const m = Math.floor(ms / 60000);
-        els.swTime.innerHTML = `${pad(m)}:${pad(s)}<span class="text-3xl md:text-5xl opacity-60 ml-1">.${padMs(millis)}</span>`;
+        setHTML(els.swTime, `${pad(m)}:${pad(s)}<span class="text-3xl md:text-5xl opacity-60 ml-1">.${padMs(millis)}</span>`);
         
         const swStates = ['READY', 'RUNNING', 'PAUSED'];
-        els.swState.textContent = swStates[state.swState] || 'UNKNOWN';
+        setText(els.swState, swStates[state.swState] || 'UNKNOWN');
         
-        // Remove previous state classes
-        els.swState.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10');
+        // Only modify classes if they need changing to prevent thrashing
+        if (els.swState.dataset.state !== String(state.swState)) {
+            els.swState.dataset.state = String(state.swState);
+            els.swState.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10');
         
         let stateClass = '';
         const rippleEl = document.getElementById('sw-ripple');
@@ -418,10 +441,10 @@ export function updateState(state) {
 
         // Laps
         if (state.lapCount > 0) {
-            els.swLapsContainer.classList.remove('hidden');
+            setClass(els.swLapsContainer, 'hidden', false);
             if (state.laps && state.laps.length > 0) {
                 let lastLap = 0;
-                els.swLaps.innerHTML = state.laps.map((lapMs, i) => {
+                const html = state.laps.map((lapMs, i) => {
                     const deltaMs = i === 0 ? lapMs : lapMs - lastLap;
                     lastLap = lapMs;
                     
@@ -457,11 +480,12 @@ export function updateState(state) {
                         </div>
                     </div>`;
                 }).join('');
+                setHTML(els.swLaps, html);
             } else {
-                els.swLaps.innerHTML = `<div class="py-2 text-on-surface-variant text-sm italic text-center">Loading laps...</div>`;
+                setHTML(els.swLaps, `<div class="py-2 text-on-surface-variant text-sm italic text-center">Loading laps...</div>`);
             }
         } else {
-            els.swLapsContainer.classList.add('hidden');
+            setClass(els.swLapsContainer, 'hidden', true);
         }
     }
 
@@ -507,9 +531,9 @@ export function updateState(state) {
             displayHr = Math.floor(ms / 3600000);
         }
 
-        if (els.timerHrDisplay) els.timerHrDisplay.textContent = pad(displayHr);
-        if (els.timerMinDisplay) els.timerMinDisplay.textContent = pad(displayMin);
-        if (els.timerSecDisplay) els.timerSecDisplay.textContent = pad(displaySec);
+        if (els.timerHrDisplay) setText(els.timerHrDisplay, pad(displayHr));
+        if (els.timerMinDisplay) setText(els.timerMinDisplay, pad(displayMin));
+        if (els.timerSecDisplay) setText(els.timerSecDisplay, pad(displaySec));
         
         const tmrStates = ['READY', 'RUNNING', 'PAUSED', 'RINGING'];
         const stateStr = tmrStates[state.tmrState] || 'UNKNOWN';
@@ -519,8 +543,10 @@ export function updateState(state) {
         
         let stateClass = '';
         if (timerStateEl) {
-            timerStateEl.textContent = stateStr;
-            timerStateEl.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'text-error', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10', 'bg-error/10');
+            setText(timerStateEl, stateStr);
+            if (timerStateEl.dataset.state !== String(state.tmrState)) {
+                timerStateEl.dataset.state = String(state.tmrState);
+                timerStateEl.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'text-error', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10', 'bg-error/10');
             
             if (state.tmrState === 1) { // RUNNING
                 stateClass = 'state-running';
@@ -542,17 +568,17 @@ export function updateState(state) {
         if (els.timerActionIcon) {
             const label = document.getElementById('timer-action-label');
             if (state.tmrState === 1) {
-                els.timerActionIcon.textContent = 'pause';
-                if (label) label.textContent = 'Pause';
+                setText(els.timerActionIcon, 'pause');
+                if (label) setText(label, 'Pause');
             } else if (state.tmrState === 2) {
-                els.timerActionIcon.textContent = 'play_arrow';
-                if (label) label.textContent = 'Resume';
+                setText(els.timerActionIcon, 'play_arrow');
+                if (label) setText(label, 'Resume');
             } else if (state.tmrState === 3) {
-                els.timerActionIcon.textContent = 'stop';
-                if (label) label.textContent = 'Stop';
+                setText(els.timerActionIcon, 'stop');
+                if (label) setText(label, 'Stop');
             } else {
-                els.timerActionIcon.textContent = 'play_arrow';
-                if (label) label.textContent = 'Start';
+                setText(els.timerActionIcon, 'play_arrow');
+                if (label) setText(label, 'Start');
             }
         }
 
@@ -566,4 +592,18 @@ export function updateState(state) {
         const ringContainer = document.getElementById('timer-ring-container');
         if (ringContainer) renderTimerRing(state.tmrRemainingMs, totalMs, isRinging, ringContainer, 'timer-ring-progress', stateClass);
     }
+
+    // 5. System Settings
+    if (state.buzzerVolume !== undefined) {
+        if (els.volumeSlider && document.activeElement !== els.volumeSlider) {
+            els.volumeSlider.value = state.buzzerVolume;
+        }
+        if (els.volumeLabel) {
+            const pct = Math.round((state.buzzerVolume / 255) * 100);
+            setText(els.volumeLabel, `${pct}%`);
+        }
+    }
+}
+
+}
 }

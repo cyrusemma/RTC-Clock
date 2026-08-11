@@ -173,7 +173,7 @@ function parsePacketV2(dv) {
     const lapCount        = dv.getUint8(23);
     const alarmViewSlot   = dv.getUint8(24);
     const alarmEditField  = dv.getUint8(25);
-    const tmrInitHr       = dv.getUint8(26);
+    const buzzerVolume    = dv.getUint8(26);
     // [27-33] reserved — ignored
 
     return {
@@ -188,7 +188,7 @@ function parsePacketV2(dv) {
         tmrState,
         swElapsedMs,
         tmrRemainingMs,
-        tmrInitHr,
+        buzzerVolume,
         tmrInitMin,
         tmrInitSec,
         tmrSetField,

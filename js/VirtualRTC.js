@@ -33,7 +33,10 @@ export class VirtualRTC {
             tmrInitSec: 0,
             tmrRemainingMs: 0,
             tmrState: 0, // 0: Ready, 1: Running, 2: Paused, 3: Ringing
-            tmrSetField: 0
+            tmrSetField: 0,
+            
+            // System
+            buzzerVolume: 180
         };
         
         this.lastTickTime = performance.now();
@@ -157,6 +160,9 @@ export class VirtualRTC {
                 rep: parseInt(args[4]),
                 sn: 0
             };
+        } else if (cmd === 'SET_VOLUME') {
+            const v = parseInt(args[0]);
+            this.state.buzzerVolume = isNaN(v) ? 180 : Math.max(0, Math.min(255, v));
         } else {
             needsUpdate = false;
         }
