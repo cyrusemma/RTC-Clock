@@ -209,6 +209,34 @@
     <!-- Main Content Canvas -->
     <main class="flex-1 overflow-y-auto pt-16 pb-24 md:pb-6 px-margin-mobile md:px-margin-desktop bg-surface-container-lowest bg-gradient-to-b from-surface-container-lowest to-background views">
         
+        <!-- Global Ringing Banners -->
+        <!-- Alarm Ringing Banner -->
+        <div id="alarm-ringing-banner" class="max-w-4xl mx-auto rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.5)] border border-error/50 bg-gradient-to-r from-error/20 via-error/10 to-error/20 animate-pulse hidden z-50 mb-6">
+            <div class="flex items-center gap-3 text-error">
+                <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
+                <div>
+                    <h3 class="font-headline-md text-headline-md font-bold text-on-surface">ALARM RINGING!</h3>
+                    <p class="font-body-sm text-outline text-xs">Wake up and shine!</p>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button id="btn-alarm-snooze" class="btn-primary rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold">Snooze (9m)</button>
+                <button id="btn-alarm-dismiss" class="glass-button rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold text-error">Dismiss</button>
+            </div>
+        </div>
+
+        <!-- Timer Ringing Banner -->
+        <div id="timer-ringing-banner" class="max-w-4xl mx-auto rounded-2xl p-6 flex justify-between items-center shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.5)] border border-error/50 bg-gradient-to-r from-error/20 via-error/10 to-error/20 animate-pulse hidden z-50 mb-6">
+            <div class="flex items-center gap-3 text-error">
+                <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
+                <div>
+                    <h3 class="font-headline-md text-headline-md font-bold text-on-surface">TIMER DONE</h3>
+                    <p class="font-body-sm text-outline text-xs">Countdown complete.</p>
+                </div>
+            </div>
+            <button id="btn-timer-stop" class="btn-primary rounded-xl px-6 py-3 font-mono-label text-mono-label font-bold text-error shadow-lg hover:scale-105 active:scale-95 transition-all">Stop</button>
+        </div>
+
         <!-- CLOCK VIEW -->
         <section id="view-clock" class="view active max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter relative">
             <!-- Ambient Background Effect -->
@@ -344,21 +372,6 @@
         <section id="view-alarm" class="view hidden max-w-4xl mx-auto mt-6 flex flex-col gap-6 relative">
             <!-- Ambient Background Effect for Alarm View (Warm Tint) -->
             <div class="absolute inset-0 bg-error/5 rounded-full blur-[120px] -z-10 pointer-events-none animate-pulse"></div>
-            
-            <!-- Ringing Banner -->
-            <div id="alarm-ringing-banner" class="rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.5)] border border-error/50 bg-gradient-to-r from-error/20 via-error/10 to-error/20 animate-pulse hidden z-20">
-                <div class="flex items-center gap-3 text-error">
-                    <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
-                    <div>
-                        <h3 class="font-headline-md text-headline-md font-bold text-on-surface">ALARM RINGING!</h3>
-                        <p class="font-body-sm text-outline text-xs">Wake up and shine!</p>
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <button id="btn-alarm-snooze" class="btn-primary rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold">Snooze (9m)</button>
-                    <button id="btn-alarm-dismiss" class="glass-button rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold text-error">Dismiss</button>
-                </div>
-            </div>
 
             <!-- Alarms List -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter" id="alarm-cards-container">
@@ -435,20 +448,8 @@
 
         <!-- TIMER VIEW -->
         <section id="view-timer" class="view hidden max-w-xl mx-auto mt-6 flex flex-col gap-8 pb-32 relative">
-            <!-- Ambient Background Effect -->
+            <!-- Ambient Background Effect for Timer View (Cool Tint) -->
             <div class="absolute inset-0 bg-primary-fixed/5 rounded-full blur-[120px] -z-10 pointer-events-none animate-pulse"></div>
-
-            <!-- Ringing Banner -->
-            <div id="timer-ringing-banner" class="rounded-2xl p-6 flex justify-between items-center shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.5)] border border-error/50 bg-gradient-to-r from-error/20 via-error/10 to-error/20 animate-pulse hidden z-20">
-                <div class="flex items-center gap-3 text-error">
-                    <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
-                    <div>
-                        <h3 class="font-headline-md text-headline-md font-bold text-on-surface">TIMER DONE</h3>
-                        <p class="font-body-sm text-outline text-xs">Countdown complete.</p>
-                    </div>
-                </div>
-                <button id="btn-timer-stop" class="btn-primary rounded-xl px-6 py-3 font-mono-label text-mono-label font-bold text-error shadow-lg hover:scale-105 active:scale-95 transition-all">Stop</button>
-            </div>
 
             <!-- Timer Setup View (Pickers + Presets) -->
             <div id="timer-setup-view" class="flex flex-col gap-8 w-full">

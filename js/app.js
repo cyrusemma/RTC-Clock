@@ -724,9 +724,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Snooze & Dismiss buttons on alarm ringing banner
     if (els.alarmSnoozeBtn) {
         els.alarmSnoozeBtn.addEventListener('click', () => {
-            const slot = (lastBleState && lastBleState.ringingSlot !== 0xFF) ? lastBleState.ringingSlot : 0;
+            const slot = (lastBleState && lastBleState.ringingSlot !== 0xFF && lastBleState.ringingSlot !== undefined) ? lastBleState.ringingSlot : 0;
             sendCmd(`SNOOZE:${slot}`);
-            sendCmd('BTN:SNOOZE');
             if (virtualRTC) {
                 virtualRTC.state.alarmRinging = false;
                 if (wrappedUpdateState) wrappedUpdateState(virtualRTC.getState());
@@ -738,9 +737,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAlarmDismiss = document.getElementById('btn-alarm-dismiss');
     if (btnAlarmDismiss) {
         btnAlarmDismiss.addEventListener('click', () => {
-            const slot = (lastBleState && lastBleState.ringingSlot !== 0xFF) ? lastBleState.ringingSlot : 0;
+            const slot = (lastBleState && lastBleState.ringingSlot !== 0xFF && lastBleState.ringingSlot !== undefined) ? lastBleState.ringingSlot : 0;
             sendCmd(`DISMISS_ALARM:${slot}`);
-            sendCmd('BTN:ALARM');
             if (virtualRTC) {
                 virtualRTC.state.alarmRinging = false;
                 if (wrappedUpdateState) wrappedUpdateState(virtualRTC.getState());
@@ -1093,23 +1091,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('touchcancel', stop);
     }
 
-    // Alarm
-    if (els.alarmSnoozeBtn) {
-        els.alarmSnoozeBtn.addEventListener('click', () => {
-            if (lastBleState && lastBleState.ringingSlot !== undefined && lastBleState.ringingSlot !== 0xFF) {
-                sendCmd(`SNOOZE:${lastBleState.ringingSlot}`);
-            } else {
-                sendCmd('SNOOZE:0');
-            }
-        });
-    }
-    document.getElementById('btn-alarm-dismiss').addEventListener('click', () => {
-        if (lastBleState && lastBleState.ringingSlot !== undefined && lastBleState.ringingSlot !== 0xFF) {
-            sendCmd(`DISMISS_ALARM:${lastBleState.ringingSlot}`);
-        } else {
-            sendCmd('DISMISS_ALARM:0');
-        }
-    });
 
     // Timer (Hardware Sync) - we can keep hold to repeat if we want
     const btnUp = document.getElementById('btn-timer-up');
