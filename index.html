@@ -566,34 +566,55 @@
             
             <div class="glass-card rounded-2xl overflow-hidden flex flex-col divide-y divide-outline-variant/30">
                 <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all active" data-tone="classic">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 flex-1">
                         <span class="material-symbols-outlined text-outline-variant text-[24px]">music_note</span>
                         <span class="font-mono-label text-sm text-on-surface">Classic Beep</span>
                     </div>
-                    <span class="material-symbols-outlined text-primary checkmark">check_circle</span>
+                    <div class="flex items-center gap-4">
+                        <button class="tone-preview-btn p-2 rounded-full hover:bg-surface-variant/40 transition-colors text-primary flex items-center justify-center" onclick="event.stopPropagation(); window.previewTone(this, 'classic');" title="Preview Sound">
+                            <span class="material-symbols-outlined text-[20px] leading-none">play_arrow</span>
+                        </button>
+                        <span class="material-symbols-outlined text-primary checkmark">check_circle</span>
+                    </div>
                 </div>
                 <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all" data-tone="digital">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 flex-1">
                         <span class="material-symbols-outlined text-outline-variant text-[24px]">watch</span>
                         <span class="font-mono-label text-sm text-on-surface">Digital Watch</span>
                     </div>
-                    <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                    <div class="flex items-center gap-4">
+                        <button class="tone-preview-btn p-2 rounded-full hover:bg-surface-variant/40 transition-colors text-primary flex items-center justify-center" onclick="event.stopPropagation(); window.previewTone(this, 'digital');" title="Preview Sound">
+                            <span class="material-symbols-outlined text-[20px] leading-none">play_arrow</span>
+                        </button>
+                        <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                    </div>
                 </div>
                 <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all" data-tone="chime">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 flex-1">
                         <span class="material-symbols-outlined text-outline-variant text-[24px]">notifications_active</span>
                         <span class="font-mono-label text-sm text-on-surface">Gentle Chime</span>
                     </div>
-                    <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                    <div class="flex items-center gap-4">
+                        <button class="tone-preview-btn p-2 rounded-full hover:bg-surface-variant/40 transition-colors text-primary flex items-center justify-center" onclick="event.stopPropagation(); window.previewTone(this, 'chime');" title="Preview Sound">
+                            <span class="material-symbols-outlined text-[20px] leading-none">play_arrow</span>
+                        </button>
+                        <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                    </div>
                 </div>
                 <div class="tone-option p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/20 transition-all" data-tone="radar">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 flex-1">
                         <span class="material-symbols-outlined text-outline-variant text-[24px]">radar</span>
                         <span class="font-mono-label text-sm text-on-surface">Radar</span>
                     </div>
-                    <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                    <div class="flex items-center gap-4">
+                        <button class="tone-preview-btn p-2 rounded-full hover:bg-surface-variant/40 transition-colors text-primary flex items-center justify-center" onclick="event.stopPropagation(); window.previewTone(this, 'radar');" title="Preview Sound">
+                            <span class="material-symbols-outlined text-[20px] leading-none">play_arrow</span>
+                        </button>
+                        <span class="material-symbols-outlined text-primary checkmark hidden">check_circle</span>
+                    </div>
                 </div>
             </div>
+
             <p class="font-mono-label text-xs text-outline-variant text-center mt-4">These custom tones play from your device's browser when the timer finishes.</p>
         </section>
         

@@ -6,8 +6,14 @@ import { VirtualRTC } from './VirtualRTC.js?v=7';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
+let cachedAlarms = null;
+let cachedLaps = null;
+let cachedLapCount = 0;
 
 function sendCmd(cmd) {
+    if (cmd.startsWith("SET_ALARM:") || cmd.startsWith("ALARM_EN:")) {
+        cachedAlarms = null;
+    }
     if (wsState.connected) {
         sendCommandWS(cmd, appendLog);
     } else if (bleState.connected) {
@@ -565,7 +571,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if (slot === -1) {
-                alert("Maximum 4 alarms reached. Please edit or disable an existing alarm.");
+                const maxAlarms = lastBleState?.alarms?.length || 8;
+                alert(`Maximum ${maxAlarms} alarms reached. Please edit or disable an existing alarm.`);
                 return;
             }
             
@@ -1020,19 +1027,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (customAudio) {
             customAudio.pause();
             customAudio.currentTime = 0;
-            return;
         }
         
-        clearInterval(alarmInterval);
-        alarmInterval = null;
+        if (alarmInterval) {
+            clearInterval(alarmInterval);
+            alarmInterval = null;
+        }
     }
 
     // Hook alarm state changes by wrapping updateState
     const _origUpdateState = updateState;
     let isFetchingAlarms = false;
     let isFetchingLaps = false;
-    let cachedLaps = null;
-    let cachedLapCount = 0;
     let lastBleState = null;
 
     let is12hFormat = localStorage.getItem('is12hFormat') === 'true';
@@ -1044,6 +1050,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Inject BLE alarms/laps if missing
         if (state.connected !== lastBleState?.connected) {
+            cachedAlarms = null;
+            cachedLaps = null;
+            cachedLapCount = 0;
             if (state.connected) {
                 // Sync time on connect after a short delay to prevent hardware instability
                 setTimeout(() => {
@@ -1054,10 +1063,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (bleState.connected) {
-            if (!state.alarms && !isFetchingAlarms) {
+            if (cachedAlarms) {
+                state.alarms = cachedAlarms;
+            } else if (!isFetchingAlarms) {
                 isFetchingAlarms = true;
-                state.alarms = await readAlarms();
+                const fetchedAlarms = await readAlarms();
+                if (fetchedAlarms) {
+                    cachedAlarms = fetchedAlarms;
+                    state.alarms = cachedAlarms;
+                }
                 isFetchingAlarms = false;
+                if (wrappedUpdateState) wrappedUpdateState(state);
             }
             
             // Load laps from cache if they haven't changed
@@ -1195,6 +1211,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const toneOptions = document.querySelectorAll('.tone-option');
     let timerTone = localStorage.getItem('timerTone') || 'classic';
 
+    let tonePreviewInterval = null;
+    let activePreviewBtn = null;
+    let activePreviewTone = null;
+
+    window.previewTone = (btn, toneName) => {
+        const icon = btn.querySelector('.material-symbols-outlined');
+        
+        if (activePreviewBtn === btn) {
+            stopTonePreview();
+        } else {
+            stopTonePreview();
+            
+            activePreviewBtn = btn;
+            activePreviewTone = toneName;
+            icon.textContent = 'stop';
+            btn.classList.add('text-error');
+            btn.classList.remove('text-primary');
+            
+            playAlarmSoundType(toneName);
+            const interval = toneName === 'digital' ? 450 : (toneName === 'wake' ? 1000 : 700);
+            tonePreviewInterval = setInterval(() => playAlarmSoundType(toneName), interval);
+        }
+    };
+
+    function stopTonePreview() {
+        if (tonePreviewInterval) {
+            clearInterval(tonePreviewInterval);
+            tonePreviewInterval = null;
+        }
+        if (activePreviewBtn) {
+            const icon = activePreviewBtn.querySelector('.material-symbols-outlined');
+            if (icon) icon.textContent = 'play_arrow';
+            activePreviewBtn.classList.remove('text-error');
+            activePreviewBtn.classList.add('text-primary');
+            activePreviewBtn = null;
+            activePreviewTone = null;
+        }
+    }
+
     // Initialize tone UI
     toneOptions.forEach(opt => {
         if (opt.dataset.tone === timerTone) {
@@ -1215,6 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnTonesBack && viewTimerTones && viewTimer) {
         btnTonesBack.addEventListener('click', () => {
+            stopTonePreview();
             viewTimerTones.classList.add('hidden');
             viewTimer.classList.remove('hidden');
         });
@@ -1231,12 +1287,9 @@ document.addEventListener('DOMContentLoaded', () => {
             opt.classList.add('active');
             opt.querySelector('.checkmark').classList.remove('hidden');
             
-            // Save & play
+            // Save
             timerTone = opt.dataset.tone;
             localStorage.setItem('timerTone', timerTone);
-            
-            // Re-use alarm sound type mechanism just for preview
-            playAlarmSoundType(timerTone);
         });
     });
 

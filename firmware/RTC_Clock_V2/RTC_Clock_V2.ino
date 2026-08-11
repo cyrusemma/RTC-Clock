@@ -76,7 +76,7 @@ enum TmrState   { TMR_STOPPED, TMR_RUNNING, TMR_PAUSED, TMR_RINGING };
 // ============================================================================
 // ALARM STRUCT  (4 slots)
 // ============================================================================
-#define MAX_ALARMS 4
+#define MAX_ALARMS 8
 struct Alarm {
   uint8_t  hour;
   uint8_t  minute;
@@ -90,7 +90,7 @@ Alarm alarms[MAX_ALARMS];
 int8_t   ringAlarmIdx = -1;   // which alarm slot is currently ringing (-1 = none)
 
 // UI state for alarm editing
-int  alarmViewSlot  = 0;   // which slot is currently shown on OLED (0-3)
+int  alarmViewSlot  = 0;   // which slot is currently shown on OLED (0-7)
 int  alarmEditField = 0;   // 0=view, 1=hour, 2=min, 3=enabled
 
 // ============================================================================
@@ -762,15 +762,22 @@ void processButtons() {
 
   static unsigned long debounceMs = 0;
   if (millis() - debounceMs > DEBOUNCE_MS) {
-    if (last_up  == HIGH && r_up  == LOW) { doUpPress();    debounceMs = millis(); }
-    if (last_dn  == HIGH && r_dn  == LOW) { doDownPress();  debounceMs = millis(); }
+    if (last_up  == HIGH && r_up  == LOW) { 
+      if (ringAlarmIdx >= 0) { doSnooze(); }
+      else { doUpPress(); }
+      debounceMs = millis(); 
+    }
+    if (last_dn  == HIGH && r_dn  == LOW) { 
+      if (ringAlarmIdx >= 0) { doSnooze(); }
+      else { doDownPress(); }
+      debounceMs = millis(); 
+    }
     if (last_alm == HIGH && r_alm == LOW) { doAlarmPress(); debounceMs = millis(); }
     last_up  = r_up;
     last_dn  = r_dn;
     last_alm = r_alm;
   }
 }
-
 // ============================================================================
 // ALARM CHECK  (called every loop iteration)
 // ============================================================================

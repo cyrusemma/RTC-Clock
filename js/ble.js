@@ -122,7 +122,8 @@ export async function readAlarms() {
     try {
         const dv = await alarmCharacteristic.readValue();
         const alarms = [];
-        for (let i = 0; i < 4; i++) {
+        const count = Math.floor(dv.byteLength / 4);
+        for (let i = 0; i < count; i++) {
             const flags = dv.getUint8(i * 4 + 2);
             alarms.push({
                 h: dv.getUint8(i * 4),

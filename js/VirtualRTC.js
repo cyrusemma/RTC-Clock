@@ -21,6 +21,10 @@ export class VirtualRTC {
                 { h: 7, m: 0, en: 1, rep: 0, sn: 0 },
                 { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
                 { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
+                { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
+                { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
+                { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
+                { h: 0, m: 0, en: 0, rep: 0, sn: 0 },
                 { h: 0, m: 0, en: 0, rep: 0, sn: 0 }
             ],
             alarmViewSlot: 0,

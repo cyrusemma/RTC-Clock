@@ -265,7 +265,7 @@ export function renderAlarmCards(alarms, activeSlot) {
         const staggerDelay = i * 100;
 
         return `
-        <div class="glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] animate-fade-in-up" style="animation-delay: ${staggerDelay}ms; animation-fill-mode: both;" data-slot="${i}">
+        <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] animate-fade-in-up" style="animation-delay: ${staggerDelay}ms; animation-fill-mode: both;" data-slot="${i}">
             <div>
                 <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
                 <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
