@@ -625,40 +625,119 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Custom Preset Button Logic
     const btnCustomPreset = document.getElementById('btn-custom-preset');
-    if (btnCustomPreset) {
-        const customData = JSON.parse(localStorage.getItem('timerCustomPreset') || 'null');
+    const btnClearCustomPreset = document.getElementById('btn-clear-custom-preset');
+    const customPresetModal = document.getElementById('custom-preset-modal');
+    const customPresetModalContent = document.getElementById('custom-preset-modal-content');
+    const btnCancelCustomPreset = document.getElementById('btn-cancel-custom-preset');
+    const btnSaveCustomPreset = document.getElementById('btn-save-custom-preset');
+    const customPresetTimeLabel = document.getElementById('custom-preset-time-label');
+    const customPresetNameInput = document.getElementById('custom-preset-name-input');
+    const customPresetNameLabel = document.getElementById('custom-preset-name-label');
+    const customPresetIcon = document.getElementById('custom-preset-icon');
+    const customPresetLabel = document.getElementById('custom-preset-label');
+
+    function updateCustomPresetUI(customData) {
         if (customData) {
             btnCustomPreset.dataset.hr = customData.hr;
             btnCustomPreset.dataset.min = customData.min;
             btnCustomPreset.dataset.sec = customData.sec;
-            document.getElementById('custom-preset-label').textContent = `${String(customData.hr).padStart(2,'0')}:${String(customData.min).padStart(2,'0')}:${String(customData.sec).padStart(2,'0')}`;
-            document.getElementById('custom-preset-icon').textContent = 'star';
+            btnCustomPreset.dataset.name = customData.name || 'Custom';
+            customPresetLabel.textContent = `${String(customData.hr).padStart(2,'0')}:${String(customData.min).padStart(2,'0')}:${String(customData.sec).padStart(2,'0')}`;
+            customPresetIcon.textContent = 'star';
+            customPresetNameLabel.textContent = customData.name || 'Custom';
+            customPresetNameLabel.classList.remove('hidden');
+            btnClearCustomPreset.classList.remove('hidden');
+            
+            // Adjust styling to look like a saved preset
+            btnCustomPreset.classList.remove('border-dashed', 'border-outline-variant/40', 'hover:border-primary/50');
+            btnCustomPreset.classList.add('border-solid', 'border-primary/20', 'shadow-[0_4px_20px_rgba(var(--md-sys-color-primary-rgb),0.1)]');
+        } else {
+            btnCustomPreset.removeAttribute('data-hr');
+            btnCustomPreset.removeAttribute('data-min');
+            btnCustomPreset.removeAttribute('data-sec');
+            btnCustomPreset.removeAttribute('data-name');
+            customPresetLabel.textContent = 'Save Current';
+            customPresetIcon.textContent = 'add';
+            customPresetNameLabel.classList.add('hidden');
+            btnClearCustomPreset.classList.add('hidden');
+            
+            // Revert styling to drop-zone
+            btnCustomPreset.classList.add('border-dashed', 'border-outline-variant/40', 'hover:border-primary/50');
+            btnCustomPreset.classList.remove('border-solid', 'border-primary/20', 'shadow-[0_4px_20px_rgba(var(--md-sys-color-primary-rgb),0.1)]');
         }
+    }
+
+    if (btnCustomPreset) {
+        const customData = JSON.parse(localStorage.getItem('timerCustomPreset') || 'null');
+        updateCustomPresetUI(customData);
 
         btnCustomPreset.addEventListener('click', (e) => {
+            const hasSaved = btnCustomPreset.hasAttribute('data-hr');
+            if (hasSaved) {
+                // Apply preset
+                const presetHr = parseInt(btnCustomPreset.dataset.hr);
+                const presetMin = parseInt(btnCustomPreset.dataset.min);
+                const presetSec = parseInt(btnCustomPreset.dataset.sec);
+                timerPickerHr.setValue(presetHr);
+                timerPickerMin.setValue(presetMin);
+                timerPickerSec.setValue(presetSec);
+                timerDraft.hr = presetHr;
+                timerDraft.min = presetMin;
+                timerDraft.sec = presetSec;
+                sendCmd(`SET_TIMER:${presetHr},${presetMin},${presetSec}`);
+                if (navigator.vibrate) navigator.vibrate(20);
+            } else {
+                // Open modal to save current
+                const curHr = timerPickerHr.getValue();
+                const curMin = timerPickerMin.getValue();
+                const curSec = timerPickerSec.getValue();
+                
+                if (curHr === 0 && curMin === 0 && curSec === 0) {
+                    showNotification("Cannot Save", "Please set a duration greater than zero first.");
+                    return;
+                }
+
+                customPresetTimeLabel.textContent = `${String(curHr).padStart(2,'0')}:${String(curMin).padStart(2,'0')}:${String(curSec).padStart(2,'0')}`;
+                customPresetNameInput.value = '';
+                
+                customPresetModal.classList.remove('hidden');
+                setTimeout(() => {
+                    customPresetModal.classList.remove('opacity-0');
+                    customPresetModalContent.classList.remove('scale-95');
+                    customPresetNameInput.focus();
+                }, 10);
+            }
+        });
+
+        const closeModal = () => {
+            customPresetModal.classList.add('opacity-0');
+            customPresetModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                customPresetModal.classList.add('hidden');
+            }, 300);
+        };
+
+        btnCancelCustomPreset.addEventListener('click', closeModal);
+        
+        btnSaveCustomPreset.addEventListener('click', () => {
             const curHr = timerPickerHr.getValue();
             const curMin = timerPickerMin.getValue();
             const curSec = timerPickerSec.getValue();
+            const name = customPresetNameInput.value.trim() || 'Custom';
             
-            const savedHr = parseInt(btnCustomPreset.dataset.hr || '-1');
-            const savedMin = parseInt(btnCustomPreset.dataset.min || '-1');
-            const savedSec = parseInt(btnCustomPreset.dataset.sec || '-1');
+            const newData = { hr: curHr, min: curMin, sec: curSec, name: name };
+            localStorage.setItem('timerCustomPreset', JSON.stringify(newData));
+            updateCustomPresetUI(newData);
             
-            if (savedHr === curHr && savedMin === curMin && savedSec === curSec) {
-                // Apply preset
-                sendCmd(`SET_TIMER:${curHr},${curMin},${curSec}`);
-                if (navigator.vibrate) navigator.vibrate(20);
-            } else {
-                // Save custom preset
-                btnCustomPreset.dataset.hr = curHr;
-                btnCustomPreset.dataset.min = curMin;
-                btnCustomPreset.dataset.sec = curSec;
-                localStorage.setItem('timerCustomPreset', JSON.stringify({hr: curHr, min: curMin, sec: curSec}));
-                document.getElementById('custom-preset-label').textContent = `${String(curHr).padStart(2,'0')}:${String(curMin).padStart(2,'0')}:${String(curSec).padStart(2,'0')}`;
-                document.getElementById('custom-preset-icon').textContent = 'star';
-                showNotification("Preset Saved", "Your custom timer has been saved.");
-                if (navigator.vibrate) navigator.vibrate(20);
-            }
+            showNotification("Preset Saved", `Saved as "${name}".`);
+            if (navigator.vibrate) navigator.vibrate(20);
+            closeModal();
+        });
+
+        btnClearCustomPreset.addEventListener('click', (e) => {
+            e.stopPropagation(); // prevent clicking the preset behind it
+            localStorage.removeItem('timerCustomPreset');
+            updateCustomPresetUI(null);
         });
     }
 
@@ -952,6 +1031,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const _origUpdateState = updateState;
     let isFetchingAlarms = false;
     let isFetchingLaps = false;
+    let cachedLaps = null;
+    let cachedLapCount = 0;
     let lastBleState = null;
 
     let is12hFormat = localStorage.getItem('is12hFormat') === 'true';
@@ -978,12 +1059,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.alarms = await readAlarms();
                 isFetchingAlarms = false;
             }
+            
+            // Load laps from cache if they haven't changed
+            if (state.lapCount > 0 && state.lapCount === cachedLapCount && cachedLaps) {
+                state.laps = cachedLaps;
+            }
+
             // Stop infinite loops if lap read fails
             if (state.lapCount > 0 && (!state.laps || state.laps.length !== state.lapCount) && !isFetchingLaps && !window._lapsFetchFailed) {
                 isFetchingLaps = true;
                 const fetchedLaps = await readLaps(state.lapCount);
                 if (fetchedLaps && fetchedLaps.length === state.lapCount) {
                     state.laps = fetchedLaps;
+                    cachedLaps = fetchedLaps;
+                    cachedLapCount = state.lapCount;
                     window._lapsFetchFailed = false;
                 } else {
                     window._lapsFetchFailed = true; // prevent infinite fetch loops

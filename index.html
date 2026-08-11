@@ -500,10 +500,16 @@
                         <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">00:15:00</span>
                     </button>
                     <!-- Custom Preset Drop-zone styling -->
-                    <button id="btn-custom-preset" class="rounded-2xl p-4 flex flex-col items-center justify-center h-24 border-2 border-dashed border-outline-variant/40 hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer text-on-surface-variant hover:text-primary">
-                        <span id="custom-preset-icon" class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">add</span>
-                        <span id="custom-preset-label" class="text-[10px] font-mono-label mt-1">Save Current</span>
-                    </button>
+                    <div class="relative group">
+                        <button id="btn-custom-preset" class="w-full rounded-2xl p-4 flex flex-col items-center justify-center h-24 border-2 border-dashed border-outline-variant/40 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer text-on-surface-variant hover:text-primary">
+                            <span id="custom-preset-icon" class="material-symbols-outlined text-3xl transition-transform">add</span>
+                            <span id="custom-preset-name-label" class="font-mono-label text-mono-label text-on-surface transition-colors hidden mt-1">Custom</span>
+                            <span id="custom-preset-label" class="text-[10px] font-mono-label mt-1">Save Current</span>
+                        </button>
+                        <button id="btn-clear-custom-preset" class="absolute -top-2 -right-2 bg-error text-on-error rounded-full w-6 h-6 flex items-center justify-center shadow-md hidden hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -593,6 +599,22 @@
         
         <!-- Backdrop Overlay for Activity Log Drawer -->
         <div id="log-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity duration-300"></div>
+
+        <!-- Custom Preset Modal -->
+        <div id="custom-preset-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center transition-opacity duration-300 opacity-0 px-4">
+            <div class="bg-surface-container rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-outline-variant/20 flex flex-col gap-6 transform transition-transform scale-95 duration-300" id="custom-preset-modal-content">
+                <div class="flex items-center gap-3 text-primary">
+                    <span class="material-symbols-outlined text-3xl">star</span>
+                    <h3 class="font-headline-md text-headline-sm font-bold text-on-surface">Save Custom Preset</h3>
+                </div>
+                <p class="font-body-sm text-on-surface-variant text-sm">Name your <span id="custom-preset-time-label" class="font-bold text-on-surface"></span> timer.</p>
+                <input type="text" id="custom-preset-name-input" placeholder="e.g. Boil Eggs" maxlength="12" class="bg-surface-container-highest border border-outline-variant/30 rounded-xl p-4 font-mono-label text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all w-full placeholder:text-outline-variant/50">
+                <div class="flex justify-end gap-3 mt-2">
+                    <button id="btn-cancel-custom-preset" class="glass-button rounded-xl px-6 py-3 font-mono-label font-bold text-on-surface">Cancel</button>
+                    <button id="btn-save-custom-preset" class="btn-primary rounded-xl px-6 py-3 font-mono-label font-bold">Save Preset</button>
+                </div>
+            </div>
+        </div>
 
         <!-- ── ACTIVITY LOG — sliding drawer ────────────── -->
         <aside class="activity-log-drawer fixed top-0 left-0 h-full w-[90%] max-w-sm z-50 bg-surface-container shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out" id="log-drawer">
