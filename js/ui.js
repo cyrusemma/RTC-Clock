@@ -500,12 +500,12 @@ export function updateState(state) {
         }
     }
 
-    // 3. Alarm
-    if (state.mode === 2 || state.alarmRinging) {
-        if (state.alarms) {
+    // 3. Alarm — render whenever the alarm tab is active in UI OR hardware is ringing
+    if (state.mode === 2 || lastActiveMode === 2 || state.alarmRinging) {
+        if (state.alarms && state.alarms.length > 0) {
             renderAlarmCards(state.alarms, state.alarmViewSlot);
         }
-        
+
         if (state.alarmRinging) {
             els.alarmRingingBanner.classList.remove('hidden');
         } else {

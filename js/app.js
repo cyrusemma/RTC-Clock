@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=7';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=7';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=7';
-import { VirtualRTC } from './VirtualRTC.js?v=7';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=8';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=8';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=8';
+import { VirtualRTC } from './VirtualRTC.js?v=8';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
