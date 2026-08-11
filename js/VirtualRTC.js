@@ -133,6 +133,9 @@ export class VirtualRTC {
                     this.state.alarmRinging = false;
                 }
             }
+        } else if (cmd === 'RESET_TIMER') {
+            this.state.tmrState = 0;
+            this.state.tmrRemainingMs = (this.state.tmrInitHr * 3600 + this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
         } else if (cmd === 'SET_TIMER') {
             if (args.length === 3) {
                 this.state.tmrInitHr = parseInt(args[0]) || 0;

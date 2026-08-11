@@ -12,8 +12,11 @@ export function connectWS(onStateChange, onDataReceived, onLog) {
     }
     
     onStateChange('connecting');
-    // Using the fixed IP of the ESP32 AP
-    ws = new WebSocket('ws://192.168.4.1:81');
+    // Use window.location.hostname dynamically if available, otherwise default to ESP32 AP IP
+    const host = (window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.protocol !== 'file:') 
+        ? window.location.hostname 
+        : '192.168.4.1';
+    ws = new WebSocket(`ws://${host}:81`);
     
     ws.onopen = () => {
         wsState.connected = true;

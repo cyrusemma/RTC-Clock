@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=4';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=4';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=4';
-import { VirtualRTC } from './VirtualRTC.js?v=4';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=7';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=7';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=7';
+import { VirtualRTC } from './VirtualRTC.js?v=7';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -26,6 +26,11 @@ window.selectMode = (mode) => {
     sendCmd(`MODE:${mode}`);
 };
 
+// Called from alarm card toggle switch in ui.renderAlarmCards
+window.toggleAlarm = (slot, enable) => {
+    sendCmd(`ALARM_EN:${slot},${enable ? 1 : 0}`);
+};
+
 els.tabs.forEach(tab => {
     tab.addEventListener('click', () => {
         window.selectMode(parseInt(tab.dataset.mode));
@@ -46,12 +51,44 @@ if ('serviceWorker' in navigator) {
 document.addEventListener('DOMContentLoaded', () => {
     initUI();
     
+    // ── Activity Log Drawer Handler ─────────────────────────
+    const logToggleBtn = document.getElementById('log-toggle-btn');
+    const logCloseBtn  = document.getElementById('log-close-btn');
+    const logDrawer    = document.getElementById('log-drawer');
+    const logBackdrop  = document.getElementById('log-backdrop');
+
+    function openLogDrawer() {
+        if (logDrawer) {
+            logDrawer.classList.remove('-translate-x-full');
+            logDrawer.classList.add('translate-x-0');
+        }
+        if (logBackdrop) {
+            logBackdrop.classList.remove('hidden');
+        }
+    }
+
+    function closeLogDrawer() {
+        if (logDrawer) {
+            logDrawer.classList.add('-translate-x-full');
+            logDrawer.classList.remove('translate-x-0');
+        }
+        if (logBackdrop) {
+            logBackdrop.classList.add('hidden');
+        }
+    }
+
+    if (logToggleBtn) logToggleBtn.addEventListener('click', openLogDrawer);
+    if (logCloseBtn)  logCloseBtn.addEventListener('click', closeLogDrawer);
+    if (logBackdrop)  logBackdrop.addEventListener('click', closeLogDrawer);
+
     // Theme Toggle
     const themeBtn = document.getElementById('theme-toggle');
-    themeBtn.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        document.body.classList.toggle('dark-mode'); // keep for backwards compatibility with any custom styles
-    });
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            document.body.classList.toggle('dark-mode'); // keep for backwards compatibility
+        });
+    }
 
     // PWA Install Prompt
     let deferredPrompt;
@@ -645,6 +682,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (lastBleState && lastBleState.tmrState === 3) {
                 // Ringing, stop
                 sendCmd('BTN:ALARM');
+                sendCmd('RESET_TIMER');
+                stopAlarm();
             } else {
                 // Fallback virtual RTC case if no connection
                 sendCmd('BTN:UP'); 
@@ -655,8 +694,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnTimerResetCmd = document.getElementById('btn-timer-reset-cmd');
     if (btnTimerResetCmd) {
         btnTimerResetCmd.addEventListener('click', () => {
-            sendCmd('BTN:ALARM'); // Stop/Reset
-            setTimeout(() => sendCmd('BTN:ALARM'), 50); // Make sure it cycles back out of edit mode if stuck
+            // On physical ESP32 firmware, sending BTN:DOWN when paused/stopped resets the timer countdown.
+            // We also send RESET_TIMER for updated firmware & VirtualRTC fallback.
+            sendCmd('BTN:DOWN');
+            sendCmd('RESET_TIMER');
+            if (virtualRTC) {
+                virtualRTC.state.tmrState = 0;
+                virtualRTC.state.tmrRemainingMs = (virtualRTC.state.tmrInitHr * 3600 + virtualRTC.state.tmrInitMin * 60 + virtualRTC.state.tmrInitSec) * 1000;
+                if (wrappedUpdateState) wrappedUpdateState(virtualRTC.getState());
+            }
+        });
+    }
+
+    // Stop button on timer ringing banner
+    const btnTimerStop = document.getElementById('btn-timer-stop');
+    if (btnTimerStop) {
+        btnTimerStop.addEventListener('click', () => {
+            sendCmd('BTN:ALARM');
+            sendCmd('RESET_TIMER');
+            if (virtualRTC) {
+                virtualRTC.state.tmrState = 0;
+                virtualRTC.state.tmrRemainingMs = (virtualRTC.state.tmrInitHr * 3600 + virtualRTC.state.tmrInitMin * 60 + virtualRTC.state.tmrInitSec) * 1000;
+                if (wrappedUpdateState) wrappedUpdateState(virtualRTC.getState());
+            }
+            stopAlarm();
+        });
+    }
+
+    // Snooze & Dismiss buttons on alarm ringing banner
+    if (els.alarmSnoozeBtn) {
+        els.alarmSnoozeBtn.addEventListener('click', () => {
+            const slot = (lastBleState && lastBleState.ringingSlot !== 0xFF) ? lastBleState.ringingSlot : 0;
+            sendCmd(`SNOOZE:${slot}`);
+            sendCmd('BTN:SNOOZE');
+            if (virtualRTC) {
+                virtualRTC.state.alarmRinging = false;
+                if (wrappedUpdateState) wrappedUpdateState(virtualRTC.getState());
+            }
+            stopAlarm();
+        });
+    }
+
+    const btnAlarmDismiss = document.getElementById('btn-alarm-dismiss');
+    if (btnAlarmDismiss) {
+        btnAlarmDismiss.addEventListener('click', () => {
+            const slot = (lastBleState && lastBleState.ringingSlot !== 0xFF) ? lastBleState.ringingSlot : 0;
+            sendCmd(`DISMISS_ALARM:${slot}`);
+            sendCmd('BTN:ALARM');
+            if (virtualRTC) {
+                virtualRTC.state.alarmRinging = false;
+                if (wrappedUpdateState) wrappedUpdateState(virtualRTC.getState());
+            }
+            stopAlarm();
         });
     }
 
@@ -712,8 +801,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getAudioCtx() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
         return audioCtx;
     }
+
+    function unlockAudioContext() {
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        } else if (!audioCtx) {
+            getAudioCtx();
+        }
+    }
+    window.addEventListener('pointerdown', unlockAudioContext, { once: true });
+    window.addEventListener('keydown', unlockAudioContext, { once: true });
 
     function playAlarmSoundType(type) {
         if (type === 'custom') return;

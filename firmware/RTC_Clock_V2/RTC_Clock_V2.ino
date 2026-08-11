@@ -498,6 +498,15 @@ void parseCommand(const String& raw) {
     return;
   }
 
+  // --- Reset timer: RESET_TIMER ---
+  if (cmd == "RESET_TIMER") {
+    tmr_state = TMR_STOPPED;
+    tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
+    buzzer(false);
+    logEvent("Timer reset command received");
+    return;
+  }
+
   // --- Time format: SET_TIMEFORMAT:<12|24> ---
   if (cmd.startsWith("SET_TIMEFORMAT:")) {
     is_12h = cmd.substring(15).toInt() == 12;

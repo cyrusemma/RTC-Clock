@@ -6,7 +6,7 @@ export const els = {
     statusText: document.getElementById('status-text'),
     deviceName: document.getElementById('device-name'),
     connectBtn: document.getElementById('connect-btn'),
-    wifiBtn: document.getElementById('wifi-btn'),
+    wifiBtn: document.getElementById('wifi-connect-btn'),
     wifiModal: document.getElementById('wifi-modal'),
     wifiSsid: document.getElementById('wifi-ssid'),
     wifiPass: document.getElementById('wifi-pass'),
@@ -48,7 +48,7 @@ export const els = {
 
     logContent: document.getElementById('log-content'),
     
-    fullscreenToggle: document.getElementById('fullscreen-toggle'),
+    fullscreenToggle: document.getElementById('btn-fullscreen'),
     pwaInstallBanner: document.getElementById('pwa-install-banner'),
     btnPwaInstall: document.getElementById('btn-pwa-install'),
     pwaDismissBtns: document.querySelectorAll('.pwa-dismiss'),
