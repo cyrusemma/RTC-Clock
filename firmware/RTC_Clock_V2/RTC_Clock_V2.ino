@@ -66,6 +66,24 @@
 // Snooze
 #define SNOOZE_MINUTES    5
 
+// ---- LEDC PWM Buzzer (Volume Control) ----
+#define BUZZER_LEDC_CHANNEL   0
+#define BUZZER_LEDC_FREQ_HZ   2000    // Alarm carrier freq in Hz
+#define BUZZER_LEDC_RES_BITS  8       // 8-bit resolution (0-255 volume scale)
+#define BUZZER_VOLUME_DEFAULT 180     // Default safe volume
+
+enum BuzzerPattern {
+  BUZZ_OFF_PAT = 0,
+  BUZZ_ALARM,        // Urgent double beep
+  BUZZ_TIMER,        // Continuous single tone
+  BUZZ_SNOOZE_BLIP   // Confirm blip
+};
+
+BuzzerPattern currentBuzzPattern = BUZZ_OFF_PAT;
+unsigned long buzzPatternStart = 0;
+bool          snoozeBlipDone   = false;
+uint8_t       buzzerVolume     = BUZZER_VOLUME_DEFAULT;
+
 // ============================================================================
 // ENUMS
 // ============================================================================
@@ -170,6 +188,7 @@ void loadSettings() {
   tmr_init_hr  = prefs.getUChar("tmh", 0);
   tmr_init_min = prefs.getUChar("tmm", 5);
   tmr_init_sec = prefs.getUChar("tms", 0);
+  buzzerVolume = prefs.getUChar("vol", BUZZER_VOLUME_DEFAULT);
   for (int i = 0; i < MAX_ALARMS; i++) {
     char key[8];
     snprintf(key, sizeof(key), "ah%d", i);  alarms[i].hour       = prefs.getUChar(key, 7);
@@ -189,6 +208,7 @@ void saveSettings() {
   prefs.putUChar("tmh", tmr_init_hr);
   prefs.putUChar("tmm", tmr_init_min);
   prefs.putUChar("tms", tmr_init_sec);
+  prefs.putUChar("vol", buzzerVolume);
   for (int i = 0; i < MAX_ALARMS; i++) {
     char key[8];
     snprintf(key, sizeof(key), "ah%d", i);  prefs.putUChar(key, alarms[i].hour);
@@ -198,13 +218,83 @@ void saveSettings() {
   }
   prefs.end();
 }
+// ============================================================================
+// BUZZER — PWM via LEDC (Core 3.0+ Compatible)
+// ============================================================================
+void buzzerRaw(bool on) {
+  if (on) {
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSIONVAL(3, 0, 0)
+    ledcWrite(BUZZER_PIN, buzzerVolume);
+#else
+    ledcWrite(BUZZER_LEDC_CHANNEL, buzzerVolume);
+#endif
+  } else {
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSIONVAL(3, 0, 0)
+    ledcWrite(BUZZER_PIN, 0);
+#else
+    ledcWrite(BUZZER_LEDC_CHANNEL, 0);
+#endif
+  }
+}
 
-// ============================================================================
-// BUZZER
-// ============================================================================
-void buzzer(bool on) {
-  if (on) tone(BUZZER_PIN, 2000);
-  else     noTone(BUZZER_PIN);
+void setBuzzerPattern(BuzzerPattern p) {
+  if (currentBuzzPattern == p) return;
+  currentBuzzPattern = p;
+  buzzPatternStart   = millis();
+  snoozeBlipDone     = false;
+  if (p == BUZZ_OFF_PAT) buzzerRaw(false);
+}
+
+void updateBuzzer() {
+  if (currentBuzzPattern == BUZZ_OFF_PAT) {
+    buzzerRaw(false);
+    return;
+  }
+  unsigned long elapsed = millis() - buzzPatternStart;
+  switch (currentBuzzPattern) {
+    case BUZZ_ALARM: {
+      unsigned long t = elapsed % 500;
+      bool on = (t < 100) || (t >= 200 && t < 300);
+      buzzerRaw(on);
+      break;
+    }
+    case BUZZ_TIMER: {
+      unsigned long t = elapsed % 1000;
+      if (t < 800) {
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSIONVAL(3, 0, 0)
+        ledcWriteTone(BUZZER_PIN, 1000);
+#else
+        ledcWriteTone(BUZZER_LEDC_CHANNEL, 1000);
+#endif
+        buzzerRaw(true);
+      } else {
+        buzzerRaw(false);
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSIONVAL(3, 0, 0)
+        ledcWriteTone(BUZZER_PIN, BUZZER_LEDC_FREQ_HZ);
+#else
+        ledcWriteTone(BUZZER_LEDC_CHANNEL, BUZZER_LEDC_FREQ_HZ);
+#endif
+      }
+      break;
+    }
+    case BUZZ_SNOOZE_BLIP: {
+      if (snoozeBlipDone) { buzzerRaw(false); return; }
+      unsigned long t = elapsed;
+      if      (t < 100)  buzzerRaw(true);
+      else if (t < 200)  buzzerRaw(false);
+      else if (t < 300)  buzzerRaw(true);
+      else if (t < 400)  buzzerRaw(false);
+      else {
+        buzzerRaw(false);
+        snoozeBlipDone = true;
+        currentBuzzPattern = BUZZ_OFF_PAT;
+      }
+      break;
+    }
+    default:
+      buzzerRaw(false);
+      break;
+  }
 }
 
 // ============================================================================
@@ -502,7 +592,7 @@ void parseCommand(const String& raw) {
   if (cmd == "RESET_TIMER") {
     tmr_state = TMR_STOPPED;
     tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
-    buzzer(false);
+    setBuzzerPattern(BUZZ_OFF_PAT);
     logEvent("Timer reset command received");
     return;
   }
@@ -526,7 +616,7 @@ void parseCommand(const String& raw) {
     int slot = cmd.substring(14).toInt();
     if (slot == ringAlarmIdx) {
       ringAlarmIdx = -1;
-      buzzer(false);
+      setBuzzerPattern(BUZZ_OFF_PAT);
       logEvent("Alarm dismissed via app");
     }
     return;
@@ -538,6 +628,31 @@ void parseCommand(const String& raw) {
     if (slot == ringAlarmIdx && slot >= 0 && slot < MAX_ALARMS) {
       doSnooze();
     }
+    return;
+  }
+
+  // --- Volume: SET_VOLUME:<0-255> ---
+  if (cmd.startsWith("SET_VOLUME:")) {
+    int v = cmd.substring(11).toInt();
+    if (v < 0)   v = 0;
+    if (v > 255) v = 255;
+    buzzerVolume = (uint8_t)v;
+    saveSettings();
+    logEvent("Volume set to " + String(buzzerVolume));
+    return;
+  }
+
+  // --- Buzz test: BUZZ_TEST ---
+  if (cmd == "BUZZ_TEST") {
+    setBuzzerPattern(BUZZ_ALARM);
+    logEvent("Buzz test started — send BUZZ_OFF to stop");
+    return;
+  }
+
+  // --- Silence: BUZZ_OFF ---
+  if (cmd == "BUZZ_OFF") {
+    setBuzzerPattern(BUZZ_OFF_PAT);
+    logEvent("Buzzer silenced");
     return;
   }
 
@@ -670,14 +785,14 @@ void doAlarmPress() {
   if (ringAlarmIdx >= 0) {
     // Dismiss ringing alarm
     ringAlarmIdx = -1;
-    buzzer(false);
+    setBuzzerPattern(BUZZ_OFF_PAT);
     logEvent("Alarm dismissed (button)");
     return;
   }
   if (tmr_state == TMR_RINGING) {
     tmr_state = TMR_STOPPED;
     tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
-    buzzer(false);
+    setBuzzerPattern(BUZZ_OFF_PAT);
     logEvent("Timer dismissed");
     return;
   }
@@ -731,7 +846,7 @@ void doSnooze() {
   alarms[slot].snoozeHour   = snoozeHour;
   alarms[slot].snoozeMin    = snoozeMin;
   ringAlarmIdx = -1;
-  buzzer(false);
+  setBuzzerPattern(BUZZ_SNOOZE_BLIP);
   logEvent("Alarm snoozed");
 }
 
@@ -792,6 +907,7 @@ void checkAlarms(struct tm* now) {
       if (now->tm_hour == alarms[i].snoozeHour && now->tm_min == alarms[i].snoozeMin && now->tm_sec == 0) {
         alarms[i].snoozeActive = false;
         ringAlarmIdx = i;
+        setBuzzerPattern(BUZZ_ALARM);
         logEvent("Snooze alarm triggered");
       }
       continue;
@@ -811,6 +927,7 @@ void checkAlarms(struct tm* now) {
       }
       if (shouldRing) {
         ringAlarmIdx = i;
+        setBuzzerPattern(BUZZ_ALARM);
         logEvent("Alarm triggered: slot " + String(i));
       }
     }
@@ -1034,7 +1151,17 @@ void setup() {
   // GPIO
   Wire.setPins(SDA_PIN, SCL_PIN);
   Wire.begin();
-  pinMode(BUZZER_PIN,       OUTPUT);
+
+  // ---- LEDC PWM for transistor-driven buzzer ----
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSIONVAL(3, 0, 0)
+  ledcAttach(BUZZER_PIN, BUZZER_LEDC_FREQ_HZ, BUZZER_LEDC_RES_BITS);
+  ledcWrite(BUZZER_PIN, 0);  // off at startup
+#else
+  ledcSetup(BUZZER_LEDC_CHANNEL, BUZZER_LEDC_FREQ_HZ, BUZZER_LEDC_RES_BITS);
+  ledcAttachPin(BUZZER_PIN, BUZZER_LEDC_CHANNEL);
+  ledcWrite(BUZZER_LEDC_CHANNEL, 0);  // off at startup
+#endif
+
   pinMode(ALARM_BUTTON_PIN, INPUT_PULLUP);
   pinMode(UP_BUTTON_PIN,    INPUT_PULLUP);
   pinMode(DOWN_BUTTON_PIN,  INPUT_PULLUP);
@@ -1171,6 +1298,7 @@ void loop() {
     if (ms >= tmr_target_ms) {
       tmr_remaining_ms = 0;
       tmr_state = TMR_RINGING;
+      setBuzzerPattern(BUZZ_TIMER);
       logEvent("Timer finished");
     } else {
       tmr_remaining_ms = tmr_target_ms - ms;
@@ -1182,9 +1310,8 @@ void loop() {
     sw_elapsed_ms = millis() - sw_start_ms;
   }
 
-  // Buzzer
-  bool shouldBuzz = (ringAlarmIdx >= 0) || (tmr_state == TMR_RINGING);
-  buzzer(shouldBuzz && ((millis() / 300) % 2 == 0));
+  // Buzzer — driven by pattern engine
+  updateBuzzer();
 
   // OLED Refresh Rate Limiter
   static unsigned long lastOledUpdate = 0;
