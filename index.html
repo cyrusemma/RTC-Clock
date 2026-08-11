@@ -16,6 +16,9 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
     <link rel="stylesheet" href="css/styles.css?v=6">
 
     <script id="tailwind-config">
@@ -211,17 +214,20 @@
         
         <!-- Global Ringing Banners -->
         <!-- Alarm Ringing Banner -->
-        <div id="alarm-ringing-banner" class="max-w-4xl mx-auto rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.5)] border border-error/50 bg-gradient-to-r from-error/20 via-error/10 to-error/20 animate-pulse hidden z-50 mb-6">
-            <div class="flex items-center gap-3 text-error">
-                <span class="material-symbols-outlined text-4xl animate-bounce">notifications_active</span>
-                <div>
-                    <h3 class="font-headline-md text-headline-md font-bold text-on-surface">ALARM RINGING!</h3>
-                    <p class="font-body-sm text-outline text-xs">Wake up and shine!</p>
+        <div id="alarm-ringing-banner" class="fixed bottom-20 left-4 right-4 z-[100] hidden">
+            <!-- glass card with pulsing red glow -->
+            <div class="glass-card rounded-2xl p-5 border border-error/60 shadow-[0_0_40px_rgba(var(--md-sys-color-error-rgb),0.6)] animate-pulse flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="alarm-clock" class="text-error w-8 h-8 animate-ping" style="animation-duration:1s"></i>
+                    <div>
+                        <p class="font-mono-label text-xs text-error uppercase tracking-wider">Alarm Ringing</p>
+                        <p id="alarm-ringing-time" class="font-display-time-mobile text-headline-md text-on-surface font-bold">--:--</p>
+                    </div>
                 </div>
-            </div>
-            <div class="flex gap-4">
-                <button id="btn-alarm-snooze" class="btn-primary rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold">Snooze (9m)</button>
-                <button id="btn-alarm-dismiss" class="glass-button rounded-xl px-5 py-3 font-mono-label text-mono-label font-bold text-error">Dismiss</button>
+                <div class="flex gap-2">
+                    <button id="btn-alarm-snooze" class="btn-primary rounded-xl px-4 py-2.5 font-mono-label text-sm font-bold">Snooze (5m)</button>
+                    <button id="btn-alarm-dismiss" class="glass-button rounded-xl px-4 py-2.5 font-mono-label text-sm font-bold text-error border border-error/40">Dismiss</button>
+                </div>
             </div>
         </div>
 
@@ -373,17 +379,17 @@
             <!-- Ambient Background Effect for Alarm View (Warm Tint) -->
             <div class="absolute inset-0 bg-error/5 rounded-full blur-[120px] -z-10 pointer-events-none animate-pulse"></div>
 
-            <!-- Alarms List -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter" id="alarm-cards-container">
-                <!-- Injected by ui.js -->
+            <!-- Header Row -->
+            <div class="flex justify-between items-center px-2">
+                <h2 class="font-headline-md text-headline-md font-bold text-on-surface tracking-wider">ALARMS</h2>
+                <button id="btn-alarm-add" class="flex items-center gap-2 text-primary hover:text-primary-fixed bg-primary/10 hover:bg-primary/20 px-4 py-2 rounded-full transition-colors font-mono-label text-sm font-bold shadow-sm">
+                    <i data-lucide="plus" class="w-4 h-4 text-primary"></i> Add
+                </button>
             </div>
 
-            <!-- Add Alarm FAB -->
-            <div class="fixed bottom-28 right-6 md:bottom-12 md:right-12 z-40">
-                <div class="absolute inset-0 bg-primary rounded-full animate-ping opacity-20"></div>
-                <button id="btn-alarm-add" class="bg-primary rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--md-sys-color-primary-rgb),0.6)] hover:scale-110 active:scale-95 transition-all text-on-primary relative z-10">
-                    <span class="material-symbols-outlined text-3xl">add</span>
-                </button>
+            <!-- Alarms List -->
+            <div class="flex flex-col gap-3" id="alarm-cards-container">
+                <!-- Injected by ui.js -->
             </div>
 
             <!-- Alarm Editor -->

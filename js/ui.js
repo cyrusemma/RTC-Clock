@@ -230,11 +230,10 @@ export function renderAlarmCards(alarms, activeSlot) {
     
     const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     
-    // Check if we have state.is12hFormat (we need it from global or pass it, we can just use the exported one or read from localStorage)
     const is12h = localStorage.getItem('is12hFormat') === 'true';
 
     let html = alarms.map((alarm, i) => {
-        // Hide unused alarms to make it feel like a dynamic list
+        // Hide unused alarms
         if (!alarm.en && !alarm.sn && alarm.h === 0 && alarm.m === 0 && alarm.rep === 0) {
             return '';
         }
@@ -246,43 +245,54 @@ export function renderAlarmCards(alarms, activeSlot) {
             h = h % 12 || 12;
         }
 
-        const timeStr = `${pad(h)}:${pad(alarm.m)}${amPm}`;
-        const disabledClass = (alarm.en || alarm.sn) ? '' : 'opacity-50 grayscale-[0.5]';
-        const dayStr = days.map((d, di) => {
-            const active = (alarm.rep & (1 << di)) ? 'class="text-primary font-bold"' : 'class="text-on-surface-variant/40"';
-            return `<span ${active}>${d}</span>`;
-        }).join(' ');
+        const timeStr = `${pad(h)}:${pad(alarm.m)}`;
+        const disabledClass = (alarm.en || alarm.sn) ? '' : 'opacity-40 grayscale';
+        const borderClass = (alarm.en || alarm.sn) ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-outline-variant/50';
         
-        // CSS Toggle Switch HTML
+        let bottomInfo = '';
+        if (alarm.sn) {
+            bottomInfo = `<div class="flex items-center gap-1.5 text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md font-mono-label text-[10px] uppercase font-bold tracking-wider w-max"><i data-lucide="moon" class="w-3 h-3"></i> Snoozed</div>`;
+        } else {
+            const dayStr = days.map((d, di) => {
+                const active = (alarm.rep & (1 << di)) ? 'class="text-primary font-bold"' : 'class="text-on-surface-variant/40"';
+                return `<span ${active}>${d}</span>`;
+            }).join(' ');
+            bottomInfo = `<div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">${dayStr}</div>`;
+        }
+        
         const toggleSwitch = `
-            <label class="relative inline-flex items-center cursor-pointer mt-2" onclick="event.stopPropagation(); window.toggleAlarm(${i}, ${!alarm.en});">
+            <label class="relative inline-flex items-center cursor-pointer" onclick="event.stopPropagation(); window.toggleAlarm(${i}, ${!alarm.en});">
                 <input type="checkbox" class="sr-only peer" ${alarm.en ? 'checked' : ''} readonly>
                 <div class="w-11 h-6 bg-surface-variant/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-outline-variant/30 shadow-inner"></div>
             </label>
         `;
 
-        // Calculate a staggered delay based on the index for the animation
-        const staggerDelay = i * 100;
+        const staggerDelay = i * 50;
 
         return `
-        <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] animate-fade-in-up" style="animation-delay: ${staggerDelay}ms; animation-fill-mode: both;" data-slot="${i}">
+        <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} ${borderClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] w-full" data-aos="fade-up" data-aos-delay="${staggerDelay}" data-slot="${i}">
             <div>
-                <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
-                <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
-                    ${dayStr}
+                <div class="flex items-baseline gap-1">
+                    <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
+                    ${amPm ? `<span class="text-sm font-bold text-on-surface-variant">${amPm}</span>` : ''}
                 </div>
+                ${bottomInfo}
             </div>
-            <div class="flex flex-col items-end gap-1">
+            <div class="flex items-center gap-4">
                 ${toggleSwitch}
+                <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant/50"></i>
             </div>
         </div>`;
     }).join('');
     
     if (html.trim() === '') {
-        html = `<div class="text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`;
+        html = `<div class="text-center text-on-surface-variant font-mono-label py-10 w-full" data-aos="fade-in">No alarms set.<br>Click 'Add' to create one.</div>`;
     }
     
     els.alarmCardsContainer.innerHTML = html;
+    if (window.lucide) {
+        window.requestAnimationFrame(() => lucide.createIcons());
+    }
 }
 
 // DOM Diffing Helpers
@@ -508,6 +518,19 @@ export function updateState(state) {
 
         if (state.alarmRinging) {
             els.alarmRingingBanner.classList.remove('hidden');
+            const rTimeEl = document.getElementById('alarm-ringing-time');
+            if (rTimeEl && state.alarms && state.ringingSlot !== undefined && state.ringingSlot !== 0xFF) {
+                const al = state.alarms[state.ringingSlot];
+                if (al) {
+                    let h = al.h;
+                    let amPm = '';
+                    if (state.is12hFormat) {
+                        amPm = h >= 12 ? ' PM' : ' AM';
+                        h = h % 12 || 12;
+                    }
+                    rTimeEl.textContent = `${pad(h)}:${pad(al.m)}${amPm}`;
+                }
+            }
         } else {
             els.alarmRingingBanner.classList.add('hidden');
         }

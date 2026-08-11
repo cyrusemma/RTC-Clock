@@ -164,6 +164,12 @@ export class VirtualRTC {
                 rep: parseInt(args[4]),
                 sn: 0
             };
+        } else if (cmd === 'ALARM_EN') {
+            const slot = parseInt(args[0]);
+            const en = parseInt(args[1]) !== 0;
+            if (slot >= 0 && slot < this.state.alarms.length) {
+                this.state.alarms[slot].en = en;
+            }
         } else if (cmd === 'SET_VOLUME') {
             const v = parseInt(args[0]);
             this.state.buzzerVolume = isNaN(v) ? 180 : Math.max(0, Math.min(255, v));

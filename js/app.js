@@ -35,6 +35,15 @@ window.selectMode = (mode) => {
 // Called from alarm card toggle switch in ui.renderAlarmCards
 window.toggleAlarm = (slot, enable) => {
     sendCmd(`ALARM_EN:${slot},${enable ? 1 : 0}`);
+    
+    // Optimistic UI update
+    if (lastBleState && lastBleState.alarms && lastBleState.alarms[slot]) {
+        lastBleState.alarms[slot].en = enable ? 1 : 0;
+        if (wrappedUpdateState) wrappedUpdateState(lastBleState);
+    } else if (virtualRTC && virtualRTC.getState().alarms && virtualRTC.getState().alarms[slot]) {
+        virtualRTC.state.alarms[slot].en = enable ? 1 : 0;
+        if (wrappedUpdateState) wrappedUpdateState(virtualRTC.getState());
+    }
 };
 
 els.tabs.forEach(tab => {
@@ -55,6 +64,7 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.AOS) AOS.init({ once: true, duration: 350 });
     initUI();
     
     // ── Activity Log Drawer Handler ─────────────────────────
