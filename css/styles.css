@@ -766,3 +766,126 @@ body:has(#ios-install-tooltip:not(.hidden)) main.views {
 }
 
 
+
+/* ─────────────────────────────────────────
+   WATCH MODE
+   Small square viewports — a resized browser window or DevTools responsive
+   mode at watch-like sizes (360×360, 396×484). Triggered purely by viewport
+   geometry, never user-agent sniffing. The height cap keeps normal narrow
+   phone screens (360×740+) on the standard layout.
+   ───────────────────────────────────────── */
+
+/* Dots exist in the DOM at every size; only this media query reveals them */
+#watch-dots {
+    display: none;
+}
+
+@media (max-width: 480px) and (max-height: 500px) {
+
+    /* ── Chrome: compact header, no bottom nav, dots instead ── */
+    .bottom-nav { display: none !important; }
+    #log-toggle-btn, #browser-clock { display: none !important; }
+
+    #app-header {
+        height: 2.5rem;
+        padding-top: 0;
+    }
+    main.views {
+        padding-top: 2.5rem;
+        padding-bottom: 1.75rem;
+        scroll-padding-bottom: 1.75rem;
+    }
+    main.views .view { margin-top: 0.5rem; }
+
+    #watch-dots {
+        display: flex;
+        position: fixed;
+        bottom: 0.4rem;
+        left: 50%;
+        transform: translateX(-50%);
+        gap: 0.65rem;
+        z-index: 60;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.35);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+    }
+    .watch-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.3);
+        transition: all 0.2s ease;
+    }
+    .watch-dot-active {
+        background: var(--md-sys-color-primary-fixed-dim);
+        transform: scale(1.35);
+        box-shadow: 0 0 8px rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.8);
+    }
+
+    /* ── Clock: just the big time, date and UTC badge ── */
+    #clock-actions,
+    #view-clock .md\:col-span-4 { display: none !important; }
+    #view-clock .min-h-\[300px\] {
+        min-height: 0;
+        justify-content: flex-start;
+        padding-top: 0.75rem;
+    }
+    #clock-time {
+        font-size: clamp(2.4rem, 15vw, 3.2rem);
+        line-height: 1.1;
+    }
+    #clock-date {
+        margin-top: 0.6rem;
+        padding: 0.25rem 0.75rem;
+        font-size: 10px;
+    }
+
+    /* ── Stopwatch: big digits, start/pause/reset only ── */
+    #sw-laps-container,
+    #btn-sw-lap { display: none !important; }
+    #view-stopwatch .min-h-\[300px\] { min-height: 0; }
+    #view-stopwatch .max-w-\[280px\] {
+        max-width: 180px;
+        margin-top: 0.25rem;
+    }
+    #sw-time { font-size: 1.7rem; line-height: 1.1; }
+    #sw-time + div { display: none; }   /* the MM:SS.ms chip */
+    #view-stopwatch .h-32 {
+        height: auto;
+        margin-top: 0.6rem;
+    }
+
+    /* ── Timer: run-view digits at every state; the wheel/preset setup is a
+       phone-layout task. display:none zeroes a scroll picker's position, so
+       app.js also skips the wheel-read on start while this layout is active. ── */
+    #timer-setup-view { display: none !important; }
+    #timer-run-view { display: flex !important; }
+    #btn-timer-bell-cmd { display: none !important; }
+    #timer-state {
+        margin-bottom: 0.6rem;
+        padding: 0.25rem 1rem;
+    }
+    #view-timer .max-w-\[320px\] { max-width: 170px; }
+    #timer-run-view .font-display-time-mobile { font-size: 1.6rem; line-height: 1.1; }
+    #timer-run-view .font-display-time-mobile + div { display: none; } /* HR:MM:SS chip */
+    #view-timer .px-8 {
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 0.4rem;
+        padding: 0 1rem;
+    }
+
+    /* ── Alarm: read-only list — time + toggle. Editing is a phone-layout
+       task (app.js suppresses card-tap-to-edit while this layout is active). ── */
+    #alarm-fab,
+    #alarm-editor { display: none !important; }
+    #alarm-cards-container { gap: 0.5rem; }
+    .alarm-card { padding: 0.7rem 1rem; }
+    .alarm-card .font-display-time-mobile { font-size: 1.4rem; }
+
+    /* Ringing banners: keep, but compact */
+    #alarm-ringing-banner,
+    #timer-ringing-banner { padding: 0.75rem 1rem; }
+}

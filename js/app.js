@@ -1,8 +1,17 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=26';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=26';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker, renderTimezonePicker, tickTimezonePicker, computeZoneOffsetHours, setSelectedTzZone } from './ui.js?v=26';
-import { VirtualRTC } from './VirtualRTC.js?v=26';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=27';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=27';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker, renderTimezonePicker, tickTimezonePicker, computeZoneOffsetHours, setSelectedTzZone } from './ui.js?v=27';
+import { VirtualRTC } from './VirtualRTC.js?v=27';
+
+// ── Watch mode ──────────────────────────────────────────────────────────────
+// Small square viewports (~watch screens: 360×360, 396×484 in DevTools
+// responsive mode). Purely viewport-geometry driven — never user-agent
+// sniffing — and kept in lockstep with the CSS media query of the same
+// dimensions in styles.css. The height cap keeps normal narrow phone
+// screens (360×740+) on the standard layout.
+const watchMq = window.matchMedia('(max-width: 480px) and (max-height: 500px)');
+const isWatchMode = () => watchMq.matches;
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -108,6 +117,45 @@ els.tabs.forEach(tab => {
     tab.addEventListener('click', () => {
         window.selectMode(parseInt(tab.dataset.mode));
     });
+});
+
+// ── Watch-mode navigation: swipe left/right or tap a dot ────────────────────
+// The bottom nav doesn't fit on a watch-sized viewport, so the same
+// selectMode() path is driven by horizontal swipes instead. Pointer events
+// cover both touch and a mouse drag in DevTools responsive mode.
+function currentMode() {
+    const active = document.querySelector('.clay-tab.active');
+    return active ? parseInt(active.dataset.mode) : 0;
+}
+
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeTracking = false;
+
+document.addEventListener('pointerdown', (e) => {
+    if (!isWatchMode()) return;
+    // Vertical scrollers and form controls own their own gestures
+    if (e.target.closest('.scroll-picker, .dropdown-menu, input, select, textarea')) return;
+    swipeTracking = true;
+    swipeStartX = e.clientX;
+    swipeStartY = e.clientY;
+});
+
+document.addEventListener('pointerup', (e) => {
+    if (!swipeTracking) return;
+    swipeTracking = false;
+    if (!isWatchMode()) return;
+    const dx = e.clientX - swipeStartX;
+    const dy = e.clientY - swipeStartY;
+    // A deliberate horizontal swipe, not a tap or a vertical scroll
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const next = (currentMode() + (dx < 0 ? 1 : 3)) % 4;
+    window.selectMode(next);
+    if (navigator.vibrate) navigator.vibrate(10);
+});
+
+document.querySelectorAll('#watch-dots .watch-dot').forEach(dot => {
+    dot.addEventListener('click', () => window.selectMode(parseInt(dot.dataset.mode)));
 });
 
 // Register Service Worker for PWA
@@ -769,6 +817,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Alarm Cards Click
     els.alarmCardsContainer.addEventListener('click', (e) => {
+        // At watch size the list is read-only: the on/off toggle still works
+        // (its inline handler stops propagation before reaching here), but the
+        // scroll-picker editor is a phone-layout task and stays closed.
+        if (isWatchMode()) return;
         const card = e.target.closest('.alarm-card');
         if (!card) return;
         const slot = parseInt(card.dataset.slot);
@@ -1264,12 +1316,21 @@ document.addEventListener('DOMContentLoaded', () => {
         btnTimerAction.addEventListener('click', () => {
             // First time clicking play, if we are in READY state
             if (lastBleState && lastBleState.tmrState === 0) {
-                timerDraft.hr = timerPickerHr.getValue();
-                timerDraft.min = timerPickerMin.getValue();
-                timerDraft.sec = timerPickerSec.getValue();
-                sendCmd(`SET_TIMER:${timerDraft.hr},${timerDraft.min},${timerDraft.sec}`);
-                // Give it a tiny delay then send start
-                setTimeout(() => sendCmd('BTN:UP'), 50);
+                if (isWatchMode()) {
+                    // The setup wheels aren't rendered at watch size, and a
+                    // display:none scroll picker reads back as 0 — so start
+                    // with whatever duration the device already holds instead
+                    // of clobbering it with a zero-length SET_TIMER. Choosing
+                    // a duration is a phone-layout task.
+                    sendCmd('BTN:UP');
+                } else {
+                    timerDraft.hr = timerPickerHr.getValue();
+                    timerDraft.min = timerPickerMin.getValue();
+                    timerDraft.sec = timerPickerSec.getValue();
+                    sendCmd(`SET_TIMER:${timerDraft.hr},${timerDraft.min},${timerDraft.sec}`);
+                    // Give it a tiny delay then send start
+                    setTimeout(() => sendCmd('BTN:UP'), 50);
+                }
             } else if (lastBleState && lastBleState.tmrState === 1) {
                 // Running, so pause
                 sendCmd('BTN:DOWN');

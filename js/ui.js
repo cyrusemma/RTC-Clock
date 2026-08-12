@@ -399,10 +399,15 @@ export function renderAlarmCards(alarms, activeSlot) {
             return `<span ${active}>${d}</span>`;
         }).join(' ');
         
-        // CSS Toggle Switch HTML
+        // CSS Toggle Switch HTML. The command is sent from the checkbox's
+        // change event, which fires once per toggle — a click handler on the
+        // label runs twice (the direct click plus the one the label forwards
+        // to its checkbox) and was double-sending ALARM_EN on every tap. The
+        // label still swallows click propagation so tapping the switch never
+        // opens the card's editor.
         const toggleSwitch = `
-            <label class="relative inline-flex items-center cursor-pointer mt-2" onclick="event.stopPropagation(); window.toggleAlarm(${i}, ${!alarm.en});">
-                <input type="checkbox" class="sr-only peer" ${alarm.en ? 'checked' : ''} readonly>
+            <label class="relative inline-flex items-center cursor-pointer mt-2" onclick="event.stopPropagation();">
+                <input type="checkbox" class="sr-only peer" ${alarm.en ? 'checked' : ''} onchange="window.toggleAlarm(${i}, this.checked);">
                 <div class="w-11 h-6 bg-surface-variant/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-outline-variant/30 shadow-inner"></div>
             </label>
         `;
@@ -692,6 +697,11 @@ export function setActiveModeView(mode, force = false) {
             btn.classList.remove('text-primary', 'nav-active');
             btn.classList.add('text-on-surface-variant');
         }
+    });
+
+    // Watch-mode dots mirror the same selection (only visible at watch sizes)
+    document.querySelectorAll('#watch-dots .watch-dot').forEach(dot => {
+        dot.classList.toggle('watch-dot-active', parseInt(dot.dataset.mode) === mode);
     });
 }
 

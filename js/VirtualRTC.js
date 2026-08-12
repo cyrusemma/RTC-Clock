@@ -168,7 +168,9 @@ export class VirtualRTC {
                     this.state.tmrState = 0; // Stop ringing
                     this.state.tmrRemainingMs = (this.state.tmrInitHr * 3600 + this.state.tmrInitMin * 60 + this.state.tmrInitSec) * 1000;
                 } else if (btn === 'UP') {
-                    if (this.state.tmrState === 0 || this.state.tmrState === 2) {
+                    // Like the firmware, a zero-length timer never starts —
+                    // without this guard it would tick straight into RINGING.
+                    if ((this.state.tmrState === 0 || this.state.tmrState === 2) && this.state.tmrRemainingMs > 0) {
                         this.state.tmrState = 1; // Start
                     }
                 } else if (btn === 'DOWN') {

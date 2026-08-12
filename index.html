@@ -19,7 +19,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="css/styles.css?v=24">
+    <link rel="stylesheet" href="css/styles.css?v=27">
 
     <script id="tailwind-config">
         tailwind.config = {
@@ -257,7 +257,7 @@
                     <div id="analogue-clock-container" class="w-full h-full relative"></div>
                 </div>
 
-                <div class="mt-8 flex flex-wrap gap-4 justify-center items-start">
+                <div id="clock-actions" class="mt-8 flex flex-wrap gap-4 justify-center items-start">
                     <div class="flex flex-col items-center gap-2">
                         <button id="btn-sync" class="btn-primary rounded-2xl px-6 py-3 font-mono-label text-mono-label font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all group shadow-[0_0_20px_rgba(var(--md-sys-color-primary-rgb),0.3)]">
                             <span class="material-symbols-outlined group-hover:rotate-180 transition-transform duration-500">sync</span> Sync Clock
@@ -941,6 +941,15 @@
         </div>
     </nav>
 
-    <script type="module" src="js/app.js?v=26"></script>
+    <!-- Watch-mode view dots — replace the bottom nav on tiny square viewports
+         (the media query in styles.css is what shows them; hidden otherwise) -->
+    <div id="watch-dots" aria-label="Switch view">
+        <button class="watch-dot" data-mode="0" title="Clock" aria-label="Clock"></button>
+        <button class="watch-dot" data-mode="1" title="Stopwatch" aria-label="Stopwatch"></button>
+        <button class="watch-dot" data-mode="2" title="Alarm" aria-label="Alarm"></button>
+        <button class="watch-dot" data-mode="3" title="Timer" aria-label="Timer"></button>
+    </div>
+
+    <script type="module" src="js/app.js?v=27"></script>
 </body>
 </html>
