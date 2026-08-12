@@ -68,15 +68,27 @@ export const els = {
     volumeLabel: document.getElementById('volume-label')
 };
 
+// Every browser on iOS is WebKit underneath, and WebKit ships no Web Bluetooth
+// — Chrome or Edge on an iPhone cannot connect over BLE either. iPadOS reports
+// itself as a Mac, hence the touch-point check.
+export function isIosDevice() {
+    const ua = navigator.userAgent || '';
+    return /iphone|ipad|ipod/i.test(ua) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
 export function initUI() {
-    if (!navigator.bluetooth) {
-        if (els.bleNote) {
-            els.bleNote.textContent = 'Web Bluetooth is unavailable in this browser. Use Chrome or Edge on localhost or HTTPS.';
-            els.bleNote.classList.remove('hidden');
-        }
-    } else if (els.bleNote) {
+    if (!els.bleNote) return;
+
+    if (navigator.bluetooth) {
         els.bleNote.classList.add('hidden');
+        return;
     }
+
+    els.bleNote.textContent = isIosDevice()
+        ? 'iPhone and iPad cannot use Bluetooth from a browser. Join the clock\'s WiFi, then use Menu → WiFi Connect.'
+        : 'Web Bluetooth is unavailable in this browser. Use Chrome or Edge on localhost or HTTPS.';
+    els.bleNote.classList.remove('hidden');
 }
 
 export function updateConnectionState(state, deviceName) {

@@ -225,6 +225,10 @@ export class VirtualRTC {
             }
         } else if (cmd === 'DISMISS_ALARM') {
             const slot = args.length ? parseInt(args[0]) : this.state.ringingSlot;
+            // The firmware only acts when the slot is the one actually ringing
+            // (`slot == ringAlarmIdx`). Mirror that, so a stray or duplicated
+            // command cannot switch off an alarm that was never involved.
+            if (slot !== this.state.ringingSlot) return null;
             const alarm = this.state.alarms[slot];
             if (alarm) {
                 alarm.sn = 0;
@@ -236,6 +240,8 @@ export class VirtualRTC {
             this.state.ringingSlot = 0xFF;
         } else if (cmd === 'SNOOZE') {
             const slot = args.length ? parseInt(args[0]) : this.state.ringingSlot;
+            // Same guard as DISMISS_ALARM: only the ringing alarm can be snoozed
+            if (slot !== this.state.ringingSlot) return null;
             const alarm = this.state.alarms[slot];
             if (alarm) {
                 alarm.sn = 1;

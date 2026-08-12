@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=16';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=16';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=16';
-import { VirtualRTC } from './VirtualRTC.js?v=16';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=20';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=20';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=20';
+import { VirtualRTC } from './VirtualRTC.js?v=20';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -123,12 +123,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // PWA Install Prompt
+    // PWA Install Prompt. Dismissals are remembered — an install nag that
+    // returns on every visit is pure noise, and on iOS it sits on top of the
+    // timer controls.
+    const INSTALL_DISMISSED_KEY = 'installBannerDismissed';
+    const IOS_TIP_DISMISSED_KEY = 'iosInstallTipDismissed';
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        els.pwaInstallBanner.classList.remove('hidden');
+        if (localStorage.getItem(INSTALL_DISMISSED_KEY) !== '1') {
+            els.pwaInstallBanner.classList.remove('hidden');
+        }
     });
     if (els.btnPwaInstall) {
         els.btnPwaInstall.addEventListener('click', async () => {
@@ -145,20 +151,22 @@ document.addEventListener('DOMContentLoaded', () => {
     els.pwaDismissBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             els.pwaInstallBanner.classList.add('hidden');
+            localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
         });
     });
 
-    // iOS Install Tooltip
-    const isIos = () => {
-        const userAgent = window.navigator.userAgent.toLowerCase();
-        return /iphone|ipad|ipod/.test(userAgent);
-    };
-    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
-    if (isIos() && !isInStandaloneMode()) {
+    // iOS "Add to Home Screen" tip — Safari has no beforeinstallprompt, so this
+    // is the only way to tell an iPhone user how to install.
+    const isInStandaloneMode = () => ('standalone' in window.navigator && window.navigator.standalone) ||
+                                     window.matchMedia('(display-mode: standalone)').matches;
+    if (isIosDevice() && !isInStandaloneMode() && localStorage.getItem(IOS_TIP_DISMISSED_KEY) !== '1') {
         els.iosInstallTooltip.classList.remove('hidden');
     }
     if (els.btnIosDismiss) {
-        els.btnIosDismiss.addEventListener('click', () => els.iosInstallTooltip.classList.add('hidden'));
+        els.btnIosDismiss.addEventListener('click', () => {
+            els.iosInstallTooltip.classList.add('hidden');
+            localStorage.setItem(IOS_TIP_DISMISSED_KEY, '1');
+        });
     }
 
     // Notifications
@@ -323,6 +331,16 @@ document.addEventListener('DOMContentLoaded', () => {
         menu.classList.add('hidden');
         menu.classList.remove('flex');
         if (!navigator.bluetooth && !bleState.connected && !wsState.connected) {
+            // Silently doing nothing here is what made the button look broken
+            // on iPhone, where Web Bluetooth simply does not exist.
+            const note = isIosDevice()
+                ? 'This device has no Web Bluetooth. Join the clock\'s WiFi network, then use WiFi Connect.'
+                : 'Web Bluetooth is unavailable in this browser. Use Chrome or Edge on localhost or HTTPS.';
+            appendLog(note, 'sys');
+            if (els.bleNote) {
+                els.bleNote.textContent = note;
+                els.bleNote.classList.remove('hidden');
+            }
             return;
         }
         if (bleState.connected) {
@@ -1607,23 +1625,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('touchcancel', stop);
     }
 
-    // Alarm
-    if (els.alarmSnoozeBtn) {
-        els.alarmSnoozeBtn.addEventListener('click', () => {
-            if (lastBleState && lastBleState.ringingSlot !== undefined && lastBleState.ringingSlot !== 0xFF) {
-                sendCmd(`SNOOZE:${lastBleState.ringingSlot}`);
-            } else {
-                sendCmd('SNOOZE:0');
-            }
-        });
-    }
-    document.getElementById('btn-alarm-dismiss').addEventListener('click', () => {
-        if (lastBleState && lastBleState.ringingSlot !== undefined && lastBleState.ringingSlot !== 0xFF) {
-            sendCmd(`DISMISS_ALARM:${lastBleState.ringingSlot}`);
-        } else {
-            sendCmd('DISMISS_ALARM:0');
-        }
-    });
+    // Snooze and Dismiss are wired once, further up with the ringing banner.
+    // A second pair of listeners used to live here: both fired on one tap, and
+    // because the first had already cleared ringingSlot, the second fell back
+    // to slot 0 and snoozed or switched off an unrelated alarm.
 
     // Timer (Hardware Sync) - we can keep hold to repeat if we want
     const btnUp = document.getElementById('btn-timer-up');

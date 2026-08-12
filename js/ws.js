@@ -6,19 +6,49 @@ export const wsState = {
 
 let ws = null;
 
+let connectTimeout = null;
+
 export function connectWS(onStateChange, onDataReceived, onLog) {
     if (ws) {
         ws.close();
     }
-    
+
+    // The clock speaks plain ws://, which a page served over HTTPS is not
+    // allowed to open. This is the main way WiFi "does nothing" on an iPhone,
+    // where it is the only transport available — so say it plainly.
+    if (window.location.protocol === 'https:') {
+        onStateChange('disconnected');
+        onLog('WiFi blocked: this page is on HTTPS and the clock speaks ws://. Open the app over http:// (e.g. http://192.168.4.1) while joined to the clock\'s WiFi.', 'sys');
+        return;
+    }
+
     onStateChange('connecting');
     // Use window.location.hostname dynamically if available, otherwise default to ESP32 AP IP
-    const host = (window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.protocol !== 'file:') 
-        ? window.location.hostname 
+    const host = (window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.protocol !== 'file:')
+        ? window.location.hostname
         : '192.168.4.1';
-    ws = new WebSocket(`ws://${host}:81`);
-    
+
+    try {
+        ws = new WebSocket(`ws://${host}:81`);
+    } catch (err) {
+        ws = null;
+        onStateChange('disconnected');
+        onLog(`WiFi Error: ${err.message}`, 'sys');
+        return;
+    }
+
+    // Without this the status sits on "Connecting..." forever when the phone
+    // is not actually on the clock's network.
+    clearTimeout(connectTimeout);
+    connectTimeout = setTimeout(() => {
+        if (ws && ws.readyState === WebSocket.CONNECTING) {
+            onLog(`No answer from ${host}:81 — check you are joined to the clock's WiFi.`, 'sys');
+            ws.close();
+        }
+    }, 8000);
+
     ws.onopen = () => {
+        clearTimeout(connectTimeout);
         wsState.connected = true;
         onStateChange('connected');
         onLog('Connected via WiFi', 'sys');
@@ -68,6 +98,7 @@ export function connectWS(onStateChange, onDataReceived, onLog) {
     };
     
     ws.onclose = () => {
+        clearTimeout(connectTimeout);
         wsState.connected = false;
         onStateChange('disconnected');
         onLog('WiFi disconnected', 'sys');

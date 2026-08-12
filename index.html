@@ -2,7 +2,10 @@
 <html class="dark" lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <!-- viewport-fit=cover is what makes env(safe-area-inset-*) non-zero on
+         iPhone; without it every safe-area rule in styles.css evaluates to 0
+         and the bottom nav sits under the home indicator. -->
+    <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
     <title>RTC-C3 Master</title>
     
     <!-- PWA Meta Tags -->
@@ -16,7 +19,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="css/styles.css?v=16">
+    <link rel="stylesheet" href="css/styles.css?v=20">
 
     <script id="tailwind-config">
         tailwind.config = {
@@ -112,8 +115,12 @@
         }
     </script>
     <style>
-        body {
-            min-height: max(884px, 100dvh);
+        /* A fixed 884px floor pushed the bottom nav off-screen on shorter
+           phones, and 100vh on iOS Safari counts the space behind the URL bar.
+           Size to the dynamic viewport, with a plain vh fallback. */
+        html, body {
+            height: 100vh;
+            height: 100dvh;
         }
     </style>
 </head>
@@ -126,7 +133,7 @@
     </div>
 
     <!-- TopAppBar -->
-    <header class="bg-surface-container/60 backdrop-blur-xl text-primary border-b border-outline-variant/30 flex justify-between items-center px-margin-mobile h-16 w-full z-50 absolute top-0 left-0">
+    <header id="app-header" class="bg-surface-container/60 backdrop-blur-xl text-primary border-b border-outline-variant/30 flex justify-between items-center px-margin-mobile h-16 w-full z-50 absolute top-0 left-0">
         
         <!-- Left: Browser Clock -->
         <div class="flex items-center w-1/4">
@@ -709,7 +716,7 @@
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
-            <div id="log-content" class="log-content font-mono-label text-[11px] text-on-surface p-4 overflow-y-auto" style="max-height: calc(100vh - 56px);">
+            <div id="log-content" class="log-content font-mono-label text-[11px] text-on-surface p-4 overflow-y-auto" style="max-height: calc(100dvh - 56px);">
                 <!-- Injected by app.js -->
             </div>
         </aside>
@@ -744,7 +751,7 @@
     </div>
 
     <!-- BottomNavBar (Visible only on mobile) -->
-    <nav class="glass-panel fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bottom-nav select-none">
+    <nav class="glass-panel fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bottom-nav select-none">
         <div class="clay-tab flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-[64px] h-[56px] active" data-mode="0">
             <span class="material-symbols-outlined">schedule</span>
             <span class="font-mono-label text-mono-label mt-1 text-[10px]">Clock</span>
@@ -763,6 +770,6 @@
         </div>
     </nav>
 
-    <script type="module" src="js/app.js?v=16"></script>
+    <script type="module" src="js/app.js?v=20"></script>
 </body>
 </html>

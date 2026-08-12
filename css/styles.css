@@ -135,6 +135,50 @@
 
 body {
     font-family: 'Inter', sans-serif;
+    /* Safari paints a grey box over every tap without this */
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ─────────────────────────────────────────
+   iOS / SAFARI
+   ───────────────────────────────────────── */
+
+/* The markup used `pb-safe`, which is not a Tailwind class and so expanded to
+   nothing — on a notched iPhone the tab labels sat on the home indicator. */
+.bottom-nav {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* With viewport-fit=cover the page extends under the status bar, so the top
+   bar and the content below it both have to be pushed clear of it. */
+/* #id so it outranks Tailwind's h-16 utility class */
+#app-header {
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(4rem + env(safe-area-inset-top, 0px));
+}
+
+main.views {
+    padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+}
+
+/* Stop Safari double-tap-to-zoom on controls, and the text selection that
+   fires instead of a press-and-hold on a saved timer card. */
+button,
+.clay-tab,
+.tone-option,
+.alarm-card,
+.settings-row,
+.sticker-tile {
+    touch-action: manipulation;
+}
+
+.preset-btn,
+.alarm-card,
+.clay-tab,
+.scroll-item {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 /* Editing Animation (Blinking Text) */
@@ -367,14 +411,34 @@ main.views {
 }
 
 /* Lift it clear of the install banner while that banner is on screen */
-body:has(#pwa-install-banner:not(.hidden)) #alarm-fab {
+body:has(#pwa-install-banner:not(.hidden)) #alarm-fab,
+body:has(#ios-install-tooltip:not(.hidden)) #alarm-fab {
     bottom: 11rem;
+}
+
+/* An install banner floats over the bottom of the page, where the timer's
+   START button lives. Give the scroller enough room to lift content clear of
+   it — on iPhone the "Add to Home Screen" tip otherwise sits on the button. */
+body:has(#pwa-install-banner:not(.hidden)) main.views,
+body:has(#ios-install-tooltip:not(.hidden)) main.views {
+    padding-bottom: calc(13rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(13rem + env(safe-area-inset-bottom, 0px));
 }
 
 @media (min-width: 768px) {
     body:has(#pwa-install-banner:not(.hidden)) #alarm-fab {
         bottom: 8rem;
     }
+}
+
+/* The dropdown used max-h-80vh, which takes no account of the fixed bottom nav
+   — on a short screen its last rows (the volume slider) ended up underneath it.
+   Cap it to the gap between the header and the nav instead, so it always ends
+   on screen and scrolls inside. #id to outrank the Tailwind utility. */
+#main-menu {
+    max-height: calc(100dvh - 9.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Bottom Nav Tabs */
