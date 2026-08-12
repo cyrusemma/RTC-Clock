@@ -347,8 +347,16 @@ body {
    plus the device safe-area inset, at every breakpoint — the nav is now
    visible on desktop too, where the old md:pb-6 was far too small. */
 main.views {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
-    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* The alarm editor is the last thing on its page, so it is the one that ends
+   up under the fixed nav. Give it its own clearance on top of the page
+   padding so the sound picker and the Save/Cancel row are always reachable. */
+#alarm-editor {
+    scroll-margin-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+    margin-bottom: 2rem;
 }
 
 /* Add-alarm FAB — must sit above the PWA install banner (z-50), which

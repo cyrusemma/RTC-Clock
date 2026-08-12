@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=13';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=13';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=13';
-import { VirtualRTC } from './VirtualRTC.js?v=13';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=14';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=14';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=14';
+import { VirtualRTC } from './VirtualRTC.js?v=14';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -530,15 +530,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    els.alarmCancelBtn.addEventListener('click', () => {
+    // The bottom nav is fixed over the scrolling page, so opening the editor has
+    // to bring its full height into view. The add FAB also has to get out of the
+    // way — it sits right on top of the weekday row.
+    const alarmFab = document.getElementById('alarm-fab');
+
+    function openAlarmEditor() {
+        els.alarmEditor.classList.remove('hidden');
+        els.alarmEditor.classList.add('slide-up-active');
+        if (alarmFab) alarmFab.classList.add('hidden');
+        requestAnimationFrame(() => {
+            // A scroll picker cannot position itself while its container is
+            // display:none — scrollTop stays 0 — so the first open always came
+            // up showing 00:00. Re-apply the draft now that it has layout.
+            alarmPickerH.setValue(alarmDraft.h);
+            alarmPickerM.setValue(alarmDraft.m);
+            els.alarmEditor.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        });
+    }
+
+    function closeAlarmEditor() {
         els.alarmEditor.classList.add('hidden');
-    });
+        els.alarmEditor.classList.remove('slide-up-active');
+        if (alarmFab) alarmFab.classList.remove('hidden');
+    }
+
+    els.alarmCancelBtn.addEventListener('click', closeAlarmEditor);
 
     document.getElementById('btn-alarm-set').addEventListener('click', () => {
         alarmDraft.h = alarmPickerH.getValue();
         alarmDraft.m = alarmPickerM.getValue();
         sendCmd(`SET_ALARM:${alarmDraft.slot},${String(alarmDraft.h).padStart(2,'0')},${String(alarmDraft.m).padStart(2,'0')},${alarmDraft.en ? 1 : 0},${alarmDraft.rep}`);
-        els.alarmEditor.classList.add('hidden');
+        closeAlarmEditor();
     });
 
     // Alarm Cards Click
@@ -581,8 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        els.alarmEditor.classList.remove('hidden');
-        els.alarmEditor.classList.add('slide-up-active');
+        openAlarmEditor();
     });
 
     const btnAlarmAdd = document.getElementById('btn-alarm-add');
@@ -619,9 +641,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dayBtns.forEach(btn => {
                 btn.classList.remove('day-active');
             });
-            
-            els.alarmEditor.classList.remove('hidden');
-            els.alarmEditor.classList.add('slide-up-active');
+
+            openAlarmEditor();
         });
     }
 
