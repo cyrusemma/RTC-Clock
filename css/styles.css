@@ -378,6 +378,25 @@ button,
     100% { transform: translateY(0); opacity: 1; }
 }
 
+/* Snoozed marker on an alarm card. A real class, not Tailwind utilities: this
+   markup is injected after the CDN has scanned the page, and colour utilities
+   built on var() palette entries do not survive the opacity modifier — the chip
+   came out as dark text on a dark card. */
+.alarm-snooze-chip {
+    display: inline-block;
+    background: var(--md-sys-color-secondary-fixed-dim);
+    color: var(--md-sys-color-on-secondary-fixed);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
 /* Weekday active state */
 .day-active {
     background: linear-gradient(135deg, rgba(var(--md-sys-color-primary-rgb), 0.9), rgba(var(--md-sys-color-primary-fixed-rgb), 1)) !important;

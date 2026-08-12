@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=20';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=20';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=20';
-import { VirtualRTC } from './VirtualRTC.js?v=20';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=23';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=23';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=23';
+import { VirtualRTC } from './VirtualRTC.js?v=23';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -46,8 +46,18 @@ function sendCmd(cmd) {
     }
 }
 
+// The app-local pages (About This Project, How It Works) are not one of the
+// four device modes, so they live outside setActiveModeView's mode switch —
+// see openAppPage/closeAppPage below.
+let activeAppPage = null;
+
 window.selectMode = (mode) => {
-    setActiveModeView(mode);
+    // Leaving an app page must force setActiveModeView to actually repaint:
+    // it no-ops when `mode` matches whatever it last drew, which is still the
+    // last real mode — the app page was drawn on top without telling it.
+    const wasAppPage = !!activeAppPage;
+    activeAppPage = null;
+    setActiveModeView(mode, wasAppPage);
     // Paint the alarm list right away — over BLE/WS the MODE round-trip is
     // async, and waiting for it leaves the screen blank.
     if (mode === 2) {
@@ -58,6 +68,36 @@ window.selectMode = (mode) => {
     }
     sendCmd(`MODE:${mode}`);
 };
+
+// Full-screen app pages (About, How It Works). Unlike a mode switch, opening
+// one must NOT send a MODE: command — the device's own state does not change
+// while someone is reading the credits.
+function openAppPage(id) {
+    const page = document.getElementById(id);
+    if (!page) return;
+    document.querySelectorAll('.view').forEach(v => {
+        v.classList.add('hidden');
+        v.classList.remove('active');
+    });
+    page.classList.remove('hidden');
+    page.classList.add('active');
+    activeAppPage = id;
+    const menu = document.getElementById('main-menu');
+    if (menu) {
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
+    }
+}
+
+function closeAppPage() {
+    if (!activeAppPage) return;
+    // Re-run window.selectMode's own bookkeeping by way of the same mode
+    // number it already believes is current — clay-tab .active reflects it.
+    const activeTab = document.querySelector('.clay-tab.active[data-mode]');
+    const mode = activeTab ? parseInt(activeTab.dataset.mode) : 0;
+    activeAppPage = null;
+    setActiveModeView(mode, true);
+}
 
 // Called from alarm card toggle switch in ui.renderAlarmCards
 window.toggleAlarm = (slot, enable) => {
@@ -202,6 +242,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     setupDropdown('main-menu-btn', 'main-menu', 'main-menu-wrap');
+
+    // ── Project pages (About, How It Works) ─────────────────────────────────
+    const btnMenuAbout = document.getElementById('btn-menu-about');
+    const btnMenuHelp  = document.getElementById('btn-menu-help');
+    const btnAboutBack = document.getElementById('btn-about-back');
+    const btnHelpBack  = document.getElementById('btn-help-back');
+    if (btnMenuAbout) btnMenuAbout.addEventListener('click', () => openAppPage('view-about'));
+    if (btnMenuHelp)  btnMenuHelp.addEventListener('click',  () => openAppPage('view-help'));
+    if (btnAboutBack) btnAboutBack.addEventListener('click', closeAppPage);
+    if (btnHelpBack)  btnHelpBack.addEventListener('click',  closeAppPage);
 
     // Fullscreen Toggle
     const btnFullscreen = document.getElementById('btn-fullscreen');

@@ -366,13 +366,18 @@ export function renderAlarmCards(alarms, activeSlot) {
             ? `<div class="font-mono-label text-[10px] text-primary-fixed-dim uppercase tracking-widest mb-1 truncate max-w-[180px]">${escapeHtml(label)}</div>`
             : '';
 
+        // A snoozed alarm looked exactly like an armed one here, even though the
+        // device's own display marks it SNZ. It is still going to go off.
+        const snoozedChip = alarm.sn ? `<span class="alarm-snooze-chip">Snoozed</span>` : '';
+
         return `
         <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)]${entryClass}"${entryStyle} data-slot="${i}">
             <div class="min-w-0">
                 ${labelHtml}
                 <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
-                <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
+                <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5 items-center flex-wrap">
                     ${dayStr}
+                    ${snoozedChip}
                 </div>
             </div>
             <div class="flex flex-col items-end gap-1">
@@ -485,8 +490,12 @@ function setClass(el, className, condition) {
 }
 
 let lastActiveMode = -1;
-export function setActiveModeView(mode) {
-    if (lastActiveMode === mode) return;
+// `force` repaints even when the mode number has not changed — needed when
+// returning from an app-local page (About, How It Works) that is not one of
+// the four device modes: the view sweep still has to re-run to bring the
+// real mode view back, even though `mode` itself never moved.
+export function setActiveModeView(mode, force = false) {
+    if (lastActiveMode === mode && !force) return;
     lastActiveMode = mode;
     
     const viewIds = ['view-clock', 'view-stopwatch', 'view-alarm', 'view-timer'];

@@ -19,7 +19,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="css/styles.css?v=20">
+    <link rel="stylesheet" href="css/styles.css?v=23">
 
     <script id="tailwind-config">
         tailwind.config = {
@@ -208,6 +208,17 @@
                         </div>
                         <input type="range" id="volume-slider" min="0" max="255" value="180" class="w-full h-2 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary" style="accent-color: var(--md-sys-color-primary);">
                     </div>
+
+                    <div class="border-t border-outline-variant/30 my-2 mx-4"></div>
+
+                    <!-- Project -->
+                    <div class="px-4 py-2 font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">Project</div>
+                    <button id="btn-menu-about" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-primary">groups</span> About This Project
+                    </button>
+                    <button id="btn-menu-help" class="w-full text-left px-5 py-2.5 hover:bg-surface-variant/40 transition-colors flex items-center gap-4 text-on-surface text-sm font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-primary">help</span> How It Works
+                    </button>
                 </div>
             </div>
         </div>
@@ -600,7 +611,144 @@
             </div>
             <p class="font-mono-label text-xs text-outline-variant text-center mt-4">These custom tones play from your device's browser when the timer finishes.</p>
         </section>
-        
+
+        <!-- ABOUT VIEW -->
+        <section id="view-about" class="view hidden max-w-2xl mx-auto mt-6 flex flex-col gap-6 pb-10">
+            <div class="flex items-center gap-4 mb-2 cursor-pointer hover:opacity-80 transition-opacity w-fit" id="btn-about-back">
+                <span class="material-symbols-outlined text-primary text-3xl">arrow_back</span>
+                <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">About This Project</h2>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5 flex flex-col gap-1">
+                <h3 class="font-headline-md text-base font-bold text-on-surface">RTC-Clock V2</h3>
+                <p class="font-body-sm text-sm text-on-surface-variant">ESP32-based clock, stopwatch, alarm and timer with a web app controlling it over Bluetooth Low Energy or WiFi.</p>
+                <div class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>Firmware V2.1</span>
+                    <span>Protocol v2</span>
+                    <span>34-byte BLE telemetry</span>
+                </div>
+            </div>
+
+            <div class="settings-card rounded-2xl overflow-hidden">
+                <div class="px-5 py-3 border-b border-outline-variant/20">
+                    <h4 class="font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">Members (9)</h4>
+                </div>
+                <div class="divide-y divide-outline-variant/20">
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Festus Arthur</span><span class="settings-row-value">9000223</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Jude Asigbey</span><span class="settings-row-value">9004623</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Jeffery Obeng Gyasi Agyei</span><span class="settings-row-value">8986323</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Agyei Prince Karikari</span><span class="settings-row-value">8986423</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Eugenia Yaa Asiedu</span><span class="settings-row-value">9004223</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Emmanuel Mawuli Kofi Adetu</span><span class="settings-row-value">8981423</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Abdul Haqq Yusif Trawule</span><span class="settings-row-value">8977023</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Fredrick Baah</span><span class="settings-row-value">9006923</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Boamah Adomako Asantewaa</span><span class="settings-row-value">9011323</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW IT WORKS VIEW -->
+        <section id="view-help" class="view hidden max-w-2xl mx-auto mt-6 flex flex-col gap-6 pb-10">
+            <div class="flex items-center gap-4 mb-2 cursor-pointer hover:opacity-80 transition-opacity w-fit" id="btn-help-back">
+                <span class="material-symbols-outlined text-primary text-3xl">arrow_back</span>
+                <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">How It Works</h2>
+            </div>
+
+            <!-- App: top bar -->
+            <div class="settings-card rounded-2xl overflow-hidden">
+                <div class="px-5 py-3 border-b border-outline-variant/20">
+                    <h4 class="font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">App &mdash; Top Bar</h4>
+                </div>
+                <div class="divide-y divide-outline-variant/20">
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Browser clock</span><span class="settings-row-value" style="max-width:65%;white-space:normal;text-align:right;">Your phone's time, independent of the device</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Coloured dot</span><span class="settings-row-value" style="max-width:65%;white-space:normal;text-align:right;">Red = disconnected, amber = connecting, green = connected</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">List icon</span><span class="settings-row-value" style="max-width:65%;white-space:normal;text-align:right;">Activity Log &mdash; every command sent and received</span></div>
+                    <div class="settings-row cursor-default"><span class="settings-row-label">Menu icon</span><span class="settings-row-value" style="max-width:65%;white-space:normal;text-align:right;">Connection, view options, hardware settings, volume</span></div>
+                </div>
+            </div>
+
+            <!-- App: bottom tabs -->
+            <div class="settings-card rounded-2xl overflow-hidden">
+                <div class="px-5 py-3 border-b border-outline-variant/20">
+                    <h4 class="font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">App &mdash; Bottom Tabs</h4>
+                </div>
+                <div class="divide-y divide-outline-variant/20">
+                    <div class="px-5 py-3">
+                        <span class="settings-row-label font-bold">Clock</span>
+                        <p class="font-body-sm text-xs text-on-surface-variant mt-1">Sync Clock pushes your phone's time and timezone to the device. Toggle Analogue Mode, switch 12h/24h format, and browse the World Clock list.</p>
+                    </div>
+                    <div class="px-5 py-3">
+                        <span class="settings-row-label font-bold">Stopwatch</span>
+                        <p class="font-body-sm text-xs text-on-surface-variant mt-1">Start / Stop / Resume. Lap records a split &mdash; the live row shows time since the last lap. Reset clears everything.</p>
+                    </div>
+                    <div class="px-5 py-3">
+                        <span class="settings-row-label font-bold">Alarm</span>
+                        <p class="font-body-sm text-xs text-on-surface-variant mt-1">Tap a card to edit it; the switch arms or disarms it; + adds a new one (4 slots max). In the editor: on/off, hour/minute wheels, weekday repeat, a label, and an alarm sound with preview. While ringing: Snooze (5 min) or Dismiss &mdash; a one-shot alarm switches itself off after dismissal, a repeating one stays armed.</p>
+                    </div>
+                    <div class="px-5 py-3">
+                        <span class="settings-row-label font-bold">Timer</span>
+                        <p class="font-body-sm text-xs text-on-surface-variant mt-1">Set hours/minutes/seconds on the wheels. Saved timer cards: tap to load, press and hold to edit. New Timer opens the editor for duration, name, sticker, and "show on lock screen". Then Reset, Start/Pause/Resume/Stop, and Tone.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hardware buttons -->
+            <div class="settings-card rounded-2xl overflow-hidden">
+                <div class="px-5 py-3 border-b border-outline-variant/20">
+                    <h4 class="font-mono-label text-[10px] text-outline uppercase tracking-widest font-bold">Hardware Buttons</h4>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs font-body-sm">
+                        <thead>
+                            <tr class="text-on-surface-variant text-left border-b border-outline-variant/20">
+                                <th class="px-5 py-2 font-mono-label text-[10px] uppercase tracking-widest">Button</th>
+                                <th class="px-3 py-2 font-mono-label text-[10px] uppercase tracking-widest">Clock</th>
+                                <th class="px-3 py-2 font-mono-label text-[10px] uppercase tracking-widest">Stopwatch</th>
+                                <th class="px-3 py-2 font-mono-label text-[10px] uppercase tracking-widest">Timer</th>
+                                <th class="px-3 py-2 font-mono-label text-[10px] uppercase tracking-widest">Alarm ringing</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-on-surface divide-y divide-outline-variant/10">
+                            <tr>
+                                <td class="px-5 py-2.5 font-bold">UP</td>
+                                <td class="px-3 py-2.5">Timezone +1h</td>
+                                <td class="px-3 py-2.5">Start / resume</td>
+                                <td class="px-3 py-2.5">Start / resume</td>
+                                <td class="px-3 py-2.5 text-outline">&mdash;</td>
+                            </tr>
+                            <tr>
+                                <td class="px-5 py-2.5 font-bold">DOWN</td>
+                                <td class="px-3 py-2.5">Timezone &minus;1h</td>
+                                <td class="px-3 py-2.5">Pause</td>
+                                <td class="px-3 py-2.5">Pause</td>
+                                <td class="px-3 py-2.5 text-outline">&mdash;</td>
+                            </tr>
+                            <tr>
+                                <td class="px-5 py-2.5 font-bold">ALARM</td>
+                                <td class="px-3 py-2.5 text-outline">&mdash;</td>
+                                <td class="px-3 py-2.5">Reset</td>
+                                <td class="px-3 py-2.5">Stop / reset</td>
+                                <td class="px-3 py-2.5">Silence</td>
+                            </tr>
+                            <tr>
+                                <td class="px-5 py-2.5 font-bold">MODE (short)</td>
+                                <td class="px-3 py-2.5">Next mode</td>
+                                <td class="px-3 py-2.5">Next mode</td>
+                                <td class="px-3 py-2.5">Next mode</td>
+                                <td class="px-3 py-2.5 text-outline">&mdash;</td>
+                            </tr>
+                            <tr>
+                                <td class="px-5 py-2.5 font-bold">MODE (long)</td>
+                                <td class="px-3 py-2.5" colspan="3">Enter clock-set mode &mdash; cycles hour &rarr; minute &rarr; second &rarr; timezone</td>
+                                <td class="px-3 py-2.5 text-outline">&mdash;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="font-mono-label text-[10px] text-outline-variant p-4 pt-2">The device's own OLED shows ON / OFF / SNZ per alarm slot. Telemetry pushes every 250ms. Snooze is fixed at 5 minutes in firmware.</p>
+            </div>
+        </section>
+
         <!-- Alarm label bottom sheet -->
         <div id="alarm-label-sheet" class="hidden fixed inset-0 z-[75]">
             <div class="absolute inset-0 bg-black/50" data-alarm-label-dismiss></div>
@@ -770,6 +918,6 @@
         </div>
     </nav>
 
-    <script type="module" src="js/app.js?v=20"></script>
+    <script type="module" src="js/app.js?v=23"></script>
 </body>
 </html>
