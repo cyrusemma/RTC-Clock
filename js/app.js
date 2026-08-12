@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=11';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=11';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=11';
-import { VirtualRTC } from './VirtualRTC.js?v=11';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=12';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=12';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=12';
+import { VirtualRTC } from './VirtualRTC.js?v=12';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -10,7 +10,23 @@ let wrappedUpdateState = null;
 // instead of waiting for the next telemetry frame.
 let lastKnownState = null;
 
+// ── Alarm list cache ──────────────────────────────────────────────────────
+// Telemetry frames never carry the alarm list, so reading it on every frame
+// meant a GATT read four times a second, competing with the notifications and
+// with the user's own command writes. Keep the last read and refresh it only
+// when the alarms can actually have changed.
+let cachedAlarms = null;
+let alarmsDirty = true;
+let lastAlarmReadAt = 0;
+const ALARM_CHANGING_CMD = /^(SET_ALARM|ALARM_EN|SNOOZE|DISMISS_ALARM)/;
+
+export function invalidateAlarmCache() {
+    alarmsDirty = true;
+}
+
 function sendCmd(cmd) {
+    // Anything that edits an alarm makes the cached list stale
+    if (ALARM_CHANGING_CMD.test(cmd)) alarmsDirty = true;
     if (wsState.connected) {
         sendCommandWS(cmd, appendLog);
     } else if (bleState.connected) {
@@ -306,7 +322,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bleState.connected) {
             disconnect(updateConnectionState, appendLog);
         } else {
-            connect((state) => updateConnectionState(state, bleState.deviceName), wrappedUpdateState, appendLog);
+            connect((state) => {
+                // A new link means the cached alarm list belongs to nothing
+                if (state !== 'connected') cachedAlarms = null;
+                alarmsDirty = true;
+                updateConnectionState(state, bleState.deviceName);
+            }, wrappedUpdateState, appendLog);
         }
     });
 
@@ -1317,10 +1338,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Inject BLE alarms/laps if missing
         if (bleState.connected) {
-            if (!state.alarms && !isFetchingAlarms) {
-                isFetchingAlarms = true;
-                state.alarms = await readAlarms();
-                isFetchingAlarms = false;
+            if (!state.alarms) {
+                // Re-read after an edit, and slowly poll for changes made on
+                // the device itself — faster while the alarm view is open.
+                const refreshMs = state.mode === 2 ? 2000 : 10000;
+                const stale = (Date.now() - lastAlarmReadAt) > refreshMs;
+                if ((alarmsDirty || stale || !cachedAlarms) && !isFetchingAlarms) {
+                    isFetchingAlarms = true;
+                    const fetched = await readAlarms();
+                    isFetchingAlarms = false;
+                    lastAlarmReadAt = Date.now();
+                    if (fetched) {
+                        cachedAlarms = fetched;
+                        alarmsDirty = false;
+                    }
+                }
+                state.alarms = cachedAlarms;
             }
             // Stop infinite loops if lap read fails
             if (state.lapCount > 0 && (!state.laps || state.laps.length !== state.lapCount) && !isFetchingLaps && !window._lapsFetchFailed) {

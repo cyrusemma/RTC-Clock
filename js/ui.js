@@ -283,7 +283,11 @@ export function renderAlarmCards(alarms, activeSlot) {
     }
 
     const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-    
+
+    // The staggered entry animation belongs to the first paint only. Replaying
+    // it whenever an alarm is toggled makes the whole list blink.
+    const firstPaint = !container.dataset.cardsPainted;
+
     // Check if we have state.is12hFormat (we need it from global or pass it, we can just use the exported one or read from localStorage)
     const is12h = localStorage.getItem('is12hFormat') === 'true';
 
@@ -315,11 +319,12 @@ export function renderAlarmCards(alarms, activeSlot) {
             </label>
         `;
 
-        // Calculate a staggered delay based on the index for the animation
-        const staggerDelay = i * 100;
+        // Staggered entry, first paint only
+        const entryClass = firstPaint ? ' animate-fade-in-up' : '';
+        const entryStyle = firstPaint ? ` style="animation-delay: ${i * 100}ms; animation-fill-mode: both;"` : '';
 
         return `
-        <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] animate-fade-in-up" style="animation-delay: ${staggerDelay}ms; animation-fill-mode: both;" data-slot="${i}">
+        <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)]${entryClass}"${entryStyle} data-slot="${i}">
             <div>
                 <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
                 <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
@@ -332,14 +337,18 @@ export function renderAlarmCards(alarms, activeSlot) {
         </div>`;
     }).join('');
     
-    if (html.trim() === '') {
+    const hasCards = html.trim() !== '';
+    if (!hasCards) {
         html = `<div class="col-span-full text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`;
     }
 
     // Diffed: rewriting this unconditionally restarts the card entry
     // animations on every frame and thrashes layout.
     setHTML(container, html);
-    container.dataset.rendered = '1';
+    // Re-assigning an identical dataset value still counts as a DOM mutation,
+    // so only write these once.
+    if (!container.dataset.rendered) container.dataset.rendered = '1';
+    if (hasCards && !container.dataset.cardsPainted) container.dataset.cardsPainted = '1';
 }
 
 /* ─────────────────────────────────────────
@@ -412,8 +421,18 @@ export function renderActiveTimerLabel(meta) {
 function setText(el, text) {
     if (el && el.textContent !== text) el.textContent = text;
 }
+// Comparing against el.innerHTML looks like a diff but never matches: the
+// browser re-serialises what it parsed, so `checked` comes back as
+// `checked=""` and `class="a  b"` gets normalised. Any markup containing a
+// boolean attribute therefore failed the check on every call and rewrote the
+// whole subtree — which is what made the alarm list flicker at the telemetry
+// rate. Compare against the string we actually wrote instead.
+const lastWrittenHTML = new WeakMap();
 function setHTML(el, html) {
-    if (el && el.innerHTML !== html) el.innerHTML = html;
+    if (!el) return;
+    if (lastWrittenHTML.get(el) === html) return;
+    lastWrittenHTML.set(el, html);
+    el.innerHTML = html;
 }
 function setClass(el, className, condition) {
     if (!el) return;

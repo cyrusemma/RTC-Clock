@@ -23,6 +23,20 @@ export const bleState = {
 
 const textEncoder = new TextEncoder();
 
+/*
+ * Web Bluetooth runs one GATT operation at a time per device. Firing a read
+ * while a write is still in flight rejects with "GATT operation already in
+ * progress", which showed up as dropped commands and half-loaded alarm lists.
+ * Funnel every read and write through this queue so they take turns.
+ */
+let gattQueue = Promise.resolve();
+function withGatt(op) {
+    const run = gattQueue.then(op, op);
+    // Keep the chain alive even when an operation rejects
+    gattQueue = run.then(() => {}, () => {});
+    return run;
+}
+
 export async function connect(onStateChange, onDataReceived, onLog) {
     try {
         bluetoothDevice = await navigator.bluetooth.requestDevice({
@@ -103,13 +117,14 @@ export async function sendCommand(cmd, onLog) {
     }
     try {
         const data = textEncoder.encode(cmd);
-        if (characteristic.properties.writeWithoutResponse) {
-            await characteristic.writeValueWithoutResponse(data);
-        } else if (characteristic.properties.write) {
-            await characteristic.writeValueWithResponse(data);
-        } else {
-            await characteristic.writeValue(data);
-        }
+        await withGatt(() => {
+            if (characteristic.properties.writeWithoutResponse) {
+                return characteristic.writeValueWithoutResponse(data);
+            } else if (characteristic.properties.write) {
+                return characteristic.writeValueWithResponse(data);
+            }
+            return characteristic.writeValue(data);
+        });
         onLog(`TX: ${cmd}`, 'tx');
     } catch (error) {
         console.error(error);
@@ -120,7 +135,13 @@ export async function sendCommand(cmd, onLog) {
 export async function readAlarms() {
     if (!alarmCharacteristic) return null;
     try {
-        const dv = await alarmCharacteristic.readValue();
+        const dv = await withGatt(() => alarmCharacteristic.readValue());
+        // 4 slots × 4 bytes. A short read means a firmware mismatch, and
+        // parsing it would throw halfway through and blank the list.
+        if (dv.byteLength < 16) {
+            console.warn(`Alarm characteristic too short (${dv.byteLength} bytes)`);
+            return null;
+        }
         const alarms = [];
         for (let i = 0; i < 4; i++) {
             const flags = dv.getUint8(i * 4 + 2);
@@ -142,9 +163,10 @@ export async function readAlarms() {
 export async function readLaps(count) {
     if (!lapsCharacteristic || count <= 0) return [];
     try {
-        const dv = await lapsCharacteristic.readValue();
+        const dv = await withGatt(() => lapsCharacteristic.readValue());
         const laps = [];
-        for (let i = 0; i < count && i < 8; i++) {
+        const readable = Math.floor(dv.byteLength / 4);
+        for (let i = 0; i < count && i < 8 && i < readable; i++) {
             laps.push(dv.getUint32(i * 4, false)); // Big endian
         }
         return laps;
