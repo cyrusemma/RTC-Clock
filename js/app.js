@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=15';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=15';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=15';
-import { VirtualRTC } from './VirtualRTC.js?v=15';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=16';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=16';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=16';
+import { VirtualRTC } from './VirtualRTC.js?v=16';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -18,6 +18,12 @@ let lastKnownState = null;
 let cachedAlarms = null;
 let alarmsDirty = true;
 let lastAlarmReadAt = 0;
+
+// Same story for the stopwatch laps: keyed on the lap count the device reports,
+// so a re-read only happens when a lap is actually added or cleared.
+let cachedLaps = [];
+let cachedLapCount = -1;
+let lastLapReadAt = 0;
 const ALARM_CHANGING_CMD = /^(SET_ALARM|ALARM_EN|SNOOZE|DISMISS_ALARM)/;
 
 export function invalidateAlarmCache() {
@@ -323,9 +329,11 @@ document.addEventListener('DOMContentLoaded', () => {
             disconnect(updateConnectionState, appendLog);
         } else {
             connect((state) => {
-                // A new link means the cached alarm list belongs to nothing
+                // A new link means the cached device data belongs to nothing
                 if (state !== 'connected') cachedAlarms = null;
                 alarmsDirty = true;
+                cachedLaps = [];
+                cachedLapCount = -1;
                 updateConnectionState(state, bleState.deviceName);
             }, wrappedUpdateState, appendLog);
         }
@@ -1442,21 +1450,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 state.alarms = cachedAlarms;
             }
-            // Stop infinite loops if lap read fails
-            if (state.lapCount > 0 && (!state.laps || state.laps.length !== state.lapCount) && !isFetchingLaps && !window._lapsFetchFailed) {
-                isFetchingLaps = true;
-                const fetchedLaps = await readLaps(state.lapCount);
-                if (fetchedLaps && fetchedLaps.length === state.lapCount) {
-                    state.laps = fetchedLaps;
-                    window._lapsFetchFailed = false;
-                } else {
-                    window._lapsFetchFailed = true; // prevent infinite fetch loops
-                    state.laps = [];
-                }
-                isFetchingLaps = false;
-            }
+            // Laps, like alarms, never ride along with telemetry. Cache them and
+            // re-read only when the device reports a different lap count.
+            // Leaving state.laps undefined on the frames where a read was still
+            // in flight is what made the lap panel flip between the list and
+            // "Loading laps…", and made the live lap time jump to total elapsed.
             if (state.lapCount === 0) {
-                window._lapsFetchFailed = false; // reset when laps clear
+                cachedLaps = [];
+                cachedLapCount = 0;
+                state.laps = cachedLaps;
+            } else if (!state.laps || state.laps.length !== state.lapCount) {
+                const canRetry = (Date.now() - lastLapReadAt) > 500;
+                if (cachedLapCount !== state.lapCount && !isFetchingLaps && canRetry) {
+                    isFetchingLaps = true;
+                    lastLapReadAt = Date.now();
+                    const fetchedLaps = await readLaps(state.lapCount);
+                    isFetchingLaps = false;
+                    if (fetchedLaps && fetchedLaps.length === state.lapCount) {
+                        cachedLaps = fetchedLaps;
+                        cachedLapCount = state.lapCount;
+                    }
+                    // A short read just leaves the cache alone; the count still
+                    // differs so the next frame past the backoff tries again.
+                }
+                state.laps = cachedLaps;
             }
             // Sync virtual RTC
             virtualRTC.setState(state);
