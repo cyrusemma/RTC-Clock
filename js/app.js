@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=14';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=14';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=14';
-import { VirtualRTC } from './VirtualRTC.js?v=14';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=15';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=15';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=15';
+import { VirtualRTC } from './VirtualRTC.js?v=15';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Alarm pickers
-    let alarmDraft = { h: 0, m: 0, en: 0, rep: 0, slot: 0 };
+    let alarmDraft = { h: 0, m: 0, en: 0, rep: 0, slot: 0, label: '' };
     const alarmEnabledToggle = document.getElementById('alarm-enabled-toggle');
     const alarmPickerH = initScrollPicker(
         document.getElementById('alarm-picker-hour'), 0,
@@ -535,7 +535,49 @@ document.addEventListener('DOMContentLoaded', () => {
     // way — it sits right on top of the weekday row.
     const alarmFab = document.getElementById('alarm-fab');
 
+    // ── Alarm label ───────────────────────────────────────────────────────
+    const alarmLabelRow    = document.getElementById('alarm-label-row');
+    const alarmLabelValue  = document.getElementById('alarm-label-value');
+    const alarmLabelSheet  = document.getElementById('alarm-label-sheet');
+    const alarmLabelInput  = document.getElementById('alarm-label-input');
+
+    function refreshAlarmLabelRow() {
+        if (alarmLabelValue) alarmLabelValue.textContent = alarmDraft.label || 'None';
+    }
+
+    function openAlarmLabelSheet() {
+        if (!alarmLabelSheet) return;
+        alarmLabelInput.value = alarmDraft.label || '';
+        alarmLabelSheet.classList.remove('hidden');
+        setTimeout(() => alarmLabelInput.focus(), 50);
+    }
+
+    function closeAlarmLabelSheet() {
+        if (alarmLabelSheet) alarmLabelSheet.classList.add('hidden');
+    }
+
+    if (alarmLabelRow) alarmLabelRow.addEventListener('click', openAlarmLabelSheet);
+    const alarmLabelCancel = document.getElementById('alarm-label-cancel');
+    const alarmLabelOk = document.getElementById('alarm-label-ok');
+    if (alarmLabelCancel) alarmLabelCancel.addEventListener('click', closeAlarmLabelSheet);
+    if (alarmLabelOk) {
+        alarmLabelOk.addEventListener('click', () => {
+            alarmDraft.label = (alarmLabelInput.value || '').trim().slice(0, 24);
+            refreshAlarmLabelRow();
+            closeAlarmLabelSheet();
+        });
+    }
+    if (alarmLabelInput) {
+        alarmLabelInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') alarmLabelOk.click();
+        });
+    }
+    document.querySelectorAll('[data-alarm-label-dismiss]').forEach(el =>
+        el.addEventListener('click', closeAlarmLabelSheet));
+
     function openAlarmEditor() {
+        refreshAlarmLabelRow();
+        closeAlarmLabelSheet();
         els.alarmEditor.classList.remove('hidden');
         els.alarmEditor.classList.add('slide-up-active');
         if (alarmFab) alarmFab.classList.add('hidden');
@@ -552,7 +594,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeAlarmEditor() {
         els.alarmEditor.classList.add('hidden');
         els.alarmEditor.classList.remove('slide-up-active');
+        closeAlarmLabelSheet();
         if (alarmFab) alarmFab.classList.remove('hidden');
+    }
+
+    // Repaint the list from whatever alarm data we have, so an edit shows up
+    // immediately instead of waiting for the next telemetry frame.
+    function repaintAlarmCards() {
+        const source = (lastBleState && lastBleState.alarms)
+            ? lastBleState.alarms
+            : (virtualRTC ? virtualRTC.getState().alarms : null);
+        if (source) renderAlarmCards(source, alarmDraft.slot);
     }
 
     els.alarmCancelBtn.addEventListener('click', closeAlarmEditor);
@@ -561,7 +613,18 @@ document.addEventListener('DOMContentLoaded', () => {
         alarmDraft.h = alarmPickerH.getValue();
         alarmDraft.m = alarmPickerM.getValue();
         sendCmd(`SET_ALARM:${alarmDraft.slot},${String(alarmDraft.h).padStart(2,'0')},${String(alarmDraft.m).padStart(2,'0')},${alarmDraft.en ? 1 : 0},${alarmDraft.rep}`);
+        setAlarmLabel(alarmDraft.slot, alarmDraft.label);
+
+        // The device echoes the new values on its next frame; patch the cached
+        // list so the card does not show the old time until then.
+        if (cachedAlarms && cachedAlarms[alarmDraft.slot]) {
+            cachedAlarms[alarmDraft.slot] = {
+                h: alarmDraft.h, m: alarmDraft.m,
+                en: !!alarmDraft.en, sn: false, rep: alarmDraft.rep,
+            };
+        }
         closeAlarmEditor();
+        repaintAlarmCards();
     });
 
     // Alarm Cards Click
@@ -580,6 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const existing = source ? source[slot] : null;
 
         alarmDraft.slot = slot;
+        alarmDraft.label = getAlarmLabel(slot);
         if (existing) {
             alarmDraft.h = existing.h;
             alarmDraft.m = existing.m;
@@ -632,6 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alarmDraft.m = 0;
             alarmDraft.en = 1;
             alarmDraft.rep = 0;
+            // A fresh alarm starts unnamed, even if this slot was used before
+            alarmDraft.label = '';
 
             alarmPickerH.setValue(alarmDraft.h);
             alarmPickerM.setValue(alarmDraft.m);

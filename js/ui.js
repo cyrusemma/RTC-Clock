@@ -261,6 +261,32 @@ export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ri
     progress.classList.toggle('animate-pulse', !!isRinging);
 }
 
+/* Alarm labels live in the browser: the firmware's SET_ALARM protocol carries
+   only slot, hour, minute, enabled and repeat days, with nowhere to put a name.
+   Kept in memory so a 4 Hz render does not re-parse storage every frame. */
+const ALARM_LABELS_KEY = 'alarmLabels';
+
+function loadAlarmLabels() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(ALARM_LABELS_KEY));
+        if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
+    } catch (e) { /* corrupt or absent */ }
+    return {};
+}
+
+let alarmLabels = loadAlarmLabels();
+
+export function getAlarmLabel(slot) {
+    return alarmLabels[slot] || '';
+}
+
+export function setAlarmLabel(slot, label) {
+    const clean = String(label || '').trim().slice(0, 24);
+    if (clean) alarmLabels[slot] = clean;
+    else delete alarmLabels[slot];
+    localStorage.setItem(ALARM_LABELS_KEY, JSON.stringify(alarmLabels));
+}
+
 export function renderAlarmCards(alarms, activeSlot) {
     const container = els.alarmCardsContainer;
     if (!container) return;
@@ -323,9 +349,15 @@ export function renderAlarmCards(alarms, activeSlot) {
         const entryClass = firstPaint ? ' animate-fade-in-up' : '';
         const entryStyle = firstPaint ? ` style="animation-delay: ${i * 100}ms; animation-fill-mode: both;"` : '';
 
+        const label = (alarmLabels[i] || '').trim();
+        const labelHtml = label
+            ? `<div class="font-mono-label text-[10px] text-primary-fixed-dim uppercase tracking-widest mb-1 truncate max-w-[180px]">${escapeHtml(label)}</div>`
+            : '';
+
         return `
         <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)]${entryClass}"${entryStyle} data-slot="${i}">
-            <div>
+            <div class="min-w-0">
+                ${labelHtml}
                 <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
                 <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
                     ${dayStr}

@@ -16,7 +16,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="css/styles.css?v=14">
+    <link rel="stylesheet" href="css/styles.css?v=15">
 
     <script id="tailwind-config">
         tailwind.config = {
@@ -418,6 +418,15 @@
                     <button class="glass-button rounded-lg w-10 h-10 font-mono-label text-xs text-on-surface day-btn" data-day="6">Sa</button>
                 </div>
 
+                <!-- Alarm Label -->
+                <button id="alarm-label-row" class="settings-card settings-row rounded-xl mt-3">
+                    <span class="settings-row-label">Label</span>
+                    <span class="settings-row-value">
+                        <span id="alarm-label-value">None</span>
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </span>
+                </button>
+
                 <!-- Alarm Sound Selector -->
                 <div class="mt-2 border-t border-outline-variant/30 pt-4">
                     <h4 class="font-mono-label text-[10px] text-outline uppercase tracking-wider mb-2">Alarm Sound</h4>
@@ -585,6 +594,20 @@
             <p class="font-mono-label text-xs text-outline-variant text-center mt-4">These custom tones play from your device's browser when the timer finishes.</p>
         </section>
         
+        <!-- Alarm label bottom sheet -->
+        <div id="alarm-label-sheet" class="hidden fixed inset-0 z-[75]">
+            <div class="absolute inset-0 bg-black/50" data-alarm-label-dismiss></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-surface-container rounded-t-3xl border-t border-outline-variant/30 shadow-2xl p-6 pb-10 slide-up-active">
+                <h4 class="font-headline-md text-base font-semibold text-on-surface mb-4">Label</h4>
+                <input id="alarm-label-input" type="text" maxlength="24" placeholder="e.g. Wake up" aria-label="Alarm label"
+                    class="w-full input-dark rounded-xl px-4 py-3 font-mono-label text-sm mb-5">
+                <div class="flex gap-3">
+                    <button id="alarm-label-cancel" class="glass-button rounded-xl flex-1 py-3 font-mono-label text-mono-label font-bold text-on-surface-variant">Cancel</button>
+                    <button id="alarm-label-ok" class="btn-primary rounded-xl flex-1 py-3 font-mono-label text-mono-label font-bold">Done</button>
+                </div>
+            </div>
+        </div>
+
         <!-- ── TIMER EDITOR — full screen "Edit Timer" sheet ───────────────── -->
         <div id="timer-editor" class="hidden fixed inset-0 z-[70] flex-col bg-background/95 backdrop-blur-2xl">
             <!-- Header: cancel / title / confirm -->
@@ -740,6 +763,6 @@
         </div>
     </nav>
 
-    <script type="module" src="js/app.js?v=14"></script>
+    <script type="module" src="js/app.js?v=15"></script>
 </body>
 </html>
