@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=9';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=9';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=9';
-import { VirtualRTC } from './VirtualRTC.js?v=9';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=10';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=10';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=10';
+import { VirtualRTC } from './VirtualRTC.js?v=10';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -526,13 +526,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!card) return;
         const slot = parseInt(card.dataset.slot);
         
-        // Find existing alarm data if any
-        let existing = null;
-        if (bleState.connected && lastBleState && lastBleState.alarms) {
-            existing = lastBleState.alarms[slot];
-        } else if (wsState.connected && lastBleState && lastBleState.alarms) {
-            existing = lastBleState.alarms[slot];
-        }
+        // Find existing alarm data if any. lastBleState tracks the last state
+        // pushed to the UI whatever the transport, so this also works offline
+        // against the VirtualRTC — previously editing only worked when a
+        // device was connected.
+        const source = (lastBleState && lastBleState.alarms)
+            ? lastBleState.alarms
+            : (virtualRTC ? virtualRTC.getState().alarms : null);
+        const existing = source ? source[slot] : null;
 
         alarmDraft.slot = slot;
         if (existing) {
@@ -567,12 +568,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnAlarmAdd) {
         btnAlarmAdd.addEventListener('click', () => {
             let slot = -1;
-            if (lastBleState && lastBleState.alarms) {
+            const alarms = (lastBleState && lastBleState.alarms)
+                ? lastBleState.alarms
+                : (virtualRTC ? virtualRTC.getState().alarms : null);
+            if (alarms) {
                 // Find first completely unused slot
-                slot = lastBleState.alarms.findIndex(a => !a.en && !a.sn && a.h === 0 && a.m === 0 && a.rep === 0);
+                slot = alarms.findIndex(a => !a.en && !a.sn && a.h === 0 && a.m === 0 && a.rep === 0);
                 if (slot === -1) {
                     // Find first disabled slot
-                    slot = lastBleState.alarms.findIndex(a => !a.en);
+                    slot = alarms.findIndex(a => !a.en);
                 }
             }
             if (slot === -1) {
@@ -1019,7 +1023,15 @@ document.addEventListener('DOMContentLoaded', () => {
             pendingRenderState = null;
             if (!state) return;
 
-            _origUpdateState(state);
+            // While a device is connected AND something is counting, renderLoop
+            // already repaints every frame from lastBleState using locally
+            // interpolated time. Painting the raw telemetry frame here as well
+            // makes the digits jump backwards between the two sources — that is
+            // the flicker seen on hardware. Let the interpolating loop own the
+            // frame; the alarm handling below still runs on every state.
+            const interpolating = (bleState.connected || wsState.connected) &&
+                                  (state.swState === 1 || state.tmrState === 1);
+            if (!interpolating) _origUpdateState(state);
 
             const alarmActive = state.alarmRinging || state.tmrState === 3;
             

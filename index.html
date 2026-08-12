@@ -16,7 +16,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="css/styles.css?v=10">
+    <link rel="stylesheet" href="css/styles.css?v=11">
 
     <script id="tailwind-config">
         tailwind.config = {
@@ -207,7 +207,7 @@
     </header>
 
     <!-- Main Content Canvas -->
-    <main class="flex-1 overflow-y-auto pt-16 pb-24 md:pb-6 px-margin-mobile md:px-margin-desktop bg-surface-container-lowest bg-gradient-to-b from-surface-container-lowest to-background views">
+    <main class="flex-1 overflow-y-auto pt-16 px-margin-mobile md:px-margin-desktop bg-surface-container-lowest bg-gradient-to-b from-surface-container-lowest to-background views">
         
         <!-- CLOCK VIEW -->
         <section id="view-clock" class="view active max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-12 gap-gutter relative">
@@ -333,6 +333,15 @@
                         </span>
                         <span class="material-symbols-outlined text-[16px] group-open:rotate-180 transition-transform">expand_more</span>
                     </summary>
+                    <!-- Live in-progress lap — ticks while the stopwatch runs -->
+                    <div id="sw-lap-current" class="hidden items-center justify-between p-3 rounded-lg bg-primary-fixed/10 border-l-4 border-primary-fixed mt-4 shadow-sm z-10 relative">
+                        <span class="text-primary-fixed font-bold flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px] animate-pulse">radio_button_checked</span>
+                            Lap <span id="sw-lap-current-num">1</span>
+                        </span>
+                        <span id="sw-lap-current-time" class="text-on-surface text-lg font-display-time-mobile">00:00.<span class="opacity-60 text-xs">00</span></span>
+                    </div>
+
                     <div id="sw-laps" class="font-mono-label text-body-sm flex flex-col gap-3 mt-4 text-on-surface max-h-[300px] overflow-y-auto pr-1 hide-scrollbar z-10 relative">
                         <!-- Injected by ui.js -->
                     </div>
@@ -655,6 +664,6 @@
         </div>
     </nav>
 
-    <script type="module" src="js/app.js?v=9"></script>
+    <script type="module" src="js/app.js?v=10"></script>
 </body>
 </html>

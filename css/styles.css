@@ -342,6 +342,15 @@ body {
     border-color: transparent !important;
 }
 
+/* The bottom nav is fixed, so it sits on top of the scrolling content and
+   would clip the end of it. Reserve exactly its height (h-56px tab + py-2)
+   plus the device safe-area inset, at every breakpoint — the nav is now
+   visible on desktop too, where the old md:pb-6 was far too small. */
+main.views {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 /* Add-alarm FAB — must sit above the PWA install banner (z-50), which
    otherwise covers it in the bottom-right corner. */
 #alarm-fab {

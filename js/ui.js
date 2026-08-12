@@ -28,6 +28,9 @@ export const els = {
     swState: document.getElementById('sw-state'),
     swLapsContainer: document.getElementById('sw-laps-container'),
     swLaps: document.getElementById('sw-laps'),
+    swLapCurrent: document.getElementById('sw-lap-current'),
+    swLapCurrentNum: document.getElementById('sw-lap-current-num'),
+    swLapCurrentTime: document.getElementById('sw-lap-current-time'),
     
     alarmRingingBanner: document.getElementById('alarm-ringing-banner'),
     alarmCardsContainer: document.getElementById('alarm-cards-container'),
@@ -255,11 +258,23 @@ export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ri
 }
 
 export function renderAlarmCards(alarms, activeSlot) {
-    if (!els.alarmCardsContainer) return;
-    // No alarm data yet (e.g. BLE read still in flight) — show the empty
-    // state rather than leaving the screen blank.
-    if (!alarms || alarms.length === 0) {
-        setHTML(els.alarmCardsContainer, `<div class="col-span-full text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`);
+    const container = els.alarmCardsContainer;
+    if (!container) return;
+
+    // `undefined` means "not known yet" (a BLE alarm read is still in flight)
+    // and is NOT the same as "no alarms". Telemetry frames arrive without the
+    // alarm list between reads, so clobbering the cards here is what made the
+    // list blink against real hardware. Hold what is already on screen.
+    if (!alarms) {
+        if (!container.dataset.rendered) {
+            setHTML(container, `<div class="col-span-full text-center text-on-surface-variant font-mono-label py-10">Loading alarms…</div>`);
+        }
+        return;
+    }
+
+    if (alarms.length === 0) {
+        setHTML(container, `<div class="col-span-full text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`);
+        container.dataset.rendered = '1';
         return;
     }
 
@@ -300,7 +315,7 @@ export function renderAlarmCards(alarms, activeSlot) {
         const staggerDelay = i * 100;
 
         return `
-        <div class="glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] animate-fade-in-up" style="animation-delay: ${staggerDelay}ms; animation-fill-mode: both;" data-slot="${i}">
+        <div class="alarm-card glass-card rounded-2xl p-5 flex justify-between items-center cursor-pointer hover:bg-surface-variant/40 transition-all duration-300 ${disabledClass} border-t border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)] animate-fade-in-up" style="animation-delay: ${staggerDelay}ms; animation-fill-mode: both;" data-slot="${i}">
             <div>
                 <div class="font-display-time-mobile text-headline-lg text-primary-fixed glow-text group-hover:text-primary transition-colors">${timeStr}</div>
                 <div class="font-mono-label text-[10px] text-outline mt-1 uppercase tracking-wider flex gap-1.5">
@@ -319,7 +334,8 @@ export function renderAlarmCards(alarms, activeSlot) {
 
     // Diffed: rewriting this unconditionally restarts the card entry
     // animations on every frame and thrashes layout.
-    setHTML(els.alarmCardsContainer, html);
+    setHTML(container, html);
+    container.dataset.rendered = '1';
 }
 
 // DOM Diffing Helpers
@@ -479,8 +495,29 @@ export function updateState(state) {
             if (btnSwReset) btnSwReset.classList.remove('hidden');
         }
 
+        // Live in-progress lap — the split since the last recorded lap, ticking
+        // in real time. Only two short text nodes change per frame, so this is
+        // cheap enough to run at the stopwatch's refresh rate.
+        const recorded = (state.laps && state.laps.length) ? state.laps : [];
+        const lastLapMs = recorded.length ? recorded[recorded.length - 1] : 0;
+        const currentLapMs = Math.max(0, ms - lastLapMs);
+        const swActive = state.swState === 1 || state.swState === 2;
+
+        if (els.swLapCurrent) {
+            setClass(els.swLapCurrent, 'hidden', !swActive);
+            setClass(els.swLapCurrent, 'flex', swActive);
+            if (swActive) {
+                setText(els.swLapCurrentNum, String((state.lapCount || 0) + 1));
+                const cMillis = currentLapMs % 1000;
+                const cs = Math.floor(currentLapMs / 1000) % 60;
+                const cm = Math.floor(currentLapMs / 60000);
+                setHTML(els.swLapCurrentTime,
+                    `${pad(cm)}:${pad(cs)}.<span class="opacity-60 text-xs">${padMs(cMillis)}</span>`);
+            }
+        }
+
         // Laps
-        if (state.lapCount > 0) {
+        if (state.lapCount > 0 || swActive) {
             setClass(els.swLapsContainer, 'hidden', false);
             if (state.laps && state.laps.length > 0) {
                 let lastLap = 0;
@@ -521,8 +558,12 @@ export function updateState(state) {
                     </div>`;
                 }).join('');
                 setHTML(els.swLaps, html);
-            } else {
+            } else if (state.lapCount > 0) {
+                // Device reports laps we have not fetched yet (BLE read pending)
                 setHTML(els.swLaps, `<div class="py-2 text-on-surface-variant text-sm italic text-center">Loading laps...</div>`);
+            } else {
+                // Running, but nothing recorded yet — the live row above is enough
+                setHTML(els.swLaps, '');
             }
         } else {
             setClass(els.swLapsContainer, 'hidden', true);
