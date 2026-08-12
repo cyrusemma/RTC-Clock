@@ -156,12 +156,12 @@ export function renderWorldClock(epochSeconds) {
             const formatted = fmt.format(base);
             const icon = icons[z.label] || 'public';
             return `
-            <div class="flex flex-col justify-center min-w-[120px] md:min-w-0 md:w-full bg-surface-variant/20 p-3 rounded-xl border border-outline-variant/20 backdrop-blur-sm snap-center shrink-0 shadow-sm hover:bg-surface-variant/40 transition-colors">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="material-symbols-outlined text-[14px] text-primary/70">${icon}</span>
-                    <span class="text-xs text-on-surface/80 uppercase tracking-widest">${z.label}</span>
+            <div class="w-full flex items-center justify-between gap-3 bg-surface-variant/20 px-3 py-2.5 rounded-xl border border-outline-variant/20 backdrop-blur-sm shadow-sm hover:bg-surface-variant/40 transition-colors">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="material-symbols-outlined text-[14px] text-primary/70 shrink-0">${icon}</span>
+                    <span class="text-xs text-on-surface/80 uppercase tracking-widest truncate">${z.label}</span>
                 </div>
-                <div class="text-xl font-display-time-mobile text-on-surface drop-shadow-md">${formatted}</div>
+                <div class="text-lg font-display-time-mobile text-on-surface drop-shadow-md tabular-nums shrink-0">${formatted}</div>
             </div>`;
         } catch(e) {
             return '';
