@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rtc-clock-v7';
+const CACHE_NAME = 'rtc-clock-v9';
 const ASSETS = [
     './',
     './index.html',

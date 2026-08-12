@@ -1,6 +1,9 @@
 // js/VirtualRTC.js
 
 export class VirtualRTC {
+    // Matches SNOOZE_MINUTES in the firmware (RTC_Clock_V2.ino)
+    static SNOOZE_MS = 5 * 60 * 1000;
+
     constructor() {
         this.state = {
             mode: 0,
@@ -77,6 +80,51 @@ export class VirtualRTC {
     getState() {
         this.state.epoch = Math.floor(Date.now() / 1000);
         return { ...this.state };
+    }
+
+    /**
+     * Fire any alarm that is due. Honours the repeat-day bitmask and pending
+     * snoozes. Returns true when the ringing state changed, so the caller
+     * knows it has to push a UI update.
+     */
+    checkAlarms(now = new Date()) {
+        if (this.state.alarmRinging) return false;
+
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const todayBit = 1 << now.getDay();
+        const nowMs = now.getTime();
+
+        for (let i = 0; i < this.state.alarms.length; i++) {
+            const alarm = this.state.alarms[i];
+            if (!alarm.en) continue;
+
+            // A snoozed alarm re-rings when its snooze window expires
+            if (alarm.sn && alarm.snoozeUntil) {
+                if (nowMs >= alarm.snoozeUntil) {
+                    alarm.sn = 0;
+                    alarm.snoozeUntil = 0;
+                    this.state.alarmRinging = true;
+                    this.state.ringingSlot = i;
+                    return true;
+                }
+                continue;
+            }
+
+            if (alarm.h !== h || alarm.m !== m) continue;
+            // rep === 0 means a one-shot alarm: fires on any day
+            if (alarm.rep && !(alarm.rep & todayBit)) continue;
+
+            // Prevent re-triggering within the same minute
+            const stamp = `${i}-${now.toDateString()}-${h}-${m}`;
+            if (this.lastTriggeredAlarm === stamp) continue;
+            this.lastTriggeredAlarm = stamp;
+
+            this.state.alarmRinging = true;
+            this.state.ringingSlot = i;
+            return true;
+        }
+        return false;
     }
 
     setState(newState) {
@@ -160,6 +208,41 @@ export class VirtualRTC {
                 rep: parseInt(args[4]),
                 sn: 0
             };
+        } else if (cmd === 'ALARM_EN') {
+            const slot = parseInt(args[0]);
+            const alarm = this.state.alarms[slot];
+            if (alarm) {
+                alarm.en = parseInt(args[1]) ? 1 : 0;
+                // Disabling the alarm that is currently ringing also silences it
+                if (!alarm.en) {
+                    alarm.sn = 0;
+                    alarm.snoozeUntil = 0;
+                    if (this.state.ringingSlot === slot) {
+                        this.state.alarmRinging = false;
+                        this.state.ringingSlot = 0xFF;
+                    }
+                }
+            }
+        } else if (cmd === 'DISMISS_ALARM') {
+            const slot = args.length ? parseInt(args[0]) : this.state.ringingSlot;
+            const alarm = this.state.alarms[slot];
+            if (alarm) {
+                alarm.sn = 0;
+                alarm.snoozeUntil = 0;
+                // One-shot alarms switch off once dismissed; repeating ones stay armed
+                if (!alarm.rep) alarm.en = 0;
+            }
+            this.state.alarmRinging = false;
+            this.state.ringingSlot = 0xFF;
+        } else if (cmd === 'SNOOZE') {
+            const slot = args.length ? parseInt(args[0]) : this.state.ringingSlot;
+            const alarm = this.state.alarms[slot];
+            if (alarm) {
+                alarm.sn = 1;
+                alarm.snoozeUntil = Date.now() + VirtualRTC.SNOOZE_MS;
+            }
+            this.state.alarmRinging = false;
+            this.state.ringingSlot = 0xFF;
         } else if (cmd === 'SET_VOLUME') {
             const v = parseInt(args[0]);
             this.state.buzzerVolume = isNaN(v) ? 180 : Math.max(0, Math.min(255, v));

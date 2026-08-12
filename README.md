@@ -99,7 +99,17 @@ DISMISS_ALARM:<slot>
 SNOOZE:<slot>
 
 SET_TIMER:<min>,<sec>
-  e.g.  SET_TIMER:10,30
+SET_TIMER:<hr>,<min>,<sec>
+  e.g.  SET_TIMER:10,30      ← 10 min 30 sec
+        SET_TIMER:1,10,30    ← 1 hr 10 min 30 sec
+
+RESET_TIMER
+  Stops the timer and reloads the configured duration.
+
+SET_VOLUME:<0-255>           ← firmware 2.1.0+
+  e.g.  SET_VOLUME:180
+  Buzzer loudness via PWM duty cycle. Requires a PASSIVE buzzer;
+  an active (self-oscillating) buzzer only responds to on/off.
 
 SET_TIMEFORMAT:<12|24>
 SET_TIMEZONE:<-12..14>
@@ -126,8 +136,10 @@ MODE:<0=Clock|1=Stopwatch|2=Alarm|3=Timer>
   "swMs": 0,
   "tmr": 0,
   "tmrMs": 300000,
+  "tmrHr": 0,
   "tmrMin": 5,
   "tmrSec": 0,
+  "vol": 180,
   "tmrField": 0,
   "lapCount": 0,
   "laps": [],
@@ -187,7 +199,9 @@ MODE:<0=Clock|1=Stopwatch|2=Alarm|3=Timer>
 [23]    Lap count
 [24]    Alarm view slot (0-3)
 [25]    Alarm edit field (0-2)
-[26-33] Reserved (0)
+[26]    Timer init hours
+[27]    Buzzer volume (0-255)   ← firmware 2.1.0+ (0 on older builds)
+[28-33] Reserved (0)
 ```
 
 ---
@@ -246,6 +260,15 @@ await char.writeValue(enc.encode('SYNC:' + Math.floor(Date.now()/1000) + ',0'));
 ---
 
 ## Pin Summary
+
+The OLED is driven as an **SH1106 128x64 over hardware I2C**
+(`U8G2_SH1106_128X64_NONAME_F_HW_I2C`). If your panel is an **SSD1306**
+the image will look shifted or garbled — swap the constructor to
+`U8G2_SSD1306_128X64_NONAME_F_HW_I2C`.
+
+The buzzer is driven with LEDC PWM so the app's volume slider works, which
+assumes a **passive** buzzer. An active buzzer generates its own tone and
+will only respond to on/off, not to the volume setting.
 
 | Pin | Function |
 |---|---|

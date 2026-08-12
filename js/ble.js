@@ -173,8 +173,12 @@ function parsePacketV2(dv) {
     const lapCount        = dv.getUint8(23);
     const alarmViewSlot   = dv.getUint8(24);
     const alarmEditField  = dv.getUint8(25);
-    const buzzerVolume    = dv.getUint8(26);
-    // [27-33] reserved — ignored
+    const tmrInitHr       = dv.getUint8(26);          // firmware packs hours here
+    // Volume added in firmware 2.1.0; older builds leave this byte as 0,
+    // which would read as "muted", so fall back to the default.
+    const rawVolume       = dv.getUint8(27);
+    const buzzerVolume    = rawVolume === 0 ? 180 : rawVolume;
+    // [28-33] reserved — ignored
 
     return {
         protocolVersion,
@@ -189,6 +193,7 @@ function parsePacketV2(dv) {
         swElapsedMs,
         tmrRemainingMs,
         buzzerVolume,
+        tmrInitHr,
         tmrInitMin,
         tmrInitSec,
         tmrSetField,
@@ -247,6 +252,7 @@ function parsePacketV1(dv) {
         tmrState,
         swElapsedMs,
         tmrRemainingMs,
+        tmrInitHr:      0,      // V1 has no timer-hours field
         tmrInitMin,
         tmrInitSec,
         tmrSetField,

@@ -34,7 +34,7 @@
 // ============================================================================
 // COMPILE-TIME CONFIGURATION
 // ============================================================================
-#define FW_VERSION        "2.0.0"
+#define FW_VERSION        "2.1.0"
 #define PROTOCOL_VERSION  2
 
 // WiFi AP credentials — change these to whatever you want
@@ -65,6 +65,11 @@
 
 // Snooze
 #define SNOOZE_MINUTES    5
+
+// Buzzer PWM (volume control) — see buzzer()
+#define BUZZER_LEDC_CHANNEL 0
+#define BUZZER_FREQ_HZ      2000
+#define BUZZER_RES_BITS     8
 
 // ============================================================================
 // ENUMS
@@ -113,6 +118,11 @@ int           tmr_init_sec     = 0;
 int           tmr_set_field    = 0;   // 0=view, 1=hr, 2=min, 3=sec
 unsigned long tmr_target_ms    = 0;
 unsigned long tmr_remaining_ms = 300000;
+
+// ============================================================================
+// BUZZER VOLUME (0-255) — set from the web app via SET_VOLUME
+// ============================================================================
+uint8_t       buzzer_volume    = 180;
 
 // ============================================================================
 // CLOCK & GLOBAL STATE
@@ -170,6 +180,7 @@ void loadSettings() {
   tmr_init_hr  = prefs.getUChar("tmh", 0);
   tmr_init_min = prefs.getUChar("tmm", 5);
   tmr_init_sec = prefs.getUChar("tms", 0);
+  buzzer_volume = prefs.getUChar("vol", 180);
   for (int i = 0; i < MAX_ALARMS; i++) {
     char key[8];
     snprintf(key, sizeof(key), "ah%d", i);  alarms[i].hour       = prefs.getUChar(key, 7);
@@ -189,6 +200,7 @@ void saveSettings() {
   prefs.putUChar("tmh", tmr_init_hr);
   prefs.putUChar("tmm", tmr_init_min);
   prefs.putUChar("tms", tmr_init_sec);
+  prefs.putUChar("vol", buzzer_volume);
   for (int i = 0; i < MAX_ALARMS; i++) {
     char key[8];
     snprintf(key, sizeof(key), "ah%d", i);  prefs.putUChar(key, alarms[i].hour);
@@ -202,9 +214,26 @@ void saveSettings() {
 // ============================================================================
 // BUZZER
 // ============================================================================
+// tone() gives no volume control, so the buzzer is driven with LEDC PWM
+// instead: the duty cycle sets loudness. Requires a PASSIVE buzzer — an
+// active (self-oscillating) buzzer ignores duty and only hears on/off.
+void buzzerBegin() {
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  ledcAttach(BUZZER_PIN, BUZZER_FREQ_HZ, BUZZER_RES_BITS);
+#else
+  ledcSetup(BUZZER_LEDC_CHANNEL, BUZZER_FREQ_HZ, BUZZER_RES_BITS);
+  ledcAttachPin(BUZZER_PIN, BUZZER_LEDC_CHANNEL);
+#endif
+}
+
 void buzzer(bool on) {
-  if (on) tone(BUZZER_PIN, 2000);
-  else     noTone(BUZZER_PIN);
+  // A square wave is loudest at 50% duty, so map 0..255 volume onto 0..128.
+  uint32_t duty = on ? (uint32_t)(buzzer_volume / 2) : 0;
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  ledcWrite(BUZZER_PIN, duty);
+#else
+  ledcWrite(BUZZER_LEDC_CHANNEL, duty);
+#endif
 }
 
 // ============================================================================
@@ -321,6 +350,7 @@ void publishTelemetry(struct tm* now) {
     p[24] = (uint8_t)alarmViewSlot;
     p[25] = (uint8_t)alarmEditField;
     p[26] = (uint8_t)tmr_init_hr;
+    p[27] = buzzer_volume;
     for (int i = 27; i < 34; i++) p[i] = 0;
     pCharTelemetry->setValue(p, sizeof(p));
     pCharTelemetry->notify();
@@ -352,7 +382,7 @@ void publishTelemetry(struct tm* now) {
     }
     lp += snprintf(lap_json + lp, sizeof(lap_json) - lp, "]");
 
-    char json[512];
+    char json[640];
     snprintf(json, sizeof(json),
       "{"
         "\"v\":%d,"
@@ -368,8 +398,10 @@ void publishTelemetry(struct tm* now) {
         "\"swMs\":%lu,"
         "\"tmr\":%d,"
         "\"tmrMs\":%lu,"
+        "\"tmrHr\":%d,"
         "\"tmrMin\":%d,"
         "\"tmrSec\":%d,"
+        "\"vol\":%d,"
         "\"tmrField\":%d,"
         "\"lapCount\":%d,"
         "\"laps\":%s,"
@@ -390,8 +422,10 @@ void publishTelemetry(struct tm* now) {
       sw_elapsed_ms,
       (int)tmr_state,
       tmr_remaining_ms,
+      tmr_init_hr,
       tmr_init_min,
       tmr_init_sec,
+      (int)buzzer_volume,
       tmr_set_field,
       lapCount,
       lap_json,
@@ -495,6 +529,17 @@ void parseCommand(const String& raw) {
       tmr_remaining_ms = (((tmr_init_hr * 60UL) + tmr_init_min) * 60UL + tmr_init_sec) * 1000UL;
       saveSettings();
     }
+    return;
+  }
+
+  // --- Buzzer volume: SET_VOLUME:<0-255> ---
+  if (cmd.startsWith("SET_VOLUME:")) {
+    int v = cmd.substring(11).toInt();
+    buzzer_volume = (uint8_t)constrain(v, 0, 255);
+    // Apply immediately if the buzzer is currently sounding
+    if (ringAlarmIdx >= 0 || tmr_state == TMR_RINGING) buzzer(true);
+    saveSettings();
+    logEvent("Volume set");
     return;
   }
 
@@ -1028,6 +1073,7 @@ void setup() {
   Wire.setPins(SDA_PIN, SCL_PIN);
   Wire.begin();
   pinMode(BUZZER_PIN,       OUTPUT);
+  buzzerBegin();
   pinMode(ALARM_BUTTON_PIN, INPUT_PULLUP);
   pinMode(UP_BUTTON_PIN,    INPUT_PULLUP);
   pinMode(DOWN_BUTTON_PIN,  INPUT_PULLUP);

@@ -43,6 +43,9 @@ export function connectWS(onStateChange, onDataReceived, onLog) {
                 swElapsedMs: data.swMs,
                 tmrRemainingMs: data.tmrMs,
                 buzzerVolume: data.vol !== undefined ? data.vol : 180,
+                // Older firmware (< 2.1.0) omits tmrHr; default to 0 so the
+                // timer total does not compute as NaN.
+                tmrInitHr: data.tmrHr !== undefined ? data.tmrHr : 0,
                 tmrInitMin: data.tmrMin,
                 tmrInitSec: data.tmrSec,
                 tmrSetField: data.tmrField,

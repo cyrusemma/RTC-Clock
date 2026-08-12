@@ -125,14 +125,28 @@ const WORLD_CLOCK_ZONES = [
     { label: 'Tokyo',     tz: 'Asia/Tokyo' },
 ];
 
+const WORLD_CLOCK_ICONS = { 'New York': 'location_city', 'London': 'account_balance', 'Accra': 'wb_sunny', 'Tokyo': 'landscape' };
+
+// Intl.DateTimeFormat construction is expensive — build each zone's formatter
+// once instead of on every frame.
+const WORLD_CLOCK_FORMATTERS = WORLD_CLOCK_ZONES.map(z => {
+    try {
+        return new Intl.DateTimeFormat('en-GB', {
+            timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false
+        });
+    } catch (e) {
+        return null;
+    }
+});
+
 export function renderWorldClock(epochSeconds) {
     const base = new Date(epochSeconds * 1000);
-    const icons = { 'New York': 'location_city', 'London': 'account_balance', 'Accra': 'wb_sunny', 'Tokyo': 'landscape' };
-    const html = WORLD_CLOCK_ZONES.map(z => {
+    const icons = WORLD_CLOCK_ICONS;
+    const html = WORLD_CLOCK_ZONES.map((z, zi) => {
         try {
-            const formatted = new Intl.DateTimeFormat('en-GB', {
-                timeZone: z.tz, hour: '2-digit', minute: '2-digit', hour12: false
-            }).format(base);
+            const fmt = WORLD_CLOCK_FORMATTERS[zi];
+            if (!fmt) return '';
+            const formatted = fmt.format(base);
             const icon = icons[z.label] || 'public';
             return `
             <div class="flex flex-col justify-center min-w-[120px] md:min-w-0 md:w-full bg-surface-variant/20 p-3 rounded-xl border border-outline-variant/20 backdrop-blur-sm snap-center shrink-0 shadow-sm hover:bg-surface-variant/40 transition-colors">
@@ -146,7 +160,8 @@ export function renderWorldClock(epochSeconds) {
             return '';
         }
     }).join('');
-    els.worldClock.innerHTML = html;
+    // Only touch the DOM when the rendered minute actually changed
+    setHTML(els.worldClock, html);
 }
 
 export function renderAnalogueClock(epochSeconds, tzOffsetHours) {
@@ -200,20 +215,22 @@ export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ri
     const fraction = totalMs > 0 ? Math.max(0, remainingMs / totalMs) : 0;
     const offset = circumference * (1 - fraction);
     
-    let ringClass = "progress-ring-circle";
-    if (isRinging) ringClass += ' animate-pulse';
-    
     let strokeColor = "#00dbe9";
     if (stateClass === 'state-running') strokeColor = '#00e383';
     else if (stateClass === 'state-paused') strokeColor = '#ffba20';
 
     if (!containerEl) return;
-    containerEl.innerHTML = `
+
+    // Build the SVG once, then only touch the attributes that actually change.
+    // Rewriting innerHTML rebuilt the entire ring 60 times a second while the
+    // stopwatch or timer was running, which is what made those screens lag.
+    let progress = containerEl.querySelector('.progress-ring-circle');
+    if (!progress) {
+        containerEl.innerHTML = `
     <svg class="absolute w-full h-full drop-shadow-lg" viewBox="0 0 100 100">
         <circle class="glass-ring-bg" cx="50" cy="50" fill="none" r="${radius}" stroke-width="6"></circle>
-        <circle class="${ringClass}" cx="50" cy="50" fill="none" r="${radius}" stroke="${strokeColor}"
+        <circle class="progress-ring-circle" cx="50" cy="50" fill="none" r="${radius}"
             stroke-dasharray="${circumference.toFixed(2)}"
-            stroke-dashoffset="${offset.toFixed(2)}"
             stroke-linecap="round"
             stroke-width="6" />
         <g opacity="0.4" stroke="#849495" stroke-width="1">
@@ -223,11 +240,29 @@ export function renderTimerRing(remainingMs, totalMs, isRinging, containerEl, ri
             <line x1="94" x2="98" y1="50" y2="50"></line>
         </g>
     </svg>`;
+        progress = containerEl.querySelector('.progress-ring-circle');
+        if (!progress) return;
+    }
+
+    const offsetStr = offset.toFixed(2);
+    if (progress.getAttribute('stroke-dashoffset') !== offsetStr) {
+        progress.setAttribute('stroke-dashoffset', offsetStr);
+    }
+    if (progress.getAttribute('stroke') !== strokeColor) {
+        progress.setAttribute('stroke', strokeColor);
+    }
+    progress.classList.toggle('animate-pulse', !!isRinging);
 }
 
 export function renderAlarmCards(alarms, activeSlot) {
-    if (!alarms || alarms.length === 0) return;
-    
+    if (!els.alarmCardsContainer) return;
+    // No alarm data yet (e.g. BLE read still in flight) — show the empty
+    // state rather than leaving the screen blank.
+    if (!alarms || alarms.length === 0) {
+        setHTML(els.alarmCardsContainer, `<div class="col-span-full text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`);
+        return;
+    }
+
     const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     
     // Check if we have state.is12hFormat (we need it from global or pass it, we can just use the exported one or read from localStorage)
@@ -279,10 +314,12 @@ export function renderAlarmCards(alarms, activeSlot) {
     }).join('');
     
     if (html.trim() === '') {
-        html = `<div class="text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`;
+        html = `<div class="col-span-full text-center text-on-surface-variant font-mono-label py-10">No alarms set.<br>Click '+' to add one.</div>`;
     }
-    
-    els.alarmCardsContainer.innerHTML = html;
+
+    // Diffed: rewriting this unconditionally restarts the card entry
+    // animations on every frame and thrashes layout.
+    setHTML(els.alarmCardsContainer, html);
 }
 
 // DOM Diffing Helpers
@@ -389,26 +426,29 @@ export function updateState(state) {
         const swStates = ['READY', 'RUNNING', 'PAUSED'];
         setText(els.swState, swStates[state.swState] || 'UNKNOWN');
         
+        // Derived every frame (pure, no DOM writes) so the ring keeps its state styling
+        let stateClass = '';
+        if (state.swState === 1) stateClass = 'state-running';
+        else if (state.swState === 2) stateClass = 'state-paused';
+
         // Only modify classes if they need changing to prevent thrashing
         if (els.swState.dataset.state !== String(state.swState)) {
             els.swState.dataset.state = String(state.swState);
             els.swState.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10');
-        
-        let stateClass = '';
-        const rippleEl = document.getElementById('sw-ripple');
-        if (state.swState === 1) {
-            stateClass = 'state-running';
-            els.swState.classList.add('text-tertiary-fixed-dim', 'bg-tertiary-fixed/10');
-            if (rippleEl) rippleEl.classList.add('ripple-active');
-        } else if (state.swState === 2) {
-            stateClass = 'state-paused';
-            els.swState.classList.add('text-secondary-fixed-dim', 'bg-secondary-fixed/10');
-            if (rippleEl) rippleEl.classList.remove('ripple-active');
-        } else {
-            els.swState.classList.add('text-primary-fixed', 'bg-primary-fixed/10');
-            if (rippleEl) rippleEl.classList.remove('ripple-active');
+
+            const rippleEl = document.getElementById('sw-ripple');
+            if (state.swState === 1) {
+                els.swState.classList.add('text-tertiary-fixed-dim', 'bg-tertiary-fixed/10');
+                if (rippleEl) rippleEl.classList.add('ripple-active');
+            } else if (state.swState === 2) {
+                els.swState.classList.add('text-secondary-fixed-dim', 'bg-secondary-fixed/10');
+                if (rippleEl) rippleEl.classList.remove('ripple-active');
+            } else {
+                els.swState.classList.add('text-primary-fixed', 'bg-primary-fixed/10');
+                if (rippleEl) rippleEl.classList.remove('ripple-active');
+            }
         }
-        
+
         // Stopwatch ring resets every 60 seconds (60000 ms)
         renderTimerRing(ms % 60000, 60000, false, els.swRingContainer, 'timer-ring-progress', stateClass);
 
@@ -541,27 +581,31 @@ export function updateState(state) {
         const timerStateEl = document.getElementById('timer-state');
         const timerRipple = document.getElementById('timer-ripple');
         
+        // Derived every frame (pure, no DOM writes) so the ring keeps its state styling
         let stateClass = '';
+        if (state.tmrState === 1) stateClass = 'state-running';
+        else if (state.tmrState === 2) stateClass = 'state-paused';
+
         if (timerStateEl) {
             setText(timerStateEl, stateStr);
+            // Only modify classes if they need changing to prevent thrashing
             if (timerStateEl.dataset.state !== String(state.tmrState)) {
                 timerStateEl.dataset.state = String(state.tmrState);
                 timerStateEl.classList.remove('text-tertiary-fixed-dim', 'text-primary-fixed', 'text-secondary-fixed-dim', 'text-error', 'bg-tertiary-fixed/10', 'bg-primary-fixed/10', 'bg-secondary-fixed/10', 'bg-error/10');
-            
-            if (state.tmrState === 1) { // RUNNING
-                stateClass = 'state-running';
-                timerStateEl.classList.add('text-tertiary-fixed-dim', 'bg-tertiary-fixed/10');
-                if (timerRipple) timerRipple.classList.add('ripple-active');
-            } else if (state.tmrState === 2) { // PAUSED
-                stateClass = 'state-paused';
-                timerStateEl.classList.add('text-secondary-fixed-dim', 'bg-secondary-fixed/10');
-                if (timerRipple) timerRipple.classList.remove('ripple-active');
-            } else if (state.tmrState === 3) { // RINGING
-                timerStateEl.classList.add('text-error', 'bg-error/10');
-                if (timerRipple) timerRipple.classList.remove('ripple-active');
-            } else { // READY
-                timerStateEl.classList.add('text-primary-fixed', 'bg-primary-fixed/10');
-                if (timerRipple) timerRipple.classList.remove('ripple-active');
+
+                if (state.tmrState === 1) { // RUNNING
+                    timerStateEl.classList.add('text-tertiary-fixed-dim', 'bg-tertiary-fixed/10');
+                    if (timerRipple) timerRipple.classList.add('ripple-active');
+                } else if (state.tmrState === 2) { // PAUSED
+                    timerStateEl.classList.add('text-secondary-fixed-dim', 'bg-secondary-fixed/10');
+                    if (timerRipple) timerRipple.classList.remove('ripple-active');
+                } else if (state.tmrState === 3) { // RINGING
+                    timerStateEl.classList.add('text-error', 'bg-error/10');
+                    if (timerRipple) timerRipple.classList.remove('ripple-active');
+                } else { // READY
+                    timerStateEl.classList.add('text-primary-fixed', 'bg-primary-fixed/10');
+                    if (timerRipple) timerRipple.classList.remove('ripple-active');
+                }
             }
         }
         
@@ -603,7 +647,4 @@ export function updateState(state) {
             setText(els.volumeLabel, `${pct}%`);
         }
     }
-}
-
-}
 }

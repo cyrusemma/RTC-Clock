@@ -1,11 +1,14 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=7';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=7';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=7';
-import { VirtualRTC } from './VirtualRTC.js?v=7';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=9';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=9';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=9';
+import { VirtualRTC } from './VirtualRTC.js?v=9';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
+// Last state pushed to the UI, so a view switch can paint straight away
+// instead of waiting for the next telemetry frame.
+let lastKnownState = null;
 
 function sendCmd(cmd) {
     if (wsState.connected) {
@@ -23,6 +26,14 @@ function sendCmd(cmd) {
 
 window.selectMode = (mode) => {
     setActiveModeView(mode);
+    // Paint the alarm list right away — over BLE/WS the MODE round-trip is
+    // async, and waiting for it leaves the screen blank.
+    if (mode === 2) {
+        const snapshot = lastKnownState || (virtualRTC && virtualRTC.getState());
+        if (snapshot && snapshot.alarms) {
+            renderAlarmCards(snapshot.alarms, snapshot.alarmViewSlot);
+        }
+    }
     sendCmd(`MODE:${mode}`);
 };
 
@@ -273,21 +284,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderAnalogueClock(Math.floor(now.getTime() / 1000), -(new Date().getTimezoneOffset() / 60));
             }
             
-            // Check VirtualRTC alarms
-            const vState = virtualRTC.getState();
-            const timeObj = { h: now.getHours(), m: now.getMinutes() };
-            if (!vState.alarmRinging) {
-                for (let i = 0; i < vState.alarms.length; i++) {
-                    const alarm = vState.alarms[i];
-                    if (alarm.en && alarm.h === timeObj.h && alarm.m === timeObj.m) {
-                        // Prevent re-triggering in same minute
-                        if (virtualRTC.lastTriggeredAlarm !== `${i}-${timeObj.h}-${timeObj.m}`) {
-                            virtualRTC.lastTriggeredAlarm = `${i}-${timeObj.h}-${timeObj.m}`;
-                            virtualRTC.state.alarmRinging = true;
-                            virtualRTC.state.ringingSlot = i;
-                        }
-                    }
-                }
+            // Check VirtualRTC alarms — push to the UI so the banner and
+            // alarm sound actually fire, since tick() only reports sw/timer changes.
+            if (virtualRTC.checkAlarms(now)) {
+                wrappedUpdateState(virtualRTC.getState());
             }
         }
     }, 1000);
@@ -966,6 +966,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isFetchingAlarms = false;
     let isFetchingLaps = false;
     let lastBleState = null;
+    let renderRafHandle = null;
+    let pendingRenderState = null;
 
     let is12hFormat = localStorage.getItem('is12hFormat') === 'true';
 
@@ -1002,10 +1004,23 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (wsState.connected) {
              virtualRTC.setState(state);
         }
-        // Pass to UI layer via requestAnimationFrame to ensure smooth rendering
-        window.requestAnimationFrame(() => {
+        lastKnownState = state;
+
+        // Pass to the UI layer on the next frame. Coalesced: renderLoop already
+        // runs inside rAF, so scheduling one callback per call stacked them up
+        // and did the same DOM work several times per frame. Keep the newest
+        // state only and render it once.
+        pendingRenderState = state;
+        if (renderRafHandle !== null) return;
+
+        renderRafHandle = window.requestAnimationFrame(() => {
+            renderRafHandle = null;
+            const state = pendingRenderState;
+            pendingRenderState = null;
+            if (!state) return;
+
             _origUpdateState(state);
-            
+
             const alarmActive = state.alarmRinging || state.tmrState === 3;
             
             // Debounce the alarm trigger to avoid rapid beeping when state fluctuates
@@ -1038,7 +1053,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state) {
                 wrappedUpdateState(state);
             }
-        } else if (lastBleState) {
+        } else if (lastBleState && (lastBleState.swState === 1 || lastBleState.tmrState === 1)) {
+            // Only interpolate between telemetry frames while something is
+            // actually counting. Re-rendering the whole UI every frame when
+            // nothing moves was the main source of lag — idle screens are
+            // driven by the 250ms telemetry push instead.
             const state = { ...lastBleState };
             const delta = Date.now() - (state._localTs || Date.now());
             if (state.swState === 1) {
