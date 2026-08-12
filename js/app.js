@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=24';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=24';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker, renderTimezonePicker, tickTimezonePicker } from './ui.js?v=24';
-import { VirtualRTC } from './VirtualRTC.js?v=24';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=26';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=26';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker, renderTimezonePicker, tickTimezonePicker, computeZoneOffsetHours, setSelectedTzZone } from './ui.js?v=26';
+import { VirtualRTC } from './VirtualRTC.js?v=26';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -270,8 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
         openAppPage('view-timezone');
     }
 
+    const btnClockTzCountry = document.getElementById('clock-tz-country');
     if (btnClockTimezone) btnClockTimezone.addEventListener('click', openTimezonePicker);
     if (els.clockTz) els.clockTz.addEventListener('click', openTimezonePicker);
+    if (btnClockTzCountry) btnClockTzCountry.addEventListener('click', openTimezonePicker);
     if (btnTimezoneBack) btnTimezoneBack.addEventListener('click', closeAppPage);
 
     if (tzPickerList) {
@@ -280,8 +282,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!row) return;
             const offset = parseInt(row.dataset.offset);
             sendCmd(`SET_TIMEZONE:${offset}`);
+            setSelectedTzZone(row.dataset.name, offset);
             if (navigator.vibrate) navigator.vibrate(15);
             closeAppPage();
+        });
+    }
+
+    // World Clock cards double as timezone shortcuts. Their IANA zones are
+    // DST-aware and can drift off a whole hour across the year (America/
+    // New_York is -5 in winter, -4 in summer) — the firmware only stores a
+    // static whole-hour offset, so the current offset is computed fresh at
+    // tap time and rounded, rather than trusting anything baked in earlier.
+    if (els.worldClock) {
+        els.worldClock.addEventListener('click', (e) => {
+            const row = e.target.closest('.world-clock-row');
+            if (!row) return;
+            const tz = row.dataset.tz;
+            const label = row.dataset.label;
+            const offset = computeZoneOffsetHours(tz);
+            if (offset === null || offset < -12 || offset > 14) {
+                appendLog(`Could not resolve a time zone offset for ${label}`, 'sys');
+                return;
+            }
+            sendCmd(`SET_TIMEZONE:${offset}`);
+            setSelectedTzZone(label, offset);
+            if (navigator.vibrate) navigator.vibrate(15);
         });
     }
 

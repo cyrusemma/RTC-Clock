@@ -146,6 +146,56 @@ const WORLD_CLOCK_ZONES = [
 
 const WORLD_CLOCK_ICONS = { 'New York': 'location_city', 'London': 'account_balance', 'Accra': 'wb_sunny', 'Tokyo': 'landscape' };
 
+/*
+ * The firmware's tz_offset is one whole-hour integer with no DST logic — see
+ * TIMEZONE_COUNTRIES above. An IANA zone like America/New_York genuinely
+ * shifts between -5 and -4 across the year, so its offset can't be baked in
+ * statically the way the picker's list is; it has to be computed against
+ * "now" and then rounded to the nearest whole hour the device can store.
+ *
+ * Format `date` as if it were UTC in the target zone, then diff that against
+ * the real UTC time of `date` — the standard way to recover a zone's current
+ * offset without parsing a locale-formatted "GMT+9" string.
+ */
+export function computeZoneOffsetHours(tz, date = new Date()) {
+    try {
+        const dtf = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz, hour12: false,
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        const parts = {};
+        dtf.formatToParts(date).forEach(p => { parts[p.type] = p.value; });
+        const hour = parts.hour === '24' ? 0 : parseInt(parts.hour, 10);
+        const asUTC = Date.UTC(
+            parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10),
+            hour, parseInt(parts.minute, 10), parseInt(parts.second, 10)
+        );
+        return Math.round((asUTC - date.getTime()) / 3600000);
+    } catch (e) {
+        return null;
+    }
+}
+
+// The country/city name shown next to the clock — set whenever the picker or
+// the World Clock list is used to change the zone. Cleared implicitly: it is
+// only ever rendered when its stored offset still matches the device's
+// current one, so a stale or externally-changed offset just shows no name
+// rather than a wrong one.
+const SELECTED_TZ_KEY = 'selectedTzZone';
+
+export function getSelectedTzZone() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(SELECTED_TZ_KEY));
+        if (raw && typeof raw.name === 'string' && Number.isInteger(raw.offset)) return raw;
+    } catch (e) { /* corrupt or absent */ }
+    return null;
+}
+
+export function setSelectedTzZone(name, offset) {
+    localStorage.setItem(SELECTED_TZ_KEY, JSON.stringify({ name, offset }));
+}
+
 // Intl.DateTimeFormat construction is expensive — build each zone's formatter
 // once instead of on every frame.
 const WORLD_CLOCK_FORMATTERS = WORLD_CLOCK_ZONES.map(z => {
@@ -168,13 +218,13 @@ export function renderWorldClock(epochSeconds) {
             const formatted = fmt.format(base);
             const icon = icons[z.label] || 'public';
             return `
-            <div class="w-full flex items-center justify-between gap-3 bg-surface-variant/20 px-3 py-2.5 rounded-xl border border-outline-variant/20 backdrop-blur-sm shadow-sm hover:bg-surface-variant/40 transition-colors">
+            <button class="world-clock-row w-full flex items-center justify-between gap-3 bg-surface-variant/20 px-3 py-2.5 rounded-xl border border-outline-variant/20 backdrop-blur-sm shadow-sm hover:bg-surface-variant/40 active:scale-[0.98] transition-all cursor-pointer" data-tz="${z.tz}" data-label="${z.label}" title="Sync the clock to ${z.label}">
                 <div class="flex items-center gap-2 min-w-0">
                     <span class="material-symbols-outlined text-[14px] text-primary/70 shrink-0">${icon}</span>
                     <span class="text-xs text-on-surface/80 uppercase tracking-widest truncate">${z.label}</span>
                 </div>
                 <div class="text-lg font-display-time-mobile text-on-surface drop-shadow-md tabular-nums shrink-0">${formatted}</div>
-            </div>`;
+            </button>`;
         } catch(e) {
             return '';
         }
@@ -552,7 +602,7 @@ export function renderTimezonePicker(container, selectedOffset) {
         const html = TIMEZONE_COUNTRIES.map((c, i) => {
             const sign = c.offset >= 0 ? '+' : '';
             return `
-            <button class="tz-row" data-offset="${c.offset}">
+            <button class="tz-row" data-offset="${c.offset}" data-name="${escapeHtml(c.name)}">
                 <span class="tz-row-name">${escapeHtml(c.name)}</span>
                 <span class="tz-row-right">
                     <span class="tz-row-time" id="tz-row-time-${i}">--:--</span>
@@ -675,7 +725,21 @@ export function updateState(state) {
         const amPm = state.is12hFormat ? `<span class="text-3xl md:text-5xl ml-2 text-on-surface-variant">${d.getUTCHours() >= 12 ? 'PM' : 'AM'}</span>` : '';
         setHTML(els.clockTime, `${hhStr}<span class="colon-pulse">:</span>${mmStr}<span class="colon-pulse">:</span>${ssStr}${amPm}`);
         setText(els.clockTz, `UTC${state.timezoneOffset >= 0 ? '+' : ''}${state.timezoneOffset}`);
-        
+
+        // Show the last-picked country/city name only while it still matches
+        // the device's actual offset — if the zone was changed some other way
+        // (the hardware buttons, a different session) the remembered name is
+        // no longer trustworthy, so this falls back to no name rather than a
+        // wrong one.
+        const tzCountryBtn = document.getElementById('clock-tz-country');
+        if (tzCountryBtn) {
+            const selected = getSelectedTzZone();
+            const match = selected && selected.offset === state.timezoneOffset;
+            setClass(tzCountryBtn, 'hidden', !match);
+            setClass(tzCountryBtn, 'flex', !!match);
+            if (match) setText(document.getElementById('clock-tz-country-text'), selected.name);
+        }
+
         const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
         const dateTextEl = document.getElementById('date-text');
         if (dateTextEl) {

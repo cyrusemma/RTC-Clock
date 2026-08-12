@@ -64,7 +64,11 @@ export function connectWS(onStateChange, onDataReceived, onLog) {
             // Map JSON to the exact same structure as BLE parsePacket
             const parsed = {
                 protocolVersion: data.v,
-                epoch: data.epoch,
+                // The firmware's epoch field is really "true UTC + tz_offset"
+                // (a bug shared by the BLE packet — see the long comment above
+                // correctEpoch() in ble.js for the full explanation). Undo it
+                // the same way here so both transports hand off genuine UTC.
+                epoch: data.epoch - data.tz * 3600,
                 mode: data.mode,
                 alarmRinging: data.ringing,
                 is12hFormat: data['12h'],

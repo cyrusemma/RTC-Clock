@@ -176,6 +176,39 @@ export async function readLaps(count) {
     }
 }
 
+/*
+ * FIRMWARE BUG WORKAROUND — telemetry's epoch field is not true UTC.
+ *
+ * RTC_Clock_V2.ino computes the value it transmits like this (loop(), just
+ * before publishTelemetry(now)):
+ *
+ *   time_t adj     = time(nullptr) + (tz_offset * 3600);   // already shifted
+ *   struct tm* now = localtime(&adj);
+ *   ...
+ *   time_t epoch   = mktime(now);   // inside publishTelemetry()
+ *
+ * The firmware never calls setenv("TZ", ...)/tzset(), so mktime() has no
+ * configured offset of its own — it just reinterprets `now`'s already-shifted
+ * fields as if they were UTC. The OLED (drawClock(now)) renders that same
+ * `now` directly, so it is correct by construction. But the wire value ends
+ * up as `trueUTC + tz_offset*3600`, not trueUTC — and every renderer in this
+ * app (and the offline VirtualRTC, whose epoch genuinely is raw UTC) expects
+ * state.epoch to be real UTC and applies tz_offset itself on top. Left alone,
+ * that double-applies the offset: at a nonzero offset the app's clock drifts
+ * from the OLED by exactly one more offset-width than it should.
+ *
+ * Undoing the firmware's extra shift once, right here at the parsing
+ * boundary, keeps state.epoch genuinely UTC for every consumer downstream —
+ * the main clock, the analogue clock, and the World Clock's per-city
+ * calculations all stay correct without special-casing each of them.
+ * The proper fix is on the firmware side (send time(nullptr) rather than
+ * mktime(now)), but that needs a re-flash; this makes the web app correct
+ * against the firmware as it stands today.
+ */
+export function correctEpoch(rawEpoch, timezoneOffset) {
+    return rawEpoch - timezoneOffset * 3600;
+}
+
 // ── V2 Parser: 34-byte packet (firmware V2.0) ────────────────────────────────
 function parsePacketV2(dv) {
     const protocolVersion = dv.getUint8(0);
@@ -204,7 +237,7 @@ function parsePacketV2(dv) {
 
     return {
         protocolVersion,
-        epoch,
+        epoch: correctEpoch(epoch, timezoneOffset),
         mode,
         alarmRinging:    !!(flags & 0x01),
         is12hFormat:     !!(flags & 0x02),
@@ -264,7 +297,7 @@ function parsePacketV1(dv) {
 
     return {
         protocolVersion,
-        epoch,
+        epoch: correctEpoch(epoch, timezoneOffset),
         mode,
         alarmRinging:    !!(flags & 0x01),
         is12hFormat:     !!(flags & 0x04),
