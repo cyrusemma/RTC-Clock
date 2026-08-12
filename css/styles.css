@@ -692,6 +692,68 @@ body:has(#ios-install-tooltip:not(.hidden)) main.views {
     opacity: 0.45;
 }
 
+/* ─────────────────────────────────────────
+   TIME ZONE PICKER
+   ───────────────────────────────────────── */
+.tz-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    color: var(--md-sys-color-on-surface);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+}
+
+.tz-row:hover {
+    background-color: rgba(132, 148, 149, 0.08);
+}
+
+.tz-row-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+}
+
+.tz-row-time {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--md-sys-color-on-surface);
+    min-width: 3.4em;
+    text-align: right;
+}
+
+.tz-row-offset {
+    font-size: 10px;
+    color: var(--md-sys-color-outline);
+    background: rgba(132, 148, 149, 0.12);
+    padding: 2px 7px;
+    border-radius: 999px;
+    min-width: 3.6em;
+    text-align: center;
+}
+
+.tz-row-selected {
+    background-color: rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.1);
+}
+
+.tz-row-selected .tz-row-name {
+    color: var(--md-sys-color-primary-fixed-dim);
+    font-weight: 700;
+}
+
+.tz-row-selected .tz-row-offset {
+    background: var(--md-sys-color-primary-fixed-dim);
+    color: var(--md-sys-color-on-primary-fixed);
+}
+
 /* Nudge the wheels when a zero-length timer is saved */
 .shake {
     animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;

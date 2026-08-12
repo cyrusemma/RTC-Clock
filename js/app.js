@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=23';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=23';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=23';
-import { VirtualRTC } from './VirtualRTC.js?v=23';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=24';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=24';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, isIosDevice, getAlarmLabel, setAlarmLabel, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker, renderTimezonePicker, tickTimezonePicker } from './ui.js?v=24';
+import { VirtualRTC } from './VirtualRTC.js?v=24';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -253,6 +253,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnAboutBack) btnAboutBack.addEventListener('click', closeAppPage);
     if (btnHelpBack)  btnHelpBack.addEventListener('click',  closeAppPage);
 
+    // ── Time zone picker ─────────────────────────────────────────────────
+    const btnClockTimezone = document.getElementById('btn-clock-timezone');
+    const btnTimezoneBack  = document.getElementById('btn-timezone-back');
+    const tzPickerList     = document.getElementById('tz-picker-list');
+
+    function currentTzOffset() {
+        if (lastBleState && lastBleState.timezoneOffset !== undefined) return lastBleState.timezoneOffset;
+        if (virtualRTC) return virtualRTC.getState().timezoneOffset;
+        return 0;
+    }
+
+    function openTimezonePicker() {
+        renderTimezonePicker(tzPickerList, currentTzOffset());
+        tickTimezonePicker();
+        openAppPage('view-timezone');
+    }
+
+    if (btnClockTimezone) btnClockTimezone.addEventListener('click', openTimezonePicker);
+    if (els.clockTz) els.clockTz.addEventListener('click', openTimezonePicker);
+    if (btnTimezoneBack) btnTimezoneBack.addEventListener('click', closeAppPage);
+
+    if (tzPickerList) {
+        tzPickerList.addEventListener('click', (e) => {
+            const row = e.target.closest('.tz-row');
+            if (!row) return;
+            const offset = parseInt(row.dataset.offset);
+            sendCmd(`SET_TIMEZONE:${offset}`);
+            if (navigator.vibrate) navigator.vibrate(15);
+            closeAppPage();
+        });
+    }
+
     // Fullscreen Toggle
     const btnFullscreen = document.getElementById('btn-fullscreen');
     if (btnFullscreen) {
@@ -369,6 +401,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (virtualRTC.checkAlarms(now)) {
                 wrappedUpdateState(virtualRTC.getState());
             }
+        }
+        // The picker's per-country times are a pure client-side computation,
+        // independent of any connection — but only worth touching while the
+        // page is actually on screen.
+        const tzView = document.getElementById('view-timezone');
+        if (tzView && !tzView.classList.contains('hidden')) {
+            tickTimezonePicker();
         }
     }, 1000);
     // Initial call

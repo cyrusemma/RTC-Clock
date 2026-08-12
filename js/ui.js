@@ -466,6 +466,122 @@ export function renderActiveTimerLabel(meta) {
     setClass(els.timerActiveLock, 'hidden', !meta.lock);
 }
 
+/* ─────────────────────────────────────────
+   TIME ZONE PICKER
+   ───────────────────────────────────────── */
+// The firmware's SET_TIMEZONE:<-12..14> stores one whole-hour UTC offset with
+// no daylight-saving logic — a fixed manual offset, the same constraint a
+// physical travel clock has. Offsets below are each country's currently
+// standard (non-DST) whole-hour value; fractional-hour zones (India +5:30,
+// Nepal +5:45, etc.) are not representable and are left out on purpose.
+export const TIMEZONE_COUNTRIES = [
+    { name: 'American Samoa', offset: -11 },
+    { name: 'Hawaii, USA', offset: -10 },
+    { name: 'Alaska, USA', offset: -9 },
+    { name: 'Los Angeles, USA', offset: -8 },
+    { name: 'Vancouver, Canada', offset: -8 },
+    { name: 'Denver, USA', offset: -7 },
+    { name: 'Chicago, USA', offset: -6 },
+    { name: 'Mexico City, Mexico', offset: -6 },
+    { name: 'New York, USA', offset: -5 },
+    { name: 'Toronto, Canada', offset: -5 },
+    { name: 'Lima, Peru', offset: -5 },
+    { name: 'Bogotá, Colombia', offset: -5 },
+    { name: 'Santiago, Chile', offset: -4 },
+    { name: 'Caracas, Venezuela', offset: -4 },
+    { name: 'Buenos Aires, Argentina', offset: -3 },
+    { name: 'São Paulo, Brazil', offset: -3 },
+    { name: 'South Georgia', offset: -2 },
+    { name: 'Azores, Portugal', offset: -1 },
+    { name: 'United Kingdom', offset: 0 },
+    { name: 'Ghana', offset: 0 },
+    { name: 'Iceland', offset: 0 },
+    { name: 'Senegal', offset: 0 },
+    { name: 'Nigeria', offset: 1 },
+    { name: 'France', offset: 1 },
+    { name: 'Germany', offset: 1 },
+    { name: 'Spain', offset: 1 },
+    { name: 'Poland', offset: 1 },
+    { name: 'Algeria', offset: 1 },
+    { name: 'South Africa', offset: 2 },
+    { name: 'Egypt', offset: 2 },
+    { name: 'Greece', offset: 2 },
+    { name: 'Israel', offset: 2 },
+    { name: 'Finland', offset: 2 },
+    { name: 'Kenya', offset: 3 },
+    { name: 'Russia (Moscow)', offset: 3 },
+    { name: 'Saudi Arabia', offset: 3 },
+    { name: 'Turkey', offset: 3 },
+    { name: 'Iraq', offset: 3 },
+    { name: 'United Arab Emirates', offset: 4 },
+    { name: 'Oman', offset: 4 },
+    { name: 'Azerbaijan', offset: 4 },
+    { name: 'Pakistan', offset: 5 },
+    { name: 'Kazakhstan', offset: 5 },
+    { name: 'Uzbekistan', offset: 5 },
+    { name: 'Bangladesh', offset: 6 },
+    { name: 'Kyrgyzstan', offset: 6 },
+    { name: 'Thailand', offset: 7 },
+    { name: 'Vietnam', offset: 7 },
+    { name: 'Jakarta, Indonesia', offset: 7 },
+    { name: 'Cambodia', offset: 7 },
+    { name: 'China', offset: 8 },
+    { name: 'Singapore', offset: 8 },
+    { name: 'Philippines', offset: 8 },
+    { name: 'Malaysia', offset: 8 },
+    { name: 'Taiwan', offset: 8 },
+    { name: 'Japan', offset: 9 },
+    { name: 'South Korea', offset: 9 },
+    { name: 'Sydney, Australia', offset: 10 },
+    { name: 'Papua New Guinea', offset: 10 },
+    { name: 'Guam', offset: 10 },
+    { name: 'Solomon Islands', offset: 11 },
+    { name: 'New Caledonia', offset: 11 },
+    { name: 'New Zealand', offset: 12 },
+    { name: 'Fiji', offset: 12 },
+    { name: 'Tonga', offset: 13 },
+    { name: 'Samoa', offset: 13 },
+    { name: 'Kiribati (Line Islands)', offset: 14 },
+];
+
+let tzPickerBuilt = false;
+
+export function renderTimezonePicker(container, selectedOffset) {
+    if (!container) return;
+    if (!tzPickerBuilt) {
+        const html = TIMEZONE_COUNTRIES.map((c, i) => {
+            const sign = c.offset >= 0 ? '+' : '';
+            return `
+            <button class="tz-row" data-offset="${c.offset}">
+                <span class="tz-row-name">${escapeHtml(c.name)}</span>
+                <span class="tz-row-right">
+                    <span class="tz-row-time" id="tz-row-time-${i}">--:--</span>
+                    <span class="tz-row-offset">UTC${sign}${c.offset}</span>
+                </span>
+            </button>`;
+        }).join('');
+        setHTML(container, html);
+        tzPickerBuilt = true;
+    }
+    container.querySelectorAll('.tz-row').forEach(row => {
+        setClass(row, 'tz-row-selected', parseInt(row.dataset.offset) === selectedOffset);
+    });
+}
+
+// Cheap per-second tick: only touches the rows whose minute label actually
+// changed, via setText's diff — call only while the picker is on screen.
+export function tickTimezonePicker() {
+    const nowMs = Date.now();
+    TIMEZONE_COUNTRIES.forEach((c, i) => {
+        const el = document.getElementById(`tz-row-time-${i}`);
+        if (!el) return;
+        const d = new Date(nowMs + c.offset * 3600000);
+        const hh = String(d.getUTCHours()).padStart(2, '0');
+        const mm = String(d.getUTCMinutes()).padStart(2, '0');
+        setText(el, `${hh}:${mm}`);
+    });
+}
+
 // DOM Diffing Helpers
 function setText(el, text) {
     if (el && el.textContent !== text) el.textContent = text;

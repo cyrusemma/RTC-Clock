@@ -252,6 +252,11 @@ export class VirtualRTC {
         } else if (cmd === 'SET_VOLUME') {
             const v = parseInt(args[0]);
             this.state.buzzerVolume = isNaN(v) ? 180 : Math.max(0, Math.min(255, v));
+        } else if (cmd === 'SET_TIMEZONE') {
+            // Mirrors the firmware's SET_TIMEZONE:<-12..14> handler exactly,
+            // including its clamp — out-of-range values are ignored, not clipped.
+            const tz = parseInt(args[0]);
+            if (tz >= -12 && tz <= 14) this.state.timezoneOffset = tz;
         } else {
             needsUpdate = false;
         }
