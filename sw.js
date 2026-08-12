@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rtc-clock-v10';
+const CACHE_NAME = 'rtc-clock-v11';
 const ASSETS = [
     './',
     './index.html',
@@ -34,6 +34,19 @@ self.addEventListener('activate', event => {
         })
     );
     self.clients.claim();
+});
+
+// Tapping the running-timer notification brings the app back to the front
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+            for (const client of clientList) {
+                if ('focus' in client) return client.focus();
+            }
+            if (self.clients.openWindow) return self.clients.openWindow('./');
+        })
+    );
 });
 
 self.addEventListener('fetch', event => {

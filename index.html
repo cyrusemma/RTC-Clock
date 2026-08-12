@@ -16,7 +16,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="css/styles.css?v=11">
+    <link rel="stylesheet" href="css/styles.css?v=12">
 
     <script id="tailwind-config">
         tailwind.config = {
@@ -466,57 +466,43 @@
                     <!-- Selection highlight bar -->
                     <div class="absolute top-1/2 -translate-y-1/2 w-[85%] max-w-sm h-14 border-y border-primary-fixed/40 bg-gradient-to-r from-transparent via-primary-fixed/10 to-transparent pointer-events-none z-0 rounded-lg shadow-[0_0_15px_rgba(var(--md-sys-color-primary-fixed-rgb),0.1)]"></div>
                     <!-- Hours -->
-                    <div class="flex flex-col items-center z-10">
+                    <div class="flex items-center z-10">
                         <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-picker-hr" data-min="0" data-max="23">
                             <!-- Hours list -->
                         </div>
-                        <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">hr</span>
+                        <span class="picker-unit">h</span>
                     </div>
-                    <span class="font-bold text-3xl text-primary mx-1 z-10">:</span>
                     <!-- Minutes -->
-                    <div class="flex flex-col items-center z-10">
+                    <div class="flex items-center z-10 ml-3">
                         <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-picker-min" data-min="0" data-max="59">
                             <!-- Minutes list -->
                         </div>
-                        <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">min</span>
+                        <span class="picker-unit">m</span>
                     </div>
-                    <span class="font-bold text-3xl text-primary mx-1 z-10">:</span>
                     <!-- Seconds -->
-                    <div class="flex flex-col items-center z-10">
+                    <div class="flex items-center z-10 ml-3">
                         <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-picker-sec" data-min="0" data-max="59">
                             <!-- Seconds list -->
                         </div>
-                        <span class="font-mono-label text-[10px] text-outline uppercase tracking-widest mt-1">sec</span>
+                        <span class="picker-unit">s</span>
                     </div>
                 </div>
 
-                <!-- Presets Grid -->
-                <div class="grid grid-cols-3 gap-4 px-4 relative z-10">
-                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24 hover:shadow-[0_4px_20px_rgba(var(--md-sys-color-primary-rgb),0.2)] hover:-translate-y-1 transition-all group border-t border-white/5" data-hr="0" data-min="20" data-sec="0">
-                        <span class="material-symbols-outlined text-[24px] text-primary group-hover:scale-110 transition-transform duration-300">present_to_all</span>
-                        <span class="font-mono-label text-mono-label text-on-surface group-hover:text-primary transition-colors">Meeting</span>
-                        <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">00:20:00</span>
-                    </button>
-                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24 hover:shadow-[0_4px_20px_rgba(var(--md-sys-color-tertiary-rgb),0.2)] hover:-translate-y-1 transition-all group border-t border-white/5" data-hr="0" data-min="10" data-sec="0">
-                        <span class="material-symbols-outlined text-[24px] text-tertiary group-hover:scale-110 transition-transform duration-300">dark_mode</span>
-                        <span class="font-mono-label text-mono-label text-on-surface group-hover:text-tertiary transition-colors">Sleep</span>
-                        <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">00:10:00</span>
-                    </button>
-                    <button class="glass-button rounded-2xl p-4 flex flex-col items-center justify-center gap-2 preset-btn h-24 hover:shadow-[0_4px_20px_rgba(var(--md-sys-color-secondary-rgb),0.2)] hover:-translate-y-1 transition-all group border-t border-white/5" data-hr="0" data-min="15" data-sec="0">
-                        <span class="material-symbols-outlined text-[24px] text-secondary group-hover:scale-110 transition-transform duration-300">fitness_center</span>
-                        <span class="font-mono-label text-mono-label text-on-surface group-hover:text-secondary transition-colors">Exercise</span>
-                        <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">00:15:00</span>
-                    </button>
-                    <!-- Custom Preset Drop-zone styling -->
-                    <button id="btn-custom-preset" class="rounded-2xl p-4 flex flex-col items-center justify-center h-24 border-2 border-dashed border-outline-variant/40 hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer text-on-surface-variant hover:text-primary">
-                        <span id="custom-preset-icon" class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">add</span>
-                        <span id="custom-preset-label" class="text-[10px] font-mono-label mt-1">Save Current</span>
-                    </button>
+                <!-- Saved Timers Grid — cards are rendered from the saved timer store -->
+                <div class="grid grid-cols-3 gap-4 px-4 relative z-10" id="timer-presets-grid">
+                    <!-- Injected by app.js -->
                 </div>
+                <p class="font-mono-label text-[10px] text-outline-variant text-center -mt-4">Tap a timer to load it &middot; Press and hold to edit</p>
             </div>
 
             <!-- Timer Run View -->
             <div id="timer-run-view" class="hidden flex-col items-center justify-center w-full relative">
+                <!-- Name + sticker of the timer that is counting down -->
+                <div id="timer-active-label" class="hidden items-center gap-2 mb-3 z-10">
+                    <span id="timer-active-icon" class="material-symbols-outlined text-[18px] text-primary">hourglass_empty</span>
+                    <span id="timer-active-name" class="font-mono-label text-xs text-on-surface uppercase tracking-widest">Timer</span>
+                    <span id="timer-active-lock" class="material-symbols-outlined text-[14px] text-outline hidden" title="Shown on lock screen">lock</span>
+                </div>
                 <div id="timer-state" class="glass-badge text-tertiary-fixed-dim font-mono-label text-mono-label px-6 py-2 rounded-full flex items-center gap-2 mb-8 transition-colors duration-500 shadow-lg border border-outline-variant/20 z-10">
                     RUNNING
                 </div>
@@ -599,6 +585,96 @@
             <p class="font-mono-label text-xs text-outline-variant text-center mt-4">These custom tones play from your device's browser when the timer finishes.</p>
         </section>
         
+        <!-- ── TIMER EDITOR — full screen "Edit Timer" sheet ───────────────── -->
+        <div id="timer-editor" class="hidden fixed inset-0 z-[70] flex-col bg-background/95 backdrop-blur-2xl">
+            <!-- Header: cancel / title / confirm -->
+            <div class="flex items-center justify-between h-16 px-4 shrink-0 border-b border-outline-variant/20">
+                <button id="timer-editor-cancel" class="p-2 -ml-2 rounded-xl text-on-surface hover:text-error transition-colors" title="Discard" aria-label="Discard">
+                    <span class="material-symbols-outlined text-[26px]">close</span>
+                </button>
+                <h3 id="timer-editor-title" class="font-headline-md text-lg font-semibold text-on-surface">Edit Timer</h3>
+                <button id="timer-editor-save" class="p-2 -mr-2 rounded-xl text-primary-fixed-dim hover:text-primary transition-colors" title="Save" aria-label="Save">
+                    <span class="material-symbols-outlined text-[26px]">check</span>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto pb-10">
+                <!-- Duration wheels: hh h / mm m / ss s -->
+                <div id="timer-edit-wheels" class="flex justify-center items-center relative scroll-mask z-0" style="height: 240px;">
+                    <div class="absolute top-1/2 -translate-y-1/2 w-[85%] max-w-sm h-14 border-y border-primary-fixed/40 bg-gradient-to-r from-transparent via-primary-fixed/10 to-transparent pointer-events-none z-0 rounded-lg shadow-[0_0_15px_rgba(var(--md-sys-color-primary-fixed-rgb),0.1)]"></div>
+                    <div class="flex items-center z-10">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-edit-hr" data-min="0" data-max="23"></div>
+                        <span class="picker-unit">h</span>
+                    </div>
+                    <div class="flex items-center z-10 ml-3">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-edit-min" data-min="0" data-max="59"></div>
+                        <span class="picker-unit">m</span>
+                    </div>
+                    <div class="flex items-center z-10 ml-3">
+                        <div class="scroll-picker overflow-y-auto w-20 flex flex-col items-center text-center font-display-time-mobile text-3xl text-on-surface-variant/70 snap-y snap-mandatory" id="timer-edit-sec" data-min="0" data-max="59"></div>
+                        <span class="picker-unit">s</span>
+                    </div>
+                </div>
+
+                <!-- Settings rows -->
+                <div class="settings-card mx-4 max-w-md md:mx-auto rounded-2xl overflow-hidden divide-y divide-outline-variant/20">
+                    <button class="settings-row" id="timer-edit-name-row">
+                        <span class="settings-row-label">Timer name</span>
+                        <span class="settings-row-value">
+                            <span id="timer-edit-name-value">Timer</span>
+                            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                        </span>
+                    </button>
+                    <button class="settings-row" id="timer-edit-sticker-row">
+                        <span class="settings-row-label">Sticker</span>
+                        <span class="settings-row-value">
+                            <span id="timer-edit-sticker-icon" class="material-symbols-outlined text-[18px] text-primary-fixed-dim">hourglass_empty</span>
+                            <span id="timer-edit-sticker-value">Timer</span>
+                            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                        </span>
+                    </button>
+                    <div class="settings-row cursor-default">
+                        <span class="settings-row-label">Show on lock screen</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="timer-edit-lock" class="sr-only peer" aria-label="Show on lock screen">
+                            <div class="w-11 h-6 bg-surface-variant/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-fixed-dim border border-outline-variant/30 shadow-inner"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <p class="font-mono-label text-[10px] text-outline-variant text-center mt-3 px-6">A timer shown on the lock screen keeps a live countdown notification while it runs.</p>
+
+                <button id="timer-edit-delete" class="hidden mx-auto mt-6 px-6 py-3 rounded-xl glass-button font-mono-label text-mono-label font-bold text-error hover:border-error/60 transition-colors">
+                    Delete this timer
+                </button>
+            </div>
+
+            <!-- Sticker picker bottom sheet -->
+            <div id="sticker-sheet" class="hidden absolute inset-0 z-10">
+                <div class="absolute inset-0 bg-black/50" data-sheet-dismiss="sticker"></div>
+                <div class="absolute bottom-0 left-0 right-0 bg-surface-container rounded-t-3xl border-t border-outline-variant/30 shadow-2xl p-6 pb-10 slide-up-active">
+                    <h4 class="font-headline-md text-base font-semibold text-on-surface mb-5">Sticker</h4>
+                    <div class="grid grid-cols-4 gap-3" id="sticker-grid">
+                        <!-- Injected by app.js -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timer name bottom sheet -->
+            <div id="name-sheet" class="hidden absolute inset-0 z-10">
+                <div class="absolute inset-0 bg-black/50" data-sheet-dismiss="name"></div>
+                <div class="absolute bottom-0 left-0 right-0 bg-surface-container rounded-t-3xl border-t border-outline-variant/30 shadow-2xl p-6 pb-10 slide-up-active">
+                    <h4 class="font-headline-md text-base font-semibold text-on-surface mb-4">Timer name</h4>
+                    <input id="name-sheet-input" type="text" maxlength="18" placeholder="Timer" aria-label="Timer name"
+                        class="w-full input-dark rounded-xl px-4 py-3 font-mono-label text-sm mb-5">
+                    <div class="flex gap-3">
+                        <button id="name-sheet-cancel" class="glass-button rounded-xl flex-1 py-3 font-mono-label text-mono-label font-bold text-on-surface-variant">Cancel</button>
+                        <button id="name-sheet-ok" class="btn-primary rounded-xl flex-1 py-3 font-mono-label text-mono-label font-bold">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Backdrop Overlay for Activity Log Drawer -->
         <div id="log-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity duration-300"></div>
 
@@ -664,6 +740,6 @@
         </div>
     </nav>
 
-    <script type="module" src="js/app.js?v=10"></script>
+    <script type="module" src="js/app.js?v=11"></script>
 </body>
 </html>

@@ -466,4 +466,150 @@ body:has(#pwa-install-banner:not(.hidden)) #alarm-fab {
     appearance: textfield;
 }
 
+/* Unit suffix sitting beside a wheel (00 h  30 m  00 s) */
+.picker-unit {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--md-sys-color-outline);
+    margin-left: -6px;
+    padding-top: 10px;   /* optically centres on the selected row */
+    user-select: none;
+}
+
+/* ─────────────────────────────────────────
+   TIMER EDITOR SHEET
+   ───────────────────────────────────────── */
+#timer-editor {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+.settings-card {
+    background-color: rgba(53, 53, 52, 0.35);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(132, 148, 149, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.settings-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.settings-row:hover {
+    background-color: rgba(132, 148, 149, 0.08);
+}
+
+.settings-row:active:not(.cursor-default) {
+    background-color: rgba(132, 148, 149, 0.14);
+}
+
+.settings-row.cursor-default {
+    cursor: default;
+}
+
+.settings-row-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: var(--md-sys-color-on-surface);
+}
+
+.settings-row-value {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--md-sys-color-outline);
+    max-width: 55%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Sticker picker tiles */
+.sticker-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 4px;
+    border-radius: 16px;
+    color: var(--md-sys-color-outline);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.sticker-tile .material-symbols-outlined {
+    font-size: 26px;
+}
+
+.sticker-tile span:last-child {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+}
+
+.sticker-tile:hover {
+    background: rgba(132, 148, 149, 0.1);
+}
+
+.sticker-tile.selected {
+    color: var(--md-sys-color-primary-fixed-dim);
+    background: rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.12);
+    border-color: rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.45);
+}
+
+.sticker-tile.selected .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1;
+}
+
+/* Saved timer cards */
+.preset-btn {
+    position: relative;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.preset-btn.preset-active {
+    border-color: rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.6);
+    box-shadow: 0 0 0 1px rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.45),
+                0 6px 18px rgba(var(--md-sys-color-primary-fixed-dim-rgb), 0.2);
+}
+
+.preset-btn.holding {
+    transform: scale(0.94);
+    opacity: 0.85;
+}
+
+.preset-lock-badge {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 12px !important;
+    opacity: 0.45;
+}
+
+/* Nudge the wheels when a zero-length timer is saved */
+.shake {
+    animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+@keyframes shake {
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-7px); }
+    40%, 60% { transform: translateX(7px); }
+}
+
 

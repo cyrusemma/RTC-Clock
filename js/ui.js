@@ -46,7 +46,12 @@ export const els = {
     timerMinDisplay: document.getElementById('timer-min-display'),
     timerSecDisplay: document.getElementById('timer-sec-display'),
     timerActionIcon: document.getElementById('timer-action-icon'),
-    
+    timerPresetsGrid: document.getElementById('timer-presets-grid'),
+    timerActiveLabel: document.getElementById('timer-active-label'),
+    timerActiveIcon: document.getElementById('timer-active-icon'),
+    timerActiveName: document.getElementById('timer-active-name'),
+    timerActiveLock: document.getElementById('timer-active-lock'),
+
     swRingContainer: document.getElementById('sw-ring-container'),
 
     logContent: document.getElementById('log-content'),
@@ -57,8 +62,7 @@ export const els = {
     pwaDismissBtns: document.querySelectorAll('.pwa-dismiss'),
     iosInstallTooltip: document.getElementById('ios-install-tooltip'),
     btnIosDismiss: document.getElementById('btn-ios-dismiss'),
-    presetBtns: document.querySelectorAll('.preset-btn'),
-    
+
     // V2.1 Volume Controls
     volumeSlider: document.getElementById('volume-slider'),
     volumeLabel: document.getElementById('volume-label')
@@ -336,6 +340,72 @@ export function renderAlarmCards(alarms, activeSlot) {
     // animations on every frame and thrashes layout.
     setHTML(container, html);
     container.dataset.rendered = '1';
+}
+
+/* ─────────────────────────────────────────
+   SAVED TIMERS (stickers, names, lock screen)
+   ───────────────────────────────────────── */
+
+// The sticker set offered in the timer editor. `tone` is the Tailwind colour
+// class used for the icon on the saved-timer card.
+export const TIMER_STICKERS = {
+    timer:       { label: 'Timer',       icon: 'hourglass_empty',  tone: 'text-primary' },
+    meeting:     { label: 'Meeting',     icon: 'present_to_all',   tone: 'text-primary' },
+    sleep:       { label: 'Sleep',       icon: 'dark_mode',        tone: 'text-tertiary' },
+    exercise:    { label: 'Exercise',    icon: 'fitness_center',   tone: 'text-secondary' },
+    mindfulness: { label: 'Mindfulness', icon: 'self_improvement', tone: 'text-tertiary' },
+    work:        { label: 'Work',        icon: 'work',             tone: 'text-secondary' },
+};
+
+export function getSticker(key) {
+    return TIMER_STICKERS[key] || TIMER_STICKERS.timer;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+}
+
+export function renderTimerPresets(presets, activeId, maxPresets) {
+    const grid = els.timerPresetsGrid;
+    if (!grid) return;
+
+    const cards = presets.map(p => {
+        const s = getSticker(p.sticker);
+        const activeClass = p.id === activeId ? ' preset-active' : '';
+        const lockBadge = p.lock
+            ? `<span class="material-symbols-outlined preset-lock-badge" title="Shown on lock screen">lock</span>`
+            : '';
+        return `
+        <button class="preset-btn glass-button rounded-2xl px-2 py-3 flex flex-col items-center justify-center gap-1.5 h-24 hover:-translate-y-1 transition-all group border-t border-white/5${activeClass}" data-preset-id="${p.id}">
+            ${lockBadge}
+            <span class="material-symbols-outlined text-[24px] ${s.tone} group-hover:scale-110 transition-transform duration-300">${s.icon}</span>
+            <span class="font-mono-label text-mono-label text-on-surface truncate w-full text-center px-1">${escapeHtml(p.name)}</span>
+            <span class="text-[10px] text-outline group-hover:text-on-surface-variant transition-colors">${pad(p.hr)}:${pad(p.min)}:${pad(p.sec)}</span>
+        </button>`;
+    }).join('');
+
+    const addCard = presets.length >= maxPresets ? '' : `
+        <button id="btn-timer-preset-add" class="rounded-2xl p-4 flex flex-col items-center justify-center h-24 border-2 border-dashed border-outline-variant/40 hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer text-on-surface-variant hover:text-primary">
+            <span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">add</span>
+            <span class="text-[10px] font-mono-label mt-1">New Timer</span>
+        </button>`;
+
+    setHTML(grid, cards + addCard);
+}
+
+// Name + sticker shown above the countdown ring while a saved timer runs
+export function renderActiveTimerLabel(meta) {
+    if (!els.timerActiveLabel) return;
+    const show = !!(meta && meta.name);
+    setClass(els.timerActiveLabel, 'hidden', !show);
+    setClass(els.timerActiveLabel, 'flex', show);
+    if (!show) return;
+    const s = getSticker(meta.sticker);
+    setText(els.timerActiveIcon, s.icon);
+    setText(els.timerActiveName, meta.name);
+    setClass(els.timerActiveLock, 'hidden', !meta.lock);
 }
 
 // DOM Diffing Helpers

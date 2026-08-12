@@ -1,8 +1,8 @@
 // js/app.js
-import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=10';
-import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=10';
-import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView } from './ui.js?v=10';
-import { VirtualRTC } from './VirtualRTC.js?v=10';
+import { connect, disconnect, sendCommand, bleState, readAlarms, readLaps } from './ble.js?v=11';
+import { connectWS, disconnectWS, sendCommandWS, wsState } from './ws.js?v=11';
+import { initUI, updateConnectionState, appendLog, updateState, els, renderWorldClock, renderAnalogueClock, renderAlarmCards, setActiveModeView, renderTimerPresets, renderActiveTimerLabel, TIMER_STICKERS, getSticker } from './ui.js?v=11';
+import { VirtualRTC } from './VirtualRTC.js?v=11';
 
 let virtualRTC = null;
 let wrappedUpdateState = null;
@@ -608,73 +608,407 @@ document.addEventListener('DOMContentLoaded', () => {
     let timerDraft = { hr: 0, min: 0, sec: 0 };
     const timerPickerHr = initScrollPicker(
         document.getElementById('timer-picker-hr'), 0,
-        v => { timerDraft.hr = v; }
+        v => { timerDraft.hr = v; clearActiveTimerMeta(); }
     );
     const timerPickerMin = initScrollPicker(
         document.getElementById('timer-picker-min'), 0,
-        v => { timerDraft.min = v; }
+        v => { timerDraft.min = v; clearActiveTimerMeta(); }
     );
     const timerPickerSec = initScrollPicker(
         document.getElementById('timer-picker-sec'), 0,
-        v => { timerDraft.sec = v; }
+        v => { timerDraft.sec = v; clearActiveTimerMeta(); }
     );
     
-    // Timer Presets
-    els.presetBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (btn.hasAttribute('data-hr') || btn.hasAttribute('data-min')) {
-                const presetHr = parseInt(btn.dataset.hr || '0');
-                const presetMin = parseInt(btn.dataset.min || '0');
-                const presetSec = parseInt(btn.dataset.sec || '0');
-                timerPickerHr.setValue(presetHr);
-                timerPickerMin.setValue(presetMin);
-                timerPickerSec.setValue(presetSec);
-                timerDraft.hr = presetHr;
-                timerDraft.min = presetMin;
-                timerDraft.sec = presetSec;
-                sendCmd(`SET_TIMER:${presetHr},${presetMin},${presetSec}`);
-                if (navigator.vibrate) navigator.vibrate(20);
+    // ─── Saved Timers ─────────────────────────────────────────────────────
+    // Each saved timer carries a duration, a name, a sticker and a
+    // "show on lock screen" flag. Tapping a card loads it into the wheels;
+    // pressing and holding opens it in the editor; the "+" card creates one.
+    const TIMER_PRESETS_KEY = 'timerPresets';
+    const MAX_TIMER_PRESETS = 8;
+    const DEFAULT_TIMER_PRESETS = [
+        { id: 'p-meeting',  name: 'Meeting',  sticker: 'meeting',  hr: 0, min: 20, sec: 0, lock: true },
+        { id: 'p-sleep',    name: 'Sleep',    sticker: 'sleep',    hr: 0, min: 10, sec: 0, lock: true },
+        { id: 'p-exercise', name: 'Exercise', sticker: 'exercise', hr: 0, min: 15, sec: 0, lock: true },
+    ];
+
+    const clampInt = (v, min, max) => Math.max(min, Math.min(max, parseInt(v) || 0));
+
+    function normalizePreset(p) {
+        const name = String(p && p.name ? p.name : 'Timer').trim().slice(0, 18) || 'Timer';
+        return {
+            id: (p && p.id) || `t-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            name,
+            sticker: (p && TIMER_STICKERS[p.sticker]) ? p.sticker : 'timer',
+            hr: clampInt(p && p.hr, 0, 23),
+            min: clampInt(p && p.min, 0, 59),
+            sec: clampInt(p && p.sec, 0, 59),
+            lock: !!(p && p.lock),
+        };
+    }
+
+    function loadTimerPresets() {
+        let stored = null;
+        try { stored = JSON.parse(localStorage.getItem(TIMER_PRESETS_KEY)); } catch (e) { stored = null; }
+        if (Array.isArray(stored)) return stored.map(normalizePreset);
+
+        // First run: seed the defaults and carry over the single anonymous
+        // preset the old "Save Current" button used to store.
+        const seeded = DEFAULT_TIMER_PRESETS.map(normalizePreset);
+        try {
+            const legacy = JSON.parse(localStorage.getItem('timerCustomPreset') || 'null');
+            if (legacy) {
+                seeded.push(normalizePreset({ id: 'p-legacy', name: 'Timer', sticker: 'timer', hr: legacy.hr, min: legacy.min, sec: legacy.sec, lock: true }));
+                localStorage.removeItem('timerCustomPreset');
+            }
+        } catch (e) { /* nothing to migrate */ }
+        localStorage.setItem(TIMER_PRESETS_KEY, JSON.stringify(seeded));
+        return seeded;
+    }
+
+    let timerPresets = loadTimerPresets();
+    let activeTimerMeta = null;   // the saved timer currently loaded into the wheels
+
+    function saveTimerPresets() {
+        localStorage.setItem(TIMER_PRESETS_KEY, JSON.stringify(timerPresets));
+    }
+
+    function renderPresets() {
+        renderTimerPresets(timerPresets, activeTimerMeta ? activeTimerMeta.id : null, MAX_TIMER_PRESETS);
+    }
+
+    function applyPreset(preset) {
+        activeTimerMeta = { id: preset.id, name: preset.name, sticker: preset.sticker, lock: preset.lock };
+        timerDraft.hr = preset.hr;
+        timerDraft.min = preset.min;
+        timerDraft.sec = preset.sec;
+        timerPickerHr.setValue(preset.hr);
+        timerPickerMin.setValue(preset.min);
+        timerPickerSec.setValue(preset.sec);
+        renderActiveTimerLabel(activeTimerMeta);
+        renderPresets();
+        sendCmd(`SET_TIMER:${preset.hr},${preset.min},${preset.sec}`);
+        if (navigator.vibrate) navigator.vibrate(20);
+    }
+
+    // Scrolling the wheels by hand detaches the run from any saved timer
+    function clearActiveTimerMeta() {
+        if (!activeTimerMeta) return;
+        activeTimerMeta = null;
+        renderActiveTimerLabel(null);
+        renderPresets();
+    }
+
+    renderPresets();
+
+    // ── Card interaction: tap loads, press-and-hold edits ──────────────────
+    const presetsGrid = els.timerPresetsGrid;
+    let holdTimer = null;
+    let holdCard = null;
+    // Releasing a long press still delivers a click. Swallow just that one, by
+    // timestamping the release — latching a flag instead would eat the next
+    // real tap whenever the trailing click never arrives (touch screens).
+    let holdDidFire = false;
+    let holdEndedAt = 0;
+
+    const releaseHold = () => {
+        clearTimeout(holdTimer);
+        if (holdCard) holdCard.classList.remove('holding');
+        holdCard = null;
+    };
+
+    const endHold = () => {
+        if (holdDidFire) {
+            holdDidFire = false;
+            holdEndedAt = Date.now();
+        }
+        releaseHold();
+    };
+
+    if (presetsGrid) {
+        presetsGrid.addEventListener('pointerdown', (e) => {
+            const card = e.target.closest('.preset-btn');
+            if (!card) return;
+            holdCard = card;
+            holdDidFire = false;
+            card.classList.add('holding');
+            holdTimer = setTimeout(() => {
+                holdDidFire = true;
+                releaseHold();
+                const preset = timerPresets.find(p => p.id === card.dataset.presetId);
+                if (preset) {
+                    if (navigator.vibrate) navigator.vibrate(30);
+                    openTimerEditor(preset);
+                }
+            }, 550);
+        });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev =>
+            presetsGrid.addEventListener(ev, endHold));
+        presetsGrid.addEventListener('contextmenu', (e) => {
+            if (e.target.closest('.preset-btn')) e.preventDefault();
+        });
+
+        presetsGrid.addEventListener('click', (e) => {
+            if (Date.now() - holdEndedAt < 400) return;
+            if (e.target.closest('#btn-timer-preset-add')) {
+                openTimerEditor(null);
+                return;
+            }
+            const card = e.target.closest('.preset-btn');
+            if (!card) return;
+            const preset = timerPresets.find(p => p.id === card.dataset.presetId);
+            if (preset) applyPreset(preset);
+        });
+    }
+
+    // ── Timer editor sheet ────────────────────────────────────────────────
+    const timerEditor      = document.getElementById('timer-editor');
+    const editorTitle      = document.getElementById('timer-editor-title');
+    const editorWheels     = document.getElementById('timer-edit-wheels');
+    const editNameRow      = document.getElementById('timer-edit-name-row');
+    const editNameValue    = document.getElementById('timer-edit-name-value');
+    const editStickerRow   = document.getElementById('timer-edit-sticker-row');
+    const editStickerValue = document.getElementById('timer-edit-sticker-value');
+    const editStickerIcon  = document.getElementById('timer-edit-sticker-icon');
+    const editLockToggle   = document.getElementById('timer-edit-lock');
+    const editDeleteBtn    = document.getElementById('timer-edit-delete');
+    const stickerSheet     = document.getElementById('sticker-sheet');
+    const stickerGrid      = document.getElementById('sticker-grid');
+    const nameSheet        = document.getElementById('name-sheet');
+    const nameSheetInput   = document.getElementById('name-sheet-input');
+
+    let editorDraft = null;
+    let editPickers = null;
+
+    function ensureEditPickers() {
+        if (editPickers) return editPickers;
+        editPickers = {
+            hr:  initScrollPicker(document.getElementById('timer-edit-hr'),  editorDraft ? editorDraft.hr  : 0, v => { if (editorDraft) editorDraft.hr  = v; }),
+            min: initScrollPicker(document.getElementById('timer-edit-min'), editorDraft ? editorDraft.min : 0, v => { if (editorDraft) editorDraft.min = v; }),
+            sec: initScrollPicker(document.getElementById('timer-edit-sec'), editorDraft ? editorDraft.sec : 0, v => { if (editorDraft) editorDraft.sec = v; }),
+        };
+        return editPickers;
+    }
+
+    function refreshEditorRows() {
+        if (!editorDraft) return;
+        const s = getSticker(editorDraft.sticker);
+        if (editNameValue) editNameValue.textContent = editorDraft.name;
+        if (editStickerValue) editStickerValue.textContent = s.label;
+        if (editStickerIcon) editStickerIcon.textContent = s.icon;
+        if (editLockToggle) editLockToggle.checked = !!editorDraft.lock;
+    }
+
+    function openTimerEditor(preset) {
+        editorDraft = preset
+            ? { ...preset, isNew: false }
+            : normalizePreset({ name: 'Timer', sticker: 'timer', hr: 0, min: 5, sec: 0, lock: true });
+        if (!preset) editorDraft.isNew = true;
+
+        if (editorTitle) editorTitle.textContent = editorDraft.isNew ? 'Add Timer' : 'Edit Timer';
+        if (editDeleteBtn) editDeleteBtn.classList.toggle('hidden', !!editorDraft.isNew);
+        refreshEditorRows();
+        closeSubSheet('sticker');
+        closeSubSheet('name');
+
+        timerEditor.classList.remove('hidden');
+        timerEditor.classList.add('flex');
+
+        // The wheels can only be positioned once the sheet has layout
+        const firstBuild = !editPickers;
+        requestAnimationFrame(() => {
+            const pickers = ensureEditPickers();
+            if (!firstBuild) {
+                pickers.hr.setValue(editorDraft.hr);
+                pickers.min.setValue(editorDraft.min);
+                pickers.sec.setValue(editorDraft.sec);
             }
         });
-    });
+    }
 
-    // Custom Preset Button Logic
-    const btnCustomPreset = document.getElementById('btn-custom-preset');
-    if (btnCustomPreset) {
-        const customData = JSON.parse(localStorage.getItem('timerCustomPreset') || 'null');
-        if (customData) {
-            btnCustomPreset.dataset.hr = customData.hr;
-            btnCustomPreset.dataset.min = customData.min;
-            btnCustomPreset.dataset.sec = customData.sec;
-            document.getElementById('custom-preset-label').textContent = `${String(customData.hr).padStart(2,'0')}:${String(customData.min).padStart(2,'0')}:${String(customData.sec).padStart(2,'0')}`;
-            document.getElementById('custom-preset-icon').textContent = 'star';
+    function closeTimerEditor() {
+        timerEditor.classList.add('hidden');
+        timerEditor.classList.remove('flex');
+        closeSubSheet('sticker');
+        closeSubSheet('name');
+        editorDraft = null;
+    }
+
+    function openSubSheet(which) {
+        const sheet = which === 'sticker' ? stickerSheet : nameSheet;
+        if (!sheet) return;
+        sheet.classList.remove('hidden');
+        sheet.classList.add('block');
+    }
+
+    function closeSubSheet(which) {
+        const sheet = which === 'sticker' ? stickerSheet : nameSheet;
+        if (!sheet) return;
+        sheet.classList.add('hidden');
+        sheet.classList.remove('block');
+    }
+
+    function renderStickerGrid() {
+        if (!stickerGrid) return;
+        stickerGrid.innerHTML = Object.entries(TIMER_STICKERS).map(([key, s]) => `
+            <button class="sticker-tile${editorDraft && editorDraft.sticker === key ? ' selected' : ''}" data-sticker="${key}">
+                <span class="material-symbols-outlined">${s.icon}</span>
+                <span>${s.label}</span>
+            </button>`).join('');
+    }
+
+    function commitTimerEditor() {
+        if (!editorDraft) return;
+        if (editPickers) {
+            editorDraft.hr  = editPickers.hr.getValue();
+            editorDraft.min = editPickers.min.getValue();
+            editorDraft.sec = editPickers.sec.getValue();
+        }
+        if (editorDraft.hr === 0 && editorDraft.min === 0 && editorDraft.sec === 0) {
+            // A zero-length timer is not useful — nudge the wheels instead of saving
+            if (editorWheels) {
+                editorWheels.classList.remove('shake');
+                void editorWheels.offsetWidth;
+                editorWheels.classList.add('shake');
+            }
+            if (navigator.vibrate) navigator.vibrate([20, 60, 20]);
+            return;
         }
 
-        btnCustomPreset.addEventListener('click', (e) => {
-            const curHr = timerPickerHr.getValue();
-            const curMin = timerPickerMin.getValue();
-            const curSec = timerPickerSec.getValue();
-            
-            const savedHr = parseInt(btnCustomPreset.dataset.hr || '-1');
-            const savedMin = parseInt(btnCustomPreset.dataset.min || '-1');
-            const savedSec = parseInt(btnCustomPreset.dataset.sec || '-1');
-            
-            if (savedHr === curHr && savedMin === curMin && savedSec === curSec) {
-                // Apply preset
-                sendCmd(`SET_TIMER:${curHr},${curMin},${curSec}`);
-                if (navigator.vibrate) navigator.vibrate(20);
-            } else {
-                // Save custom preset
-                btnCustomPreset.dataset.hr = curHr;
-                btnCustomPreset.dataset.min = curMin;
-                btnCustomPreset.dataset.sec = curSec;
-                localStorage.setItem('timerCustomPreset', JSON.stringify({hr: curHr, min: curMin, sec: curSec}));
-                document.getElementById('custom-preset-label').textContent = `${String(curHr).padStart(2,'0')}:${String(curMin).padStart(2,'0')}:${String(curSec).padStart(2,'0')}`;
-                document.getElementById('custom-preset-icon').textContent = 'star';
-                showNotification("Preset Saved", "Your custom timer has been saved.");
-                if (navigator.vibrate) navigator.vibrate(20);
+        const clean = normalizePreset(editorDraft);
+        const idx = timerPresets.findIndex(p => p.id === clean.id);
+        if (idx === -1) {
+            if (timerPresets.length >= MAX_TIMER_PRESETS) {
+                alert(`You can save up to ${MAX_TIMER_PRESETS} timers. Delete one first.`);
+                return;
             }
+            timerPresets.push(clean);
+        } else {
+            timerPresets[idx] = clean;
+        }
+        saveTimerPresets();
+        closeTimerEditor();
+        applyPreset(clean);
+    }
+
+    function deleteEditedTimer() {
+        if (!editorDraft || editorDraft.isNew) return;
+        if (!confirm(`Delete "${editorDraft.name}"?`)) return;
+        timerPresets = timerPresets.filter(p => p.id !== editorDraft.id);
+        saveTimerPresets();
+        if (activeTimerMeta && activeTimerMeta.id === editorDraft.id) {
+            activeTimerMeta = null;
+            renderActiveTimerLabel(null);
+        }
+        closeTimerEditor();
+        renderPresets();
+    }
+
+    if (timerEditor) {
+        document.getElementById('timer-editor-cancel').addEventListener('click', closeTimerEditor);
+        document.getElementById('timer-editor-save').addEventListener('click', commitTimerEditor);
+        if (editDeleteBtn) editDeleteBtn.addEventListener('click', deleteEditedTimer);
+
+        if (editStickerRow) {
+            editStickerRow.addEventListener('click', () => {
+                renderStickerGrid();
+                openSubSheet('sticker');
+            });
+        }
+        if (stickerGrid) {
+            stickerGrid.addEventListener('click', (e) => {
+                const tile = e.target.closest('.sticker-tile');
+                if (!tile || !editorDraft) return;
+                editorDraft.sticker = tile.dataset.sticker;
+                // A still-default name follows the sticker, the way the phone does it
+                if (editorDraft.isNew && (editorDraft.name === 'Timer' || Object.values(TIMER_STICKERS).some(s => s.label === editorDraft.name))) {
+                    editorDraft.name = getSticker(editorDraft.sticker).label;
+                }
+                refreshEditorRows();
+                renderStickerGrid();
+                closeSubSheet('sticker');
+                if (navigator.vibrate) navigator.vibrate(10);
+            });
+        }
+
+        if (editNameRow) {
+            editNameRow.addEventListener('click', () => {
+                if (!editorDraft) return;
+                nameSheetInput.value = editorDraft.name;
+                openSubSheet('name');
+                setTimeout(() => nameSheetInput.focus(), 50);
+            });
+        }
+        document.getElementById('name-sheet-cancel').addEventListener('click', () => closeSubSheet('name'));
+        document.getElementById('name-sheet-ok').addEventListener('click', () => {
+            if (editorDraft) {
+                editorDraft.name = (nameSheetInput.value || '').trim().slice(0, 18) || 'Timer';
+                refreshEditorRows();
+            }
+            closeSubSheet('name');
         });
+        nameSheetInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('name-sheet-ok').click();
+        });
+
+        if (editLockToggle) {
+            editLockToggle.addEventListener('change', () => {
+                if (editorDraft) editorDraft.lock = editLockToggle.checked;
+            });
+        }
+
+        timerEditor.querySelectorAll('[data-sheet-dismiss]').forEach(el => {
+            el.addEventListener('click', () => closeSubSheet(el.dataset.sheetDismiss));
+        });
+    }
+
+    // ── Lock-screen countdown notification ────────────────────────────────
+    let swRegistration = null;
+    let lockNotifTimer = null;
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => { swRegistration = reg; }).catch(() => {});
+    }
+
+    function formatRemaining(ms) {
+        const total = Math.max(0, Math.round(ms / 1000));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor(total / 60) % 60;
+        const s = total % 60;
+        const p = n => String(n).padStart(2, '0');
+        return `${p(h)}:${p(m)}:${p(s)}`;
+    }
+
+    function pushLockScreenNotification() {
+        if (!swRegistration || !activeTimerMeta || !activeTimerMeta.lock) return;
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        const remaining = lastBleState ? lastBleState.tmrRemainingMs : 0;
+        swRegistration.showNotification(activeTimerMeta.name, {
+            body: `${formatRemaining(remaining)} remaining`,
+            icon: 'icon.png',
+            badge: 'icon.png',
+            tag: 'rtc-timer-running',
+            renotify: false,
+            silent: true,
+            requireInteraction: true,
+        }).catch(() => {});
+    }
+
+    function startLockScreenTimer() {
+        if (lockNotifTimer) return;
+        if (!activeTimerMeta || !activeTimerMeta.lock) return;
+        pushLockScreenNotification();
+        lockNotifTimer = setInterval(pushLockScreenNotification, 1000);
+    }
+
+    function stopLockScreenTimer() {
+        if (lockNotifTimer) {
+            clearInterval(lockNotifTimer);
+            lockNotifTimer = null;
+        }
+        if (swRegistration && swRegistration.getNotifications) {
+            swRegistration.getNotifications({ tag: 'rtc-timer-running' })
+                .then(list => list.forEach(n => n.close()))
+                .catch(() => {});
+        }
     }
 
     const btnTimerAction = document.getElementById('btn-timer-action');
@@ -972,6 +1306,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastBleState = null;
     let renderRafHandle = null;
     let pendingRenderState = null;
+    let lastTmrStateSeen = -1;
 
     let is12hFormat = localStorage.getItem('is12hFormat') === 'true';
 
@@ -1033,8 +1368,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                   (state.swState === 1 || state.tmrState === 1);
             if (!interpolating) _origUpdateState(state);
 
+            // Keep the lock-screen countdown in step with the timer. Only a
+            // saved timer with "Show on lock screen" enabled posts one.
+            if (state.tmrState !== lastTmrStateSeen) {
+                lastTmrStateSeen = state.tmrState;
+                if (state.tmrState === 1) startLockScreenTimer();
+                else stopLockScreenTimer();
+            }
+
             const alarmActive = state.alarmRinging || state.tmrState === 3;
-            
+
             // Debounce the alarm trigger to avoid rapid beeping when state fluctuates
             if (alarmActive !== lastAlarmState) {
                 if (!window.alarmDebounceTimeout) {
@@ -1042,7 +1385,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (alarmActive) {
                             const isTimer = state.tmrState === 3 && !state.alarmRinging;
                             startAlarm(isTimer);
-                            let notifTitle = state.alarmRinging ? 'Alarm Ringing!' : 'Timer Done!';
+                            let notifTitle = state.alarmRinging
+                                ? 'Alarm Ringing!'
+                                : (activeTimerMeta ? `${activeTimerMeta.name} finished!` : 'Timer Done!');
                             showNotification(notifTitle, 'Open the clock app to dismiss.');
                         } else {
                             stopAlarm();
